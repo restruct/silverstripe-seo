@@ -211,7 +211,7 @@ class StructuredDataOutputTest extends FunctionalTest
 
     public function testBreadcrumbFromTheTrail(): void
     {
-        $this->publish(SeoTestPage::create(['Title' => 'Home', 'URLSegment' => 'home']));
+        $home = $this->publish(SeoTestPage::create(['Title' => 'Home', 'URLSegment' => 'home']));
         $parent = $this->publish(SeoTestPage::create(['Title' => 'Services', 'URLSegment' => 'services']));
         $this->publish(SeoTestPage::create([
             'Title' => 'Repairs and maintenance',
@@ -225,7 +225,8 @@ class StructuredDataOutputTest extends FunctionalTest
         $breadcrumb = $graph[$url . '#breadcrumb'];
         $this->assertSame('BreadcrumbList', $breadcrumb['@type']);
         $this->assertSame([
-            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $this->base() . '/'],
+            # Each crumb links to the page's canonical URL (for the home page: the site root, as the page link has it)
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $home->SeoCanonicalURL()],
             ['@type' => 'ListItem', 'position' => 2, 'name' => 'Services', 'item' => Director::absoluteURL('/services')],
             ['@type' => 'ListItem', 'position' => 3, 'name' => 'Repairs', 'item' => $url],
         ], $breadcrumb['itemListElement']);

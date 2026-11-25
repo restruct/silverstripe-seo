@@ -18,3 +18,15 @@ SilverStripe\CMS\Controllers\ContentController:
 SilverStripe\SiteConfig\SiteConfig:
   extensions:
     seo: Restruct\Silverstripe\SEO\Extensions\SeoSiteConfigExtension
+    # The site's Organization node in structured data, mapped from SiteConfig, with one fixed @id
+    # (<base URL>/#organization) every other node can point at with { ref: organization }
+    seo-schema: Restruct\Silverstripe\SEO\Extensions\SchemaSource
+  schema_type: Organization
+  schema_id: organization
+  # Only core SiteConfig fields and the module's own. A project adds its own (address, telephone, email, more
+  # sameAs fields) in its YAML, or sets a property to null to drop it; a LocalBusiness sets schema_type
+  schema_map:
+    name: Title
+    url: SeoSchemaSiteURL
+    logo: SeoLogo
+    sameAs: SeoSchemaSameAs

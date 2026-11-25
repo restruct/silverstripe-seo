@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Extensions;
 
 use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
+use Restruct\Silverstripe\SEO\Schema\PageSchema;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
 use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\Image;
@@ -51,8 +52,10 @@ use SilverStripe\Versioned\Versioned;
  * - `updateSeoRobotsDirectives(array &$directives)`: the robots directives, e.g. to add `max-image-preview`;
  * - `updateSeoCanonicalURL(?string &$url, ?HTTPRequest $request)`;
  * - `updateSeoImageFallback(?Image &$image)`: the sharing image when the page has none of its own;
- * - `updateSeoMetaComponents(array &$tags)`: every head tag this module produced, just before output. Structured
- *   data (a later version) is added at this point.
+ * - `updateSeoMetaComponents(array &$tags)`: every head tag this module produced, just before output. The
+ *   structured data is the `structured-data` entry.
+ * - `updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)`: the structured-data graph of the page view,
+ *   before incomplete nodes are left out (see {@see PageSchema}).
  *
  * @property string $MetaTitle
  * @property bool $MetaRobotsNoIndex
@@ -230,6 +233,35 @@ class SeoSiteTreeExtension extends Extension
      * output. Empty: PHP's default timezone, which is what Silverstripe reads the stored values with.
      */
     private static string $seo_schema_timezone = '';
+
+    /**
+     * Print the structured data (one `<script type="application/ld+json">` with the page's `@graph`). Switch off
+     * when the theme or another module already prints JSON-LD for the same things.
+     */
+    private static bool $seo_output_structured_data = true;
+
+    /**
+     * The schema.org type of the page's WebPage node, per page class: `AboutPage`, `ContactPage`,
+     * `CollectionPage` (a listing), `ItemPage`, ...
+     */
+    private static string $schema_webpage_type = 'WebPage';
+
+    /**
+     * A relation or method of the page whose records the page lists: output as an ItemList of their URLs, which
+     * becomes the page's main entity when it has none of its own. Empty: no ItemList.
+     */
+    private static string $schema_item_list = '';
+
+    /**
+     * At most this many entries in the ItemList; 0 for no limit.
+     */
+    private static int $schema_item_list_limit = 100;
+
+    /**
+     * Relations or methods of the page whose records are added as nodes of their own (each must be a structured
+     * data source). A list, so a project's YAML adds to it.
+     */
+    private static array $schema_includes = [];
 
     # --- CMS -----------------------------------------------------------------------------------------------------
 
@@ -576,6 +608,26 @@ class SeoSiteTreeExtension extends Extension
         return static::isUsableImage($default) ? $default : null;
     }
 
+    /**
+     * The structured data of this page view: for the record the controller shows, when it declared one, else for
+     * the page itself.
+     */
+    public function SeoSchema(): PageSchema
+    {
+        return PageSchema::create($this->getOwner(), $this->SeoSubjectMetadata()?->getRecord());
+    }
+
+    /**
+     * Missing required properties (the node is then left out) and missing recommended ones, for every node the
+     * page view would output. See {@see PageSchema::getWarnings()} for the shape of an entry.
+     *
+     * @return array[]
+     */
+    public function getSchemaWarnings(): array
+    {
+        return $this->SeoSchema()->getWarnings();
+    }
+
     # --- Head output ---------------------------------------------------------------------------------------------
 
     /**
@@ -611,6 +663,22 @@ class SeoSiteTreeExtension extends Extension
         if ($page->config()->get('seo_output_open_graph')) {
             foreach ($this->openGraphTags($canonical) as $key => $tag) {
                 $tags[$key] = $tag;
+            }
+        }
+
+        # Not on an error answer or an error page: the URL describes nothing
+        if ($status < 400 && $page->config()->get('seo_output_structured_data')
+            && $page->isInDB() && !static::isErrorPage($page)
+        ) {
+            $json = $this->SeoSchema()->getGraph()->toJson();
+            if ($json !== '') {
+                # HTML::createTag does not escape content; the JSON is made safe for a script element by
+                # SchemaGraph (JSON_HEX_TAG), so it goes in as it is
+                $tags['structured-data'] = [
+                    'tag' => 'script',
+                    'attributes' => ['type' => 'application/ld+json'],
+                    'content' => $json,
+                ];
             }
         }
 

@@ -20,6 +20,13 @@ nl:
   Restruct\Silverstripe\SEO\Extensions\SeoSiteConfigExtension:
     SeoDefaultImage: 'Standaard deelafbeelding'
     SeoDefaultImageHelp: 'Gebruikt als een gedeelde pagina geen eigen deelafbeelding heeft. Het beste op 1200 x 630 pixels.'
+    SeoLogo: 'Logo'
+    SeoLogoHelp: 'Het logo van de organisatie voor zoekmachines. Minstens 112 x 112 pixels, leesbaar op een witte achtergrond.'
+    SeoSameAs: 'Profielen op andere sites'
+    SeoSameAsHelp: 'De pagina''s van de organisatie op andere sites (social media, een handelsregister), een URL per regel.'
     SeoTitleSuffix: 'Titelachtervoegsel'
     SeoTitleSuffixHelp: 'Komt na elke paginatitel in zoekresultaten, bijvoorbeeld "Over ons | Uw site". Leeg laten om de sitetitel te gebruiken.'
     TabTitle: 'SEO'
+  Restruct\Silverstripe\SEO\Schema\PageSchema:
+    MissingRecommended: '{type} mist {property}, dat wordt aanbevolen.'
+    MissingRequired: '{type} mist {property}, dat verplicht is: het wordt niet uitgevoerd.'

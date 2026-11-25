@@ -127,11 +127,35 @@ class SchemaGraph
      */
     public function pruneReferences(string $prefix): bool
     {
+        # Nested nodes with an @id of their own (a place inside an event) are valid targets too
+        $this->knownIds = [];
+        foreach ($this->nodes as $node) {
+            $this->collectIds($node);
+        }
         $removed = false;
         foreach ($this->nodes as $key => $node) {
             $this->nodes[$key] = $this->pruneIn($node, $prefix, $removed);
         }
         return $removed;
+    }
+
+    /**
+     * Ids of every described node, top-level or nested, while pruning.
+     *
+     * @var array<string,bool>
+     */
+    protected array $knownIds = [];
+
+    protected function collectIds(array $data): void
+    {
+        if (isset($data['@id']) && is_string($data['@id']) && count($data) > 1) {
+            $this->knownIds[$data['@id']] = true;
+        }
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                $this->collectIds($value);
+            }
+        }
     }
 
     protected function pruneIn(array $data, string $prefix, bool &$removed): array
@@ -163,6 +187,7 @@ class SchemaGraph
             && isset($value['@id'])
             && is_string($value['@id'])
             && str_starts_with($value['@id'], $prefix)
-            && !isset($this->nodes[$value['@id']]);
+            && !isset($this->nodes[$value['@id']])
+            && !isset($this->knownIds[$value['@id']]);
     }
 }
