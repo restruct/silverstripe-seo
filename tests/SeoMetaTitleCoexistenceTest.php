@@ -15,6 +15,9 @@ use SilverStripe\Dev\SapphireTest;
  */
 class SeoMetaTitleCoexistenceTest extends SapphireTest
 {
+    # Counts every occurrence of a field, also one present twice
+    use SeoFieldCounting;
+
     protected $usesDatabase = true;
 
     protected static $extra_dataobjects = [
@@ -49,11 +52,7 @@ class SeoMetaTitleCoexistenceTest extends SapphireTest
         $page->write();
 
         $fields = $page->getCMSFields();
-        $count = 0;
-        foreach ($fields->dataFields() as $field) {
-            $count += $field->getName() === 'MetaTitle' ? 1 : 0;
-        }
-        $this->assertSame(1, $count, 'MetaTitle appears exactly once');
+        $this->assertSame(1, $this->countFields($fields)['MetaTitle'] ?? 0, 'MetaTitle appears exactly once');
         $this->assertTrue(
             $fields->dataFieldByName('MetaTitle')->hasClass('other-module-meta-title'),
             'the other module\'s field is the one kept'

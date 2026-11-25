@@ -7,7 +7,6 @@ use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\FieldList;
-use SilverStripe\Forms\FormField;
 use SilverStripe\i18n\i18n;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -20,6 +19,9 @@ use SilverStripe\SiteConfig\SiteConfig;
  */
 class SeoCmsFieldsTest extends SapphireTest
 {
+    # Counts every occurrence of a field, also one present twice
+    use SeoFieldCounting;
+
     protected $usesDatabase = true;
 
     protected static $extra_dataobjects = [
@@ -37,21 +39,6 @@ class SeoCmsFieldsTest extends SapphireTest
         'SEOFBdescription',
         'OGImage',
     ];
-
-    /**
-     * Every data field in the list, with its tab path, so a field present in two tabs is counted twice.
-     *
-     * @return array<string,int>
-     */
-    private function countFields(FieldList $fields): array
-    {
-        $counts = [];
-        foreach ($fields->dataFields() as $field) {
-            /** @var FormField $field */
-            $counts[$field->getName()] = ($counts[$field->getName()] ?? 0) + 1;
-        }
-        return $counts;
-    }
 
     public function testEveryPageFieldAppearsExactlyOnce(): void
     {
@@ -89,7 +76,7 @@ class SeoCmsFieldsTest extends SapphireTest
         );
 
         # Meta title goes right before the description, where editors look for it
-        $names = array_map(fn ($f) => $f->getName(), $toggle->getChildren()->dataFields());
+        $names = array_map(fn ($f) => $f->getName(), $toggle->getChildren()->getDataFields());
         $names = array_values($names);
         $this->assertSame(
             array_search('MetaDescription', $names) - 1,
