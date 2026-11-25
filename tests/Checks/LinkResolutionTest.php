@@ -77,7 +77,9 @@ class LinkResolutionTest extends ChecksTestCase
     {
         $page = $this->page($this->withHtml(
             '<a href="/seo-link-resolution-test.txt">a static file</a> '
-            . '<a href="/_resources/vendor/restruct/silverstripe-seo/client/dist/css/seo-checks.css">a resource</a>'
+            # The admin's, which every CMS install exposes (a module symlinked from a path repository outside
+            # the project is not exposed under its own name)
+            . '<a href="/_resources/vendor/silverstripe/admin/client/dist/js/bundle.js">a resource</a>'
         ));
         $this->assertCheckPasses($page, 'broken-links');
 
