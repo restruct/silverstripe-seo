@@ -247,9 +247,10 @@ class SchemaSourceTest extends SapphireTest
         $again = $this->mapper()->nodesFor(SchemaTestEvent::get()->byID($event->ID))[0];
         $this->assertSame($first['@id'], $again['@id']);
 
-        # A record without a link of its own is identified on the page that shows it
+        # A record without a link of its own is identified on the page that shows it, with its class, since the
+        # page may show records of several classes with the same type and ID
         $this->assertSame(
-            Director::absoluteURL('/events') . '#place-' . $place->ID,
+            Director::absoluteURL('/events') . '#place-schematestplace-' . $place->ID,
             $first['location'][0]['@id']
         );
 
@@ -259,6 +260,17 @@ class SchemaSourceTest extends SapphireTest
         $node = $this->mapper($job)->nodesFor($job)[0];
         $this->assertSame(Director::absoluteURL('/welder') . '#jobposting-' . $job->ID, $node['@id']);
         $this->assertStringNotContainsString('?', $node['@id']);
+    }
+
+    public function testRecordsOfTwoClassesWithTheSameTypeAndIdDoNotShareAnId(): void
+    {
+        $context = SchemaContext::create($this->holder);
+        $place = SchemaTestPlace::create(['ID' => 7]);
+        $ticket = SchemaTestTicket::create(['ID' => 7]);
+        $this->assertNotSame($context->recordId($place, 'Place'), $context->recordId($ticket, 'Place'));
+        # A record with a link of its own needs no class: the link tells it apart
+        $event = SchemaTestEvent::create(['ID' => 7, 'HolderID' => $this->holder->ID]);
+        $this->assertSame(Director::absoluteURL('/events/event/7') . '#event-7', $context->recordId($event, 'Event'));
     }
 
     public function testPageSourceWithANestedMapAndADatetime(): void
