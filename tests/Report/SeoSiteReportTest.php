@@ -233,6 +233,20 @@ class SeoSiteReportTest extends SapphireTest
         $this->assertArrayHasKey('Private page', $this->rows([], $admin));
     }
 
+    public function testAReaderWithoutDraftRightsSeesTheLiveTitle(): void
+    {
+        $page = $this->publishedPage('Live title');
+        $page->Title = 'Unpublished title';
+        $page->write();
+        $this->storeResult($page, []);
+
+        $reader = $this->member(self::READER);
+        $this->assertSame(['Live title'], array_keys($this->rows([], $reader)), 'the draft title is not shown');
+
+        $admin = $this->member('ADMIN');
+        $this->assertSame(['Unpublished title'], array_keys($this->rows([], $admin)));
+    }
+
     public function testDetailsOnlyForPagesTheViewerMayEdit(): void
     {
         $this->site();
