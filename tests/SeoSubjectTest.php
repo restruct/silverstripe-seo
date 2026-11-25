@@ -2,10 +2,12 @@
 
 namespace Restruct\Silverstripe\SEO\Tests;
 
+use Restruct\Silverstripe\SEO\Tests\Stub\SeoFallbackTestExtension;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestItem;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestSubjectItem;
 use SilverStripe\Assets\Dev\TestAssetStore;
+use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPResponse;
@@ -32,12 +34,19 @@ class SeoSubjectTest extends FunctionalTest
         SeoTestSubjectItem::class,
     ];
 
+    protected static $required_extensions = [
+        SiteTree::class => [
+            SeoFallbackTestExtension::class,
+        ],
+    ];
+
     private SeoTestPage $holder;
 
     protected function setUp(): void
     {
         parent::setUp();
         TestAssetStore::activate('SeoSubjectTest');
+        SeoFallbackTestExtension::$image = null;
         SSViewer::set_themes(['restruct/silverstripe-seo:/tests/themes/seotest', '$default']);
 
         $config = SiteConfig::current_site_config();
@@ -56,6 +65,7 @@ class SeoSubjectTest extends FunctionalTest
 
     protected function tearDown(): void
     {
+        SeoFallbackTestExtension::$image = null;
         TestAssetStore::reset();
         parent::tearDown();
     }
@@ -130,6 +140,36 @@ class SeoSubjectTest extends FunctionalTest
         $item = $this->item();
         $head = $this->head($this->get('courses/item/' . $item->ID));
         $this->assertMatchesRegularExpression('#<meta property="og:image" content="[^"]*default[^"]*">#', $head);
+    }
+
+    public function testRecordWithoutImageSkipsTheHolderImage(): void
+    {
+        # The holder's own image illustrates the listing, not the record shown on it: a record without an image
+        # goes to the hook, then the site default
+        $this->holder->OGImageID = $this->createTestImage('holder.png')->ID;
+        $this->holder->write();
+        $this->holder->publishRecursive();
+        $default = $this->createTestImage('default.png');
+        $config = SiteConfig::current_site_config();
+        $config->SeoDefaultImageID = $default->ID;
+        $config->write();
+
+        $item = $this->item();
+        $head = $this->head($this->get('courses/item/' . $item->ID));
+        $this->assertStringNotContainsString('holder', $head);
+        $this->assertMatchesRegularExpression('#<meta property="og:image" content="[^"]*default[^"]*">#', $head);
+
+        SeoFallbackTestExtension::$image = $this->createTestImage('hook.png');
+        $head = $this->head($this->get('courses/item/' . $item->ID));
+        $this->assertStringNotContainsString('holder', $head);
+        $this->assertMatchesRegularExpression('#<meta property="og:image" content="[^"]*hook[^"]*">#', $head);
+
+        # The holder itself still uses its own image
+        SeoFallbackTestExtension::$image = null;
+        $this->assertMatchesRegularExpression(
+            '#<meta property="og:image" content="[^"]*holder[^"]*">#',
+            $this->head($this->get('courses'))
+        );
     }
 
     public function testInterfaceRecordAnswersForItself(): void
