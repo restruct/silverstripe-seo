@@ -66,7 +66,8 @@ class MigrateFromSeoModuleTask extends BuildTask
         if ($source === '' || !isset($mappers[$source])) {
             $output->writeln($source === ''
                 ? 'Give the module to migrate from with --source=<name>.'
-                : sprintf('Unknown source "%s".', $source));
+                # The value is the user's: escaped, so neither the console nor the HTML output reads a tag in it
+                : sprintf('Unknown source "%s".', OutputFormatter::escape($source)));
             $output->writeln('Sources: ' . implode(', ', $this->sourceNames()));
             return Command::INVALID;
         }
