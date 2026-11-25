@@ -44,11 +44,15 @@ class SeoChecksExtension extends Extension
         }
 
         $children = $metadata->getChildren();
-        $children->unshift(SeoChecksField::create(
-            'SeoChecks',
-            _t(__CLASS__ . '.ChecksTitle', 'SEO checks'),
-            $page
-        ));
+        # Only for members who may edit the page: the stored results come from the render of whoever ran the
+        # check last, and the endpoint refuses everyone else anyway
+        if ($page->canEdit()) {
+            $children->unshift(SeoChecksField::create(
+                'SeoChecks',
+                _t(__CLASS__ . '.ChecksTitle', 'SEO checks'),
+                $page
+            ));
+        }
         $preview = SeoSnippetPreviewField::create(
             'SeoSnippetPreview',
             _t(__CLASS__ . '.PreviewTitle', 'Search result preview'),

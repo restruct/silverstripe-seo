@@ -18,9 +18,11 @@ use Throwable;
 /**
  * Runs the registered checks on a page and stores the outcome.
  *
- * The page is rendered once, in the draft stage, as the member passed in (the CMS user who asked: the panel
- * shows what that editor's draft looks like, and nobody gets to see a render they could not see themselves),
- * through {@see PageRenderer}. The render is parsed once and shared by every check through {@see PageAnalysis}.
+ * The page is rendered once, in the draft stage, as the member passed in (the CMS user who asked), through
+ * {@see PageRenderer}. The stored result is shared: it reflects the render of whoever ran the check last, and is
+ * shown to every member who may edit the page (the panel is left out for anyone else, and the endpoint
+ * refuses them). A page that renders differently per editor (content shown only to some groups) can therefore
+ * show one editor findings from what another editor saw; only results, never the rendered HTML, are stored. The render is parsed once and shared by every check through {@see PageAnalysis}.
  *
  * Gating: a page that asks not to be indexed gets only the checks marked `runs_on_noindex` (the "is this
  * intentional?" check), and is not rendered at all. Page types the shared {@see PageEligibility} excludes
