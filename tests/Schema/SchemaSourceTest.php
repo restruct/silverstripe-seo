@@ -187,6 +187,22 @@ class SchemaSourceTest extends SapphireTest
         $this->assertNotNull(SchemaTestEvent::get()->byID($event->ID));
     }
 
+    public function testHtmlValueKeepsSimpleMarkupOnly(): void
+    {
+        $event = $this->event([
+            'Description' => '<p class="intro">Come <strong>and</strong> <a href="/x" onclick="y()">see</a> &amp; enjoy</p>'
+                . '<script>alert(1)</script><h2 style="color:red">Hours</h2><ul><li>Ten <em>till</em> four</li></ul>'
+                . '<div><img src="/a.png">Free <b>entry</b></div>',
+        ]);
+        $node = $this->mapper()->resolve($event, ['html' => 'Description']);
+
+        $this->assertSame(
+            '<p>Come <strong>and</strong> see &amp; enjoy</p><h2>Hours</h2><ul><li>Ten <em>till</em> four</li></ul>Free <strong>entry</strong>',
+            $node
+        );
+        $this->assertNull($this->mapper()->resolve($this->event(['Description' => '<p> </p>']), ['html' => 'Description']));
+    }
+
     public function testEmptyValuesAreLeftOut(): void
     {
         $event = $this->event(['Language' => '', 'CategoryID' => 0, 'EndDate' => null, 'EndTime' => null]);

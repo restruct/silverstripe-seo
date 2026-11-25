@@ -52,4 +52,15 @@ class DescriptionSummaryTest extends SapphireTest
             $this->summary('<p>[image src="x.jpg" id="3"]Read the <a href="[sitetree_link,id=1]">guide</a> first.</p>')
         );
     }
+
+    public function testPlainTextKeepsALineBreakAtEveryBlockBoundary(): void
+    {
+        $this->assertSame(
+            "One two\nA\nB\nline\nbreak",
+            DescriptionSummary::plainText('<p>One <b>two</b></p><ul><li>A</li><li>B</li></ul>line<br>break')
+        );
+        # A line break in the HTML source is no break on the page
+        $this->assertSame('Line one', DescriptionSummary::plainText("<p>Line\n   one</p>"));
+        $this->assertSame('', DescriptionSummary::plainText('<p> </p>'));
+    }
 }

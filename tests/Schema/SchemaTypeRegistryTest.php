@@ -35,11 +35,16 @@ class SchemaTypeRegistryTest extends SapphireTest
     public function testRequiredPropertiesFollowGoogle(): void
     {
         $registry = $this->registry();
+        # Either-or: a job has a location, or it is remote (applicantLocationRequirements with jobLocationType
+        # TELECOMMUTE); an event takes place at an address, or online (a VirtualLocation with a url)
         $this->assertEqualsCanonicalizing(
-            ['datePosted', 'description', 'hiringOrganization', 'jobLocation', 'title'],
+            ['datePosted', 'description', 'hiringOrganization', 'jobLocation | applicantLocationRequirements & jobLocationType', 'title'],
             $registry->required('JobPosting')
         );
-        $this->assertEqualsCanonicalizing(['name', 'startDate', 'location', 'location.address'], $registry->required('Event'));
+        $this->assertEqualsCanonicalizing(
+            ['name', 'startDate', 'location', 'location.address | location.url'],
+            $registry->required('Event')
+        );
         $this->assertEqualsCanonicalizing(['name', 'url'], $registry->required('WebSite'));
     }
 
@@ -69,7 +74,7 @@ class SchemaTypeRegistryTest extends SapphireTest
             'startDate' => '2027-03-01',
             'location' => ['@type' => 'Place', 'name' => 'Main building'],
         ];
-        $this->assertSame(['location.address'], $registry->missingRequired($event));
+        $this->assertSame(['location.address | location.url'], $registry->missingRequired($event));
 
         $event['location']['address'] = ['@type' => 'PostalAddress', 'addressLocality' => 'Utrecht'];
         $this->assertSame([], $registry->missingRequired($event));
@@ -91,7 +96,7 @@ class SchemaTypeRegistryTest extends SapphireTest
                 ['@type' => 'Place', 'name' => 'No address'],
             ],
         ];
-        $this->assertSame(['location.address'], $registry->missingRequired($event));
+        $this->assertSame(['location.address | location.url'], $registry->missingRequired($event));
     }
 
     public function testReferencesAreResolvedWhenAResolverIsGiven(): void
@@ -108,7 +113,39 @@ class SchemaTypeRegistryTest extends SapphireTest
 
         $nodes = ['https://example.com/#place-1' => ['@type' => 'Place', 'name' => 'No address']];
         $resolve = fn (string $id) => $nodes[$id] ?? null;
-        $this->assertSame(['location.address'], $registry->missingRequired($event, $resolve));
+        $this->assertSame(['location.address | location.url'], $registry->missingRequired($event, $resolve));
+    }
+
+    public function testEitherOrRequirements(): void
+    {
+        $registry = $this->registry();
+        $job = [
+            '@type' => 'JobPosting',
+            'title' => 'Developer',
+            'description' => 'Build things.',
+            'datePosted' => '2027-01-05',
+            'hiringOrganization' => ['@id' => 'https://example.com/#organization'],
+        ];
+        $this->assertSame(
+            ['jobLocation | applicantLocationRequirements & jobLocationType'],
+            $registry->missingRequired($job)
+        );
+        # Remote: both parts of the second alternative are needed
+        $remote = $job + ['applicantLocationRequirements' => ['@type' => 'Country', 'name' => 'NL']];
+        $this->assertNotSame([], $registry->missingRequired($remote));
+        $remote['jobLocationType'] = 'TELECOMMUTE';
+        $this->assertSame([], $registry->missingRequired($remote));
+        # On site
+        $this->assertSame([], $registry->missingRequired($job + ['jobLocation' => ['@type' => 'Place', 'address' => 'Utrecht']]));
+
+        # An online event
+        $event = [
+            '@type' => 'Event',
+            'name' => 'Webinar',
+            'startDate' => '2027-03-01',
+            'location' => ['@type' => 'VirtualLocation', 'url' => 'https://example.com/live'],
+        ];
+        $this->assertSame([], $registry->missingRequired($event));
     }
 
     public function testSeveralTypesCombine(): void
