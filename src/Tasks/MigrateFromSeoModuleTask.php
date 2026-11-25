@@ -50,6 +50,17 @@ class MigrateFromSeoModuleTask extends BuildTask
         'jellygnite' => JellygniteMapper::class,
     ];
 
+    /**
+     * Tables of a translation module (Fluent) whose presence stops an apply run: values per locale are not
+     * migrated.
+     *
+     * @config
+     */
+    private static array $localised_tables = [
+        'SiteTree_Localised',
+        'SiteConfig_Localised',
+    ];
+
     public function getOptions(): array
     {
         return [
@@ -87,12 +98,31 @@ class MigrateFromSeoModuleTask extends BuildTask
         $overwrite = (bool) $input->getOption('overwrite');
         $run = new MigrationRun($apply, $overwrite);
 
+        # Fluent keeps page and site values per locale in _Localised tables, which the mappers do not read or
+        # write: a run would copy the base values only and leave every translation as it was
+        $localised = array_values(array_filter(
+            (array) static::config()->get('localised_tables'),
+            fn (string $table) => DB::get_schema()->hasTable($table)
+        ));
+        $fluentWarning = $localised ? sprintf(
+            'Warning: %s found (Fluent): migrating per-locale values is not supported yet, so --apply is refused. '
+            . 'Copy the localised values by hand.',
+            implode(', ', $localised)
+        ) : null;
+        if ($fluentWarning && $apply) {
+            $output->writeln($fluentWarning);
+            return Command::FAILURE;
+        }
+
         $output->writeln(sprintf('Migrating from %s.', $mapper->getTitle()));
         $output->writeln($apply
             ? 'Applying: values are written.'
             : 'Dry run: nothing is written. Run again with --apply to write.');
         if ($overwrite) {
             $output->writeln('Overwrite: values already filled in here are replaced.');
+        }
+        if ($fluentWarning) {
+            $output->writeln($fluentWarning);
         }
         $output->writeln('');
 
