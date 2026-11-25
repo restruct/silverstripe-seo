@@ -6,6 +6,7 @@ use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
 use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\Image;
+use SilverStripe\Assets\Storage\AssetStore;
 use SilverStripe\CMS\Controllers\ContentController;
 use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\SiteTree;
@@ -24,7 +25,9 @@ use SilverStripe\Forms\ReadonlyTransformation;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
+use SilverStripe\Versioned\Versioned;
 
 /**
  * Search and sharing metadata for pages: meta title, a description fallback, robots directives, canonical URL and
@@ -747,8 +750,26 @@ class SeoSiteTreeExtension extends Extension
         return class_exists($class) && $page instanceof $class;
     }
 
+    /**
+     * An image a crawler can fetch: it exists, is a raster image, and is public. A sharing image is fetched by
+     * the sites it is shared on, anonymously, so an image in the protected store (a draft-only file, or one with
+     * view restrictions) would answer them with an error.
+     */
     protected static function isUsableImage(mixed $image): bool
     {
-        return $image instanceof Image && $image->exists() && $image->getIsImage();
+        if (!$image instanceof Image || !$image->exists() || !$image->getIsImage()) {
+            return false;
+        }
+        # Draft-only: exists() also finds files in the protected store, so this is checked separately
+        if ($image->hasExtension(Versioned::class) && !$image->isPublished()) {
+            return false;
+        }
+        # Where the bytes are, and whether an anonymous visitor may view the record. AssetControlExtension keeps
+        # the two in step when a file is written or published (it protects a file whose canView() fails for an
+        # anonymous visitor); both are checked, as the store and the permissions are separate systems
+        if ($image->getVisibility() !== AssetStore::VISIBILITY_PUBLIC) {
+            return false;
+        }
+        return (bool) Member::actAs(null, fn () => $image->canView());
     }
 }
