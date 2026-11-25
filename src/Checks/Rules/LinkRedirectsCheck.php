@@ -9,8 +9,9 @@ use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
 use SilverStripe\CMS\Model\RedirectorPage;
 
 /**
- * Check 15: links that take a detour: to a redirector page (link to its target instead), or over http:// while
- * the site itself runs on https (the visitor is redirected, or leaves the secure connection).
+ * Check 15: links that take a detour: to a redirector page (link to its target instead), to the old URL of a
+ * renamed or moved page, or over http:// while the site itself runs on https (the visitor is redirected, or
+ * leaves the secure connection).
  */
 class LinkRedirectsCheck extends AbstractCheck
 {
@@ -50,6 +51,13 @@ class LinkRedirectsCheck extends AbstractCheck
                 continue;
             }
             $target = $analysis->links()->resolve($href);
+            if ($target['type'] === LinkResolver::OLD_URL) {
+                $issues[] = _t(__CLASS__ . '.OldUrl', '{href}: an old address of {target}, which redirects', [
+                    'href' => static::short($href, 120),
+                    'target' => $target['record'] ? (string) $target['record']->Link() : '?',
+                ]);
+                continue;
+            }
             if ($target['type'] === LinkResolver::PAGE && $target['record'] instanceof RedirectorPage) {
                 $issues[] = _t(__CLASS__ . '.Redirector', '{href}: redirects to {target}', [
                     'href' => static::short($href, 120),

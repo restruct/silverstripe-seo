@@ -47,7 +47,10 @@
     "extra": {
         "branch-alias": {
             "dev-main": "0.x-dev"
-        }
+        },
+        "expose": [
+            "client/dist"
+        ]
     },
     "minimum-stability": "dev",
     "prefer-stable": true

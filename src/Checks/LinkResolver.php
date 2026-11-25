@@ -3,12 +3,16 @@
 namespace Restruct\Silverstripe\SEO\Checks;
 
 use SilverStripe\Assets\File;
+use SilverStripe\Assets\FilenameParsing\HashFileIDHelper;
+use SilverStripe\Assets\FilenameParsing\NaturalFileIDHelper;
 use SilverStripe\Assets\Flysystem\Filesystem;
 use SilverStripe\Assets\Flysystem\FlysystemAssetStore;
 use SilverStripe\Assets\Flysystem\PublicAdapter;
 use SilverStripe\Assets\Storage\AssetStore;
+use SilverStripe\CMS\Controllers\OldPageRedirector;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
+use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
@@ -22,16 +26,25 @@ use Throwable;
  * - a page: the URL is resolved with SiteTree::get_by_link(), segment by segment; when the full path is not a
  *   page, the longest leading part that is one counts (the rest is an action on that page, e.g. /news/tag/x),
  *   since only an HTTP request could tell whether the action exists;
- * - a file under the assets URL: by its file name, with a variant suffix (`__FillWz...`) and the hash folder of a
- *   protected URL taken off;
+ * - a file under the assets URL: by its file name, parsed with core's file ID helpers (the hash folder of a
+ *   protected URL, a variant suffix, and a variant that changed the extension, such as Convert('webp'));
+ * - a static file in the public folder (`_resources/...`, favicon.ico, robots.txt): found on disk; a path with
+ *   `.` or `..` segments is never looked up, so nothing outside the public folder is;
+ * - the old URL of a renamed or moved page: found as core's OldPageRedirector finds it, and reported as a
+ *   redirect, not as broken;
  * - a URL handled by a Director rule other than the page catch-all (Security/, admin/, an API route): not checked;
  * - anything on another host, fragments, mailto:, tel: and the like: not checked.
  *
- * A target is "published" when it exists in the live stage; one that exists only as a draft is reported as such,
+ * Translation modules: a URL with a locale prefix is not resolved by the module itself (Fluent is not supported
+ * yet). An extension can resolve it in `updateResolveInternalLink(array &$result, string $url, string $relative)`,
+ * called for every URL on this site with the result so far.
+ *
+ * A target is "published" it exists in the live stage; one that exists only as a draft is reported as such,
  * because the link breaks for visitors once this page is published.
  */
 class LinkResolver
 {
+    use Extensible;
     use Injectable;
 
     public const EMPTY = 'empty';
@@ -45,6 +58,7 @@ class LinkResolver
     public const FILE = 'file';
     public const DRAFT_FILE = 'draft-file';
     public const MISSING_FILE = 'missing-file';
+    public const OLD_URL = 'old-url';
 
     /**
      * @var array<string, array>
@@ -58,7 +72,11 @@ class LinkResolver
     {
         $url = trim($url);
         if (!array_key_exists($url, $this->cache)) {
-            $this->cache[$url] = $this->doResolve($url);
+            $result = $this->doResolve($url);
+            if (!in_array($result['type'], [self::EMPTY, self::ANCHOR, self::EXTERNAL, self::OTHER_SCHEME], true)) {
+                $this->extend('updateResolveInternalLink', $result, $url, $result['path']);
+            }
+            $this->cache[$url] = $result;
         }
         return $this->cache[$url];
     }
@@ -123,6 +141,10 @@ class LinkResolver
         if ($relative === $assetsDir || str_starts_with($relative, $assetsDir . '/')) {
             return $this->resolveFile($relative, $result);
         }
+        $static = $this->resolveStaticFile($relative);
+        if ($static !== null) {
+            return $result($static, null, $relative);
+        }
         if ($relative !== '' && $this->isRoute($relative)) {
             return $result(self::ROUTE, null, $relative);
         }
@@ -148,7 +170,48 @@ class LinkResolver
                 return $result($type, $page, $relative);
             }
         }
+        # A page that was renamed or moved: its old URL redirects (OldPageRedirector), so the link still works
+        $newURL = Versioned::withVersionedMode(function () use ($segments) {
+            Versioned::set_stage(Versioned::LIVE);
+            return OldPageRedirector::find_old_page($segments);
+        });
+        if (is_string($newURL) && $newURL !== '') {
+            $page = Versioned::withVersionedMode(function () use ($newURL) {
+                Versioned::set_stage(Versioned::LIVE);
+                return SiteTree::get_by_link($newURL, false);
+            });
+            return $result(self::OLD_URL, $page instanceof SiteTree ? $page : null, $relative);
+        }
         return $result(self::MISSING_PAGE, null, $relative);
+    }
+
+    /**
+     * FILE for a file that exists in the public folder, MISSING_FILE for a missing one under the resources
+     * folder, null for a path that is neither.
+     *
+     * Containment is checked on the path itself, not on its real path: a path with a `.` or `..` segment (or a
+     * NUL byte) is never a file, so nothing outside the public folder is looked at. Symbolic links inside the
+     * public folder are followed, since that is how vendor-expose publishes `_resources`.
+     */
+    protected function resolveStaticFile(string $relative): ?string
+    {
+        if ($relative === '' || str_contains($relative, "\0")) {
+            return null;
+        }
+        foreach (explode('/', $relative) as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return null;
+            }
+        }
+        $public = rtrim((string) Director::publicFolder(), DIRECTORY_SEPARATOR);
+        if ($public !== '' && is_file($public . DIRECTORY_SEPARATOR . $relative)) {
+            return self::FILE;
+        }
+        $resources = defined('RESOURCES_DIR') ? RESOURCES_DIR : '_resources';
+        if (str_starts_with($relative, $resources . '/')) {
+            return self::MISSING_FILE;
+        }
+        return null;
     }
 
     protected function resolveFile(string $relative, callable $result): array
@@ -185,19 +248,19 @@ class LinkResolver
         } else {
             $path = (string) substr($relative, strlen($assetsDir) + 1);
         }
-        $segments = array_values(array_filter(explode('/', $path), fn ($s) => $s !== ''));
-        if (!$segments) {
+        $path = trim($path, '/');
+        if ($path === '') {
             return '';
         }
-        $name = array_pop($segments);
-        # A variant: name__FillWzEyMDAsNjMwXQ.jpg is name.jpg
-        $name = (string) preg_replace('/__[A-Za-z0-9_\-]+(?=\.[^.]+$)/', '', $name);
-        # The hash folder of a protected (draft or restricted) file URL
-        if ($segments && preg_match('/^[0-9a-f]{10}$/', end($segments))) {
-            array_pop($segments);
+        # Core's own parsers: a protected URL has a hash folder (HashFileIDHelper), a public one not
+        # (NaturalFileIDHelper); both take off a variant and undo the extension change of a converted variant
+        foreach ([HashFileIDHelper::create(), NaturalFileIDHelper::create()] as $helper) {
+            $parsed = $helper->parseFileID($path);
+            if ($parsed && ($helper instanceof NaturalFileIDHelper || $parsed->getHash() !== '')) {
+                return (string) $parsed->getFilename();
+            }
         }
-        $segments[] = $name;
-        return implode('/', $segments);
+        return '';
     }
 
     /**

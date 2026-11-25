@@ -70,12 +70,8 @@ class BrokenLinksCheck extends AbstractCheck
         $broken = [];
         $resolver = $analysis->links();
 
-        foreach ($analysis->query('.//a[@href] | .//img | .//source[@src] | .//*[contains(concat(" ", normalize-space(@class), " "), " ss-broken ")]') as $element) {
-            $url = $this->urlOf($element);
-            $label = $this->labelOf($element);
-            $tracked = in_array('ss-broken', preg_split('/\s+/', (string) $element->getAttribute('class')) ?: [], true);
+        foreach ($this->targets($analysis) as [$url, $label, $tracked]) {
             $type = $resolver->resolve($url)['type'];
-
             $draft = in_array($type, [LinkResolver::DRAFT_PAGE, LinkResolver::DRAFT_FILE], true);
             if ($unpublished) {
                 if (!$tracked && $draft) {
@@ -84,13 +80,54 @@ class BrokenLinksCheck extends AbstractCheck
             } elseif ($tracked && str_contains($url, '#')) {
                 # Link tracking also checks that the anchor of a link exists on the target page
                 $broken[] = $this->describe($url, $label, _t(__CLASS__ . '.Anchor', 'the anchor is not on the target page'));
-            } elseif ($tracked || ($element->nodeName === 'a' && $type === LinkResolver::EMPTY)) {
+            } elseif ($tracked || $type === LinkResolver::EMPTY) {
                 $broken[] = $this->describe($url, $label, _t(__CLASS__ . '.Deleted', 'the linked page or file no longer exists'));
             } elseif (LinkResolver::isBroken($type) && !$draft) {
                 $broken[] = $this->describe($url, $label, $this->reason($type));
             }
         }
         return array_values(array_unique($broken));
+    }
+
+    /**
+     * Every URL the content points at: link hrefs, image and media sources, and each candidate of a srcset
+     * (img and picture/source), with a label and whether link tracking marked the element broken.
+     *
+     * @return array<int, array{0:string, 1:string, 2:bool}>
+     */
+    protected function targets(PageAnalysis $analysis): array
+    {
+        $targets = [];
+        $xpath = './/a[@href] | .//img | .//source[@src or @srcset] | .//video[@src] | .//audio[@src]'
+            . ' | .//*[contains(concat(" ", normalize-space(@class), " "), " ss-broken ")]';
+        foreach ($analysis->query($xpath) as $element) {
+            $tracked = in_array('ss-broken', preg_split('/\s+/', (string) $element->getAttribute('class')) ?: [], true);
+            $label = $this->labelOf($element);
+            if ($element->nodeName === 'a' || $element->hasAttribute('src') || $tracked) {
+                $targets[] = [$this->urlOf($element), $label, $tracked];
+            }
+            foreach (static::srcsetURLs((string) $element->getAttribute('srcset')) as $url) {
+                $targets[] = [$url, $label, false];
+            }
+        }
+        return $targets;
+    }
+
+    /**
+     * The URLs of a srcset ("a.webp 1x, b.webp 2x" or "a.jpg 400w, ..."), without their descriptors.
+     *
+     * @return string[]
+     */
+    public static function srcsetURLs(string $srcset): array
+    {
+        $urls = [];
+        foreach (preg_split('/,\s+/', trim($srcset)) ?: [] as $candidate) {
+            $url = trim((string) preg_split('/\s+/', trim($candidate))[0]);
+            if ($url !== '') {
+                $urls[] = $url;
+            }
+        }
+        return $urls;
     }
 
     protected function urlOf(DOMElement $element): string

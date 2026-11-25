@@ -523,6 +523,16 @@ A check gets a `PageAnalysis`: the draft record, the `RenderResult`, `content()`
 from the database) and `site()` (duplicate lookups, inbound links, menu placement). Set `needs_render: true` on a
 check that reads the render; it is then skipped, not failed, when the page does not render.
 
+Internal links are resolved from the database and the public folder, without HTTP requests: pages (an action
+after the page's path is accepted), files under assets (variants and converted variants included, via core's
+file ID parsing), static files in the public folder (`_resources`, favicon.ico) and the old URLs of renamed
+pages (reported as a redirect). Every srcset candidate counts as a link.
+
+**Fluent and other translation modules: not supported yet.** A URL with a locale prefix (`/nl/...`) is not
+resolved and shows up as broken. A bridge can resolve it in an extension on
+`Restruct\Silverstripe\SEO\Checks\LinkResolver` implementing
+`updateResolveInternalLink(array &$result, string $url, string $relative)`.
+
 The inbound-link graph comes from core's link tracking (`SiteTreeLink`, which Elemental blocks feed as well) and
 is cached site-wide (`Psr\SimpleCache\CacheInterface.SeoLinkGraph`), cleared when a page is written, published,
 unpublished or archived. Links printed by templates (a footer) are not in it; ignore the orphan check for pages

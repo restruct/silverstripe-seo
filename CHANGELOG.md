@@ -23,6 +23,8 @@ All notable changes to this module are documented here. The format follows
   description length checked against the same thresholds as the stored checks.
 - `admin/seo-checks/recheck` and `admin/seo-checks/ignore` (POST, CSRF token, CMS access, `canEdit()` on the
   page): the panel re-checks after a save and on its button; nothing is rendered during the save itself.
+- `LinkResolver` hook `updateResolveInternalLink()` for translation modules (Fluent is not supported yet).
+- `client/dist` is exposed (`extra.expose`), so the panel's script and styles are served.
 - `SeoDescriptionFallback()` on pages: the description derived when none is typed.
 - English and Dutch strings for the checks, the panel and the preview (lang/en.yml, lang/nl.yml).
 
