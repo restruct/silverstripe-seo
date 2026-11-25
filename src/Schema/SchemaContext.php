@@ -20,7 +20,8 @@ use SilverStripe\ORM\DataObject;
  * The `@id` rule:
  * - site nodes: `<base URL>/#website`, `<base URL>/#organization` ({@see siteId()});
  * - nodes of the page view: `<URL of the view>#webpage`, `#breadcrumb`, `#itemlist` ({@see pageId()}), where the
- *   URL of the view is the page's link, or the shown record's canonical URL when the page shows a record;
+ *   URL of the view is its canonical URL (see pageURL()): the shown record's canonical when the page shows a
+ *   record, else the page's canonical, with an action path and kept parameters;
  * - records: `<record link>#<type in lowercase>-<ID>`, or the page's link when the record has no link of its own
  *   ({@see recordId()}). Links are used without their query string, so a draft link (`?stage=Stage`) and a
  *   tracking parameter give the same id.
@@ -65,17 +66,24 @@ class SchemaContext
     }
 
     /**
-     * The URL of this page view without query string: the shown record's canonical URL, else the page's link.
+     * The URL of this page view: its canonical URL. For a shown record that is the record's canonical (tracking
+     * parameters removed); for the page, SeoCanonicalURL(), so an action URL (`/about/detail`) and the
+     * parameters in `seo_canonical_query_params` (`?page=2`) make a WebPage of their own, as they make a
+     * canonical of their own. The page's link when there is no canonical (an unsaved page).
      */
     public function pageURL(): string
     {
+        $url = null;
         if ($this->subject) {
             $url = SubjectMetadata::create($this->subject, $this->page)->canonicalURL();
-            if ($url) {
-                return static::withoutQuery($url);
-            }
+        } elseif ($this->page->hasMethod('SeoCanonicalURL')) {
+            $url = $this->page->SeoCanonicalURL();
         }
-        return static::withoutQuery((string) $this->page->AbsoluteLink());
+        if (!is_string($url) || $url === '') {
+            return static::withoutQuery((string) $this->page->AbsoluteLink());
+        }
+        # The fragment is where the node name goes
+        return (string) strtok($url, '#');
     }
 
     /**
