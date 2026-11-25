@@ -373,7 +373,7 @@ class SeoSiteTreeExtension extends Extension
 
     /**
      * The absolute canonical URL, or null for a page that has no URL of its own (an unsaved record, or the
-     * placeholder page the Security controller renders).
+     * placeholder page the Security controller renders) and for an error page, which answers for URLs that failed.
      *
      * Without an override this is the page's own URL, without its query string except for the parameters in
      * `seo_canonical_query_params`. An action URL (`/page/action/id`) is its own canonical rather than pointing
@@ -386,7 +386,7 @@ class SeoSiteTreeExtension extends Extension
     public function SeoCanonicalURL(?HTTPRequest $request = null): ?string
     {
         $page = $this->getOwner();
-        if (!$page->isInDB()) {
+        if (!$page->isInDB() || static::isErrorPage($page)) {
             return null;
         }
         $request ??= $this->currentRequest();
@@ -493,7 +493,9 @@ class SeoSiteTreeExtension extends Extension
             $tags['robots'] = ['attributes' => ['name' => 'robots', 'content' => $robots]];
         }
 
-        $canonical = $this->SeoCanonicalURL();
+        # An error status set by the action (a 410 for an expired offer, say) means this URL has no canonical
+        $status = $this->currentController()?->getResponse()->getStatusCode() ?? 200;
+        $canonical = $status < 400 ? $this->SeoCanonicalURL() : null;
         if ($canonical) {
             $tags['canonical'] = ['tag' => 'link', 'attributes' => ['rel' => 'canonical', 'href' => $canonical]];
         }
@@ -647,6 +649,16 @@ class SeoSiteTreeExtension extends Extension
             return '';
         }
         return implode('/', $parts);
+    }
+
+    /**
+     * An ErrorPage, when silverstripe/errorpage is installed (the module does not require it). Checked by class
+     * rather than by status: ErrorPageController sets the error status only after the page has been rendered.
+     */
+    protected static function isErrorPage(SiteTree $page): bool
+    {
+        $class = 'SilverStripe\\ErrorPage\\ErrorPage';
+        return class_exists($class) && $page instanceof $class;
     }
 
     protected static function isUsableImage(mixed $image): bool
