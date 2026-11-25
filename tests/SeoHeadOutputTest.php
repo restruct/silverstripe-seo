@@ -181,6 +181,19 @@ class SeoHeadOutputTest extends FunctionalTest
         $this->assertSame('<' . $canonical . '>; rel="canonical"', $response->getHeader('Link'));
     }
 
+    public function testHomepageActionCanonicalKeepsTheHomeSegment(): void
+    {
+        # The homepage's own link is the site root, but an action on it lives at /home/<action>; core's
+        # SiteTree::RelativeLink keeps the segment only when it is given the action
+        $this->publishedPage(['Title' => 'Home', 'URLSegment' => 'home']);
+        $response = $this->get('home/detail');
+        $head = $this->head($response);
+
+        $canonical = Director::absoluteURL('/home/detail');
+        $this->assertStringContainsString('<link rel="canonical" href="' . $canonical . '">', $head);
+        $this->assertSame('<' . $canonical . '>; rel="canonical"', $response->getHeader('Link'));
+    }
+
     public function testActionReturningItsOwnResponseStillGetsTheRobotsHeader(): void
     {
         # A file download or JSON action replaces the controller's response object; noindex must survive that
