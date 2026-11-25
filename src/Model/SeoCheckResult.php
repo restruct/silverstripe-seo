@@ -31,6 +31,10 @@ class SeoCheckResult extends DataObject
 {
     private static string $table_name = 'SeoCheckResult';
 
+    private static string $singular_name = 'SEO check result';
+
+    private static string $plural_name = 'SEO check results';
+
     private static array $db = [
         'Stage' => 'Varchar(16)',
         'CheckedAt' => 'Datetime',

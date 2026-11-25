@@ -21,6 +21,10 @@ class SeoCheckIgnore extends DataObject
 {
     private static string $table_name = 'SeoCheckIgnore';
 
+    private static string $singular_name = 'SEO check ignore';
+
+    private static string $plural_name = 'SEO check ignores';
+
     private static array $db = [
         'CheckID' => 'Varchar(100)',
     ];

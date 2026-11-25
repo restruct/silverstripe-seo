@@ -43,7 +43,7 @@ class BrokenLinksCheck extends AbstractCheck
     {
         return _t(
             __CLASS__ . '.HowToFix',
-            'Edit each listed link: choose the page or file again with the link tool, or remove the link. A page or file that is only a draft needs publishing first.'
+            'Edit each listed link: choose the page or file again with the link tool, or remove the link.'
         );
     }
 

@@ -24,6 +24,7 @@ All notable changes to this module are documented here. The format follows
 - `admin/seo-checks/recheck` and `admin/seo-checks/ignore` (POST, CSRF token, CMS access, `canEdit()` on the
   page): the panel re-checks after a save and on its button; nothing is rendered during the save itself.
 - `SeoDescriptionFallback()` on pages: the description derived when none is typed.
+- English and Dutch strings for the checks, the panel and the preview (lang/en.yml, lang/nl.yml).
 
 ### Changed
 
