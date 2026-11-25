@@ -398,6 +398,39 @@ class StructuredDataOutputTest extends FunctionalTest
         $this->assertCount(2, $this->nodesOfType($this->graph('events'), 'Event'));
     }
 
+    public function testRecordsAnAnonymousVisitorMayNotSeeAreLeftOut(): void
+    {
+        Config::modify()->set(SeoTestPage::class, 'schema_item_list', 'Children');
+        Config::modify()->set(SeoTestPage::class, 'schema_includes', ['Children']);
+        $holder = $this->publish(SeoTestPage::create(['Title' => 'Jobs', 'URLSegment' => 'jobs']));
+        $job = [
+            'Content' => '<p>Join us.</p>',
+            'DatePosted' => '2027-01-05',
+            'City' => 'Utrecht',
+            'ParentID' => $holder->ID,
+        ];
+        $public = $this->publish(SchemaTestJobPage::create($job + ['Title' => 'Welder', 'URLSegment' => 'welder']));
+        $this->publish(SchemaTestJobPage::create($job + [
+            'Title' => 'Internal vacancy',
+            'URLSegment' => 'internal',
+            'CanViewType' => 'LoggedInUsers',
+        ]));
+
+        # The head is cached by proxies, so it must not depend on who is logged in: checked as anonymous
+        foreach ([false, true] as $loggedIn) {
+            if ($loggedIn) {
+                $this->logInWithPermission('ADMIN');
+            }
+            $graph = $this->graph('jobs');
+            $list = $graph[Director::absoluteURL('/jobs') . '#itemlist']['itemListElement'];
+            $this->assertSame([Director::absoluteURL('/jobs/welder')], array_column($list, 'url'));
+            $jobs = $this->nodesOfType($graph, 'JobPosting');
+            $this->assertCount(1, $jobs);
+            $this->assertSame('Welder', $jobs[0]['title']);
+        }
+        $this->assertNotNull($public);
+    }
+
     public function testNodesFromAMethodReachTheHead(): void
     {
         $this->publish(SchemaTestCoursePage::create([
