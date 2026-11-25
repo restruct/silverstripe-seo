@@ -249,6 +249,32 @@ class SeoSiteReportTest extends SapphireTest
         $this->assertSame(['Unpublished title'], array_keys($this->rows([], $admin)));
     }
 
+    public function testARowShownThroughThePublishedVersionHidesWhatTheDraftSays(): void
+    {
+        $page = $this->publishedPage('Live title');
+        $page->Title = 'Unpublished title';
+        $page->MetaRobotsNoIndex = true;
+        $page->write();
+        $this->storeResult($page, ['title-missing' => Check::PROBLEM]);
+
+        $reader = $this->member(self::READER);
+        $row = $this->rows([], $reader)['Live title'];
+        # Counts, indexing and type come from the draft and its check: not for a reader who may not see drafts
+        $this->assertNull($row['Problems']);
+        $this->assertNull($row['Warnings']);
+        $this->assertNull($row['Tips']);
+        $this->assertSame('', $row['CheckedAt']);
+        $this->assertSame('Not available without draft access', $row['PageType']);
+        $this->assertSame('Not available without draft access', $row['IndexableLabel']);
+        $this->assertSame('Not available without draft access', $row['StatusLabel']);
+        $this->assertSame([], $this->rows(['Severity' => Check::PROBLEM], $reader));
+        $summary = SiteReportData::create($reader)->summary();
+        $this->assertSame(0, $summary['indexable'], 'not counted from the draft either');
+
+        $admin = $this->member('ADMIN');
+        $this->assertSame(1, $this->rows([], $admin)['Unpublished title']['Problems']);
+    }
+
     public function testDetailsOnlyForPagesTheViewerMayEdit(): void
     {
         $this->site();
