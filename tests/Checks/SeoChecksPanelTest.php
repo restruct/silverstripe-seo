@@ -45,6 +45,21 @@ class SeoChecksPanelTest extends ChecksTestCase
         $this->assertNull($metadata->getChildren()->fieldByName('SeoChecks'));
     }
 
+    public function testNoPanelOnAPageTheMemberCannotEdit(): void
+    {
+        # Results stored from an editor's render; a member who may only view the page must not see them
+        $page = $this->page(['HideH1' => true]);
+        CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
+        $page->CanEditType = 'OnlyTheseUsers';
+        $page->write();
+        $this->logInWithPermission('CMS_ACCESS_CMSMain');
+        $this->assertFalse($page->canEdit());
+        $this->assertTrue($page->canView());
+
+        $metadata = $page->getCMSFields()->fieldByName('Root.Main.Metadata');
+        $this->assertNull($metadata->getChildren()->fieldByName('SeoChecks'));
+    }
+
     public function testThePanelRendersStoredResultsGroupedWithCountsAndNoScore(): void
     {
         $page = $this->page(['HideH1' => true, 'ShowInMenus' => false, 'Content' => static::GOOD_TEXT . '<p>TODO</p>']);
