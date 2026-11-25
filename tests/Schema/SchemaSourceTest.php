@@ -9,6 +9,7 @@ use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestCategory;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestCoursePage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestDataExtension;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestEvent;
+use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestGetterItem;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestHolderPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestJobPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestPlace;
@@ -41,6 +42,7 @@ class SchemaSourceTest extends SapphireTest
         SchemaTestCategory::class,
         SchemaTestJobPage::class,
         SchemaTestCoursePage::class,
+        SchemaTestGetterItem::class,
     ];
 
     protected static $required_extensions = [
@@ -131,6 +133,20 @@ class SchemaSourceTest extends SapphireTest
         $this->assertSame('Open days', $node['keywords']);
         # A reference to the site's organisation node, by @id only
         $this->assertSame(['@id' => $this->base() . '/#organization'], $node['organizer']);
+    }
+
+    public function testGettersAndCastingAreHonoured(): void
+    {
+        $item = SchemaTestGetterItem::create(['Title' => 'Plain']);
+        $item->write();
+        $mapper = $this->mapper();
+
+        # As a template reads it: the getter overrides the column
+        $this->assertSame('Overridden Plain', $mapper->resolve($item, 'Title'));
+        # A getter without a column
+        $this->assertSame('Hello there', $mapper->resolve($item, 'Tagline'));
+        # A method cast as HTMLText is HTML, so it becomes plain text with its entities decoded
+        $this->assertSame('Fish & chips', $mapper->resolve($item, 'Teaser'));
     }
 
     public function testEmptyValuesAreLeftOut(): void
