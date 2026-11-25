@@ -458,12 +458,15 @@ vendor/bin/sake tasks:seo-migrate --source=hubertusanton --apply    # writes
 
 Sources: `liveseo`, `hubertusanton`, `plasticstudio`, `simpleseo`, `jellygnite`. Options:
 
-- `--apply` writes, in one transaction; without it the task is a dry run (`--dry-run` says so explicitly).
+- `--apply` writes, in one transaction that any error rolls back; without it the task is a dry run
+  (`--dry-run` says so explicitly; giving both is refused).
 - `--overwrite` replaces values already filled in here. Without it, a filled-in value is never changed: it is
   counted as a conflict and kept.
 
 The report has one line per column and stage: rows read, copied, already the same, conflicts, and invalid
-(a value that cannot be used here, such as an image that no longer exists or a malformed URL). Columns without
+(a value that cannot be used here, such as an image that no longer exists, a malformed URL, or a value longer
+than the column here holds: it is never cut off). An image that exists but is not published is copied to the
+draft only and counted as unpublished on the live line. Columns without
 a home here are listed with the number of rows that have a value and, where there is one, what to do instead.
 Old columns that are not in the database are skipped with a notice.
 
@@ -477,8 +480,15 @@ How it writes:
   nothing.
 - **Old data is left alone.** Old columns and tables are read, never changed or dropped. When `db:build` has
   renamed an old table to `_obsolete_<table>` (it does so once no class gives the table a field any more, e.g.
-  `Page` after removing a module that extended `Page`), the task reads from that table instead.
+  `Page` after removing a module that extended `Page`), the task reads from that table instead. A second rename
+  adds a number (`_obsolete_Page2`, `_obsolete_Page_Live2`): the highest number holding the column is used,
+  with a warning, and the live table is found by its own name.
+- **Several old columns for one target** (a Facebook image, else a Twitter one): a value that cannot be used
+  gives way to the next column.
 - Writing with plain SQL bypasses caches: flush, and regenerate a static cache, after applying.
+- **Not for Fluent yet.** With a `SiteTree_Localised` or `SiteConfig_Localised` table, values live per locale,
+  which the task does not migrate: a dry run reports with a warning, and `--apply` is refused. Copy the
+  localised values by hand.
 
 ### Recommended order
 
@@ -528,7 +538,7 @@ cyber-duck/silverstripe-seo and its forks, which share the schema):
 
 | Old column | Here |
 |---|---|
-| `MetaTitle` | `MetaTitle` (a value over 255 characters is reported as invalid) |
+| `MetaTitle` | `MetaTitle` (Varchar(512) there, 255 here: a longer value is reported as invalid) |
 | `Canonical` | `CanonicalURL` |
 | `Robots` (`noindex,nofollow`, `none`, ...) | `MetaRobotsNoIndex`, `MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache` (`noarchive`); a flag is only ever set, never cleared |
 | `SocialImageID` | `OGImageID` |

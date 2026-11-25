@@ -16,6 +16,15 @@ All notable changes to this module are documented here. The format follows
   stage. Draft and live tables are written separately, nothing is published, old columns are never changed,
   and columns in an `_obsolete_` table are found too. A project registers its own mapper in
   `MigrateFromSeoModuleTask.mappers`.
+  - A value longer than the target column (from information_schema: characters for VARCHAR, bytes for TEXT)
+    is invalid, never cut off: Silverstripe's sql_mode is not strict, so MySQL would truncate it silently.
+  - Numbered renames (`_obsolete_Page2`, `_obsolete_Page_Live2`) are found; the highest number wins, with a
+    warning when more than one holds the column.
+  - With several source columns, an unusable value falls through to the next column.
+  - The live stage of an image copy needs a published file; otherwise it is counted as unpublished.
+  - `--apply` runs in a transaction that any Throwable rolls back; on a Fluent site (`localised_tables`) it is
+    refused, and a dry run warns.
+  - The unknown `--source` value is escaped in the output.
 
 ## [0.2.0] - 2026-11-25
 
