@@ -5,7 +5,7 @@ Class: `Restruct\Silverstripe\SEO\Checks\Rules\OrphanPageCheck`.
 
 ## What it checks
 
-The page is not reachable through the menus (it, and every page above it, has "Show in menus" on) and no other record links to it (core's link tracking, so Elemental blocks count). The homepage always passes; a link from the page to itself does not count.
+The page is not reachable through the menus (it, and every page above it, has "Show in menus" on) and no other record links to it (core's link tracking, so Elemental blocks count). The homepage always passes; a link from the page to itself does not count. A child of a parent whose class is in `lists_children_classes` (a blog holder, a news archive: templates that list their children; empty by default) passes when that parent is reachable. An extension can decide other cases in `updateIsOrphan(bool &$orphan, PageAnalysis $analysis)`.
 
 ## Why
 

@@ -102,7 +102,7 @@ class ImageAltQualityCheck extends AbstractCheck
     {
         # A file name (IMG_4031.jpg, header-banner.png) or a camera name (DSC01234, IMG_4031)
         if (preg_match('/\.(jpe?g|png|gif|webp|avif|svg|tiff?|bmp|heic)$/i', $alt)
-            || preg_match('/^(img|dsc|dscn|dcim|pxl|photo|image|screenshot)[\s_\-]?\d+/i', $alt)
+            || preg_match('/^(img|dsc|dscn|dcim|pxl|photo|image|screenshot)[_\-]?\d+/i', $alt)
         ) {
             return $this->_t(__CLASS__ . '.FileName', 'looks like a file name');
         }

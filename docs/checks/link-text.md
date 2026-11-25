@@ -5,7 +5,7 @@ Class: `Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck`.
 
 ## What it checks
 
-Links in the content area whose text (or image alt text, aria-label, title) is empty, or is one of the non-descriptive texts: "click here", "read more", "lees meer", "klik hier", and so on.
+Links in the content area whose accessible name is empty, or is one of the non-descriptive texts: "click here", "read more", "lees meer", "klik hier", and so on. The accessible name is aria-labelledby (the text of the referenced elements), else aria-label, else title, else the link text (or the alt text of its images).
 
 ## Why
 

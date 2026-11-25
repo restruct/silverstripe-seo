@@ -59,7 +59,9 @@ class TitleBoilerplateCheck extends AbstractCheck
         if ($siteName !== '' && mb_strtolower($own) === mb_strtolower($siteName)) {
             return $this->fail($this->_t(__CLASS__ . '.IsSiteName', 'The title is just the site name: "{title}".', ['title' => $full]));
         }
-        if ($siteName !== '' && mb_substr_count(mb_strtolower($full), mb_strtolower($siteName)) > 1) {
+        # Repeated: twice in the page's own title, or the own title already ends in the suffix that is appended
+        # again. Once in the own title plus the suffix ("About Acme | Acme") is fine.
+        if ($siteName !== '' && (static::occurrences($own, $siteName) > 1 || ($full !== $own && static::endsWithName($own, $siteName)))) {
             return $this->fail(
                 $this->_t(__CLASS__ . '.Repeated', 'The site name is in the title more than once.'),
                 [$full]
@@ -70,5 +72,23 @@ class TitleBoilerplateCheck extends AbstractCheck
             return $this->fail($this->_t(__CLASS__ . '.Placeholder', 'The title "{title}" is a placeholder.', ['title' => $own]));
         }
         return $this->pass();
+    }
+
+    /**
+     * How often a name occurs as whole words (unicode-aware: a letter or digit on either side is not a boundary,
+     * so "Shop" is not in "Workshop", and "Café" is matched as a word).
+     */
+    protected static function occurrences(string $text, string $name): int
+    {
+        $pattern = '/(?<![\p{L}\p{N}])' . preg_quote($name, '/') . '(?![\p{L}\p{N}])/iu';
+        return (int) preg_match_all($pattern, $text);
+    }
+
+    /**
+     * The own title ends in a separator and the name, as a hand-written suffix would.
+     */
+    protected static function endsWithName(string $text, string $name): bool
+    {
+        return (bool) preg_match('/[|\-:\x{2013}\x{2014}\x{00B7}]\s*' . preg_quote($name, '/') . '\s*$/iu', $text);
     }
 }

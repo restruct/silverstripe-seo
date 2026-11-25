@@ -5,7 +5,7 @@ Class: `Restruct\Silverstripe\SEO\Checks\Rules\TitleBoilerplateCheck`.
 
 ## What it checks
 
-The page's own part of the title (meta title, else page title) is the site name; the site name appears in the full title more than once; or the title is a placeholder such as "New Page".
+The page's own part of the title (meta title, else page title) is the site name; the site name appears twice in the page's own part, or that part already ends in the site name while the suffix is appended again (counted as whole words, unicode-aware: "Shop" is not in "Workshop"; "About Acme | Acme" passes); or the title is a placeholder such as "New Page".
 
 ## Why
 

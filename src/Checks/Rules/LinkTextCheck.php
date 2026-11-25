@@ -63,7 +63,8 @@ class LinkTextCheck extends AbstractCheck
         $issues = [];
         foreach ($analysis->query('.//a[@href]') as $link) {
             $href = static::short((string) $link->getAttribute('href'), 100);
-            $text = $this->textOf($link);
+            # The accessible name when the link sets one; screen readers and search engines read that instead
+            $text = $this->accessibleNameOf($link) ?: $this->textOf($link);
             if ($text === '') {
                 $issues[] = $this->_t(__CLASS__ . '.Empty', 'A link without text, to {href}', ['href' => $href]);
                 continue;
@@ -80,6 +81,35 @@ class LinkTextCheck extends AbstractCheck
             $this->_t(__CLASS__ . '.Message', '{count} link(s) have no text, or text that does not say where they go.', ['count' => count($issues)]),
             array_slice($issues, 0, (int) static::config()->get('max_listed'))
         );
+    }
+
+    /**
+     * aria-labelledby (the text of the referenced elements), aria-label or title, in that order; '' when none
+     * is set.
+     */
+    protected function accessibleNameOf(DOMElement $link): string
+    {
+        $ids = preg_split('/\s+/', trim((string) $link->getAttribute('aria-labelledby'))) ?: [];
+        $parts = [];
+        if ($link->ownerDocument && array_filter($ids)) {
+            $xpath = new \DOMXPath($link->ownerDocument);
+            foreach (array_filter($ids) as $id) {
+                # An id with a quote cannot be an XPath literal here; skip it rather than build a broken query
+                if (str_contains($id, '"')) {
+                    continue;
+                }
+                foreach ($xpath->query('//*[@id="' . $id . '"]') ?: [] as $node) {
+                    $parts[] = trim((string) $node->textContent);
+                }
+            }
+        }
+        foreach ([implode(' ', array_filter($parts)), $link->getAttribute('aria-label'), $link->getAttribute('title')] as $name) {
+            $name = trim((string) preg_replace('/\s+/u', ' ', (string) $name));
+            if ($name !== '') {
+                return $name;
+            }
+        }
+        return '';
     }
 
     protected function textOf(DOMElement $link): string
