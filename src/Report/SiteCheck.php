@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Report;
 
 use Psr\Log\LoggerInterface;
+use ReflectionProperty;
 use Restruct\Silverstripe\PageRender\PageEligibility;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
@@ -137,12 +138,15 @@ class SiteCheck
         if ($member) {
             return $fn();
         }
-        $secured = Versioned::get_draft_site_secured();
+        # The raw static, not get_draft_site_secured(): null there means "read the config", and putting back the
+        # resolved bool would pin it for the rest of the process
+        $static = new ReflectionProperty(Versioned::class, 'is_draft_site_secured');
+        $secured = $static->getValue();
         Versioned::set_draft_site_secured(false);
         try {
             return $fn();
         } finally {
-            Versioned::set_draft_site_secured($secured);
+            $static->setValue(null, $secured);
         }
     }
 
