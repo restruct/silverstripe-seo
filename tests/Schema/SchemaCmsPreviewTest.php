@@ -50,7 +50,8 @@ class SchemaCmsPreviewTest extends SapphireTest
 
     public function testPreviewShowsTheGraphEscaped(): void
     {
-        $page = SeoTestPage::create(['Title' => 'Fish <b>&</b> chips', 'URLSegment' => 'fish']);
+        # JSON_HEX_TAG already takes care of < and >; " and & are left to the HTML escaping of the preview
+        $page = SeoTestPage::create(['Title' => 'Fish "and" <b>&</b> chips', 'URLSegment' => 'fish']);
         $page->write();
         $html = $this->preview($page);
 
@@ -58,6 +59,10 @@ class SchemaCmsPreviewTest extends SapphireTest
         $this->assertStringContainsString('<pre', $html);
         $this->assertStringContainsString('&quot;@type&quot;: &quot;WebPage&quot;', $html, 'pretty-printed and escaped');
         $this->assertStringNotContainsString('<b>', $html);
+        # The title as JSON wrote it, then escaped for HTML: \" becomes \&quot; and & becomes &amp;
+        $this->assertStringContainsString('Fish \\&quot;and\\&quot; \\u003Cb\\u003E&amp;\\u003C/b\\u003E chips', $html);
+        $this->assertStringNotContainsString('\\"and\\"', $html);
+        $this->assertStringNotContainsString('E&\\u003C', $html);
     }
 
     public function testPreviewListsWarnings(): void
