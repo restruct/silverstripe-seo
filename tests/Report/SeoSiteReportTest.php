@@ -225,12 +225,14 @@ class SeoSiteReportTest extends SapphireTest
         $rows = $this->rows([], $reader);
         $this->assertArrayNotHasKey('Private page', $rows);
         $this->assertArrayHasKey('Broken page', $rows);
-        # Nor do its failing checks count in the summary
-        $counts = array_column(SiteReportData::create($reader)->summary()['topChecks'], 'count', 'id');
-        $this->assertSame(1, $counts['title-missing'] ?? null, 'title-missing on one visible page');
+        # Which checks fail is a detail: the summary's top failing checks count only pages the reader may edit
+        # (review decision 2026-11-26), so a reader who may edit none sees none
+        $this->assertSame([], SiteReportData::create($reader)->summary()['topChecks']);
 
         $admin = $this->member('ADMIN');
         $this->assertArrayHasKey('Private page', $this->rows([], $admin));
+        $counts = array_column(SiteReportData::create($admin)->summary()['topChecks'], 'count', 'id');
+        $this->assertSame(2, $counts['title-missing'] ?? null, 'title-missing on both pages the admin may edit');
     }
 
     public function testAReaderWithoutDraftRightsSeesTheLiveTitle(): void
