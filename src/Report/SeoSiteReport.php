@@ -76,9 +76,15 @@ class SeoSiteReport extends Report implements PermissionProvider
         ];
     }
 
+    /**
+     * @var array<int, SiteReportData> Per viewer ID: the summary, the filters and the list share one build
+     */
+    protected array $data = [];
+
     protected function data(): SiteReportData
     {
-        return SiteReportData::create(Security::getCurrentUser());
+        $viewer = Security::getCurrentUser();
+        return $this->data[(int) $viewer?->ID] ??= SiteReportData::create($viewer);
     }
 
     /**

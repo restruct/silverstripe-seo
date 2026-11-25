@@ -37,6 +37,10 @@ All notable changes to this module are documented here. The format follows
   batches, resumable, skipping fresh results; and `sake tasks:seo-check-site` (CLI only; `--only-stale`, `--limit=N`,
   `--from-id=N`) for sites without queuedjobs. Both render as a visitor with the draft readable, or as `SiteCheck.run_as`, never as
   the member who started them.
+- Stored results also go stale when another page changes (for a result holding a check that reads other
+  pages: `isCrossPage()` / `cross_page`, set on the duplicate, link and orphan checks) and when the check
+  configuration changes (`SeoCheckResult.ConfigHash`, `CheckRunner::configHash()`, `CheckRunner::CHECKS_VERSION`).
+  `StaleContext` decides many results with a fixed number of queries.
 
 ### Changed
 

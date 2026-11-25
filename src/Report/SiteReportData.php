@@ -9,11 +9,14 @@ use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
 use Restruct\Silverstripe\SEO\Checks\SiteData;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
+use Restruct\Silverstripe\SEO\Model\StaleContext;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\Model\List\ArrayList;
+use SilverStripe\ORM\Queries\SQLSelect;
+use SilverStripe\Security\InheritedPermissions;
 use SilverStripe\Security\Member;
 use SilverStripe\Versioned\Versioned;
 
@@ -22,9 +25,9 @@ use SilverStripe\Versioned\Versioned;
  * rendered here; {@see SiteCheck} and the page editor's panel fill the results).
  *
  * Listed: the draft pages {@see PageEligibility} allows for 'seo' that the viewer may view (the draft, or the
- * published version, with its published title, when the viewer may not view drafts). Which checks fail on a
- * page, and the link to edit it, only for pages the viewer may edit; a viewer who may only view a page sees its
- * counts. Counts never include an ignored check. No score: counts per severity, and in the summary the share of
+ * published version, with its published title and nothing taken from the draft, when the viewer may not view
+ * drafts). Which checks fail on a page, and the link to edit it, only for pages the viewer may edit; a viewer
+ * who may only view a page sees its counts. Counts never include an ignored check. No score: counts per severity, and in the summary the share of
  * indexable pages without problems.
  */
 class SiteReportData
@@ -80,7 +83,7 @@ class SiteReportData
             if ($severityField && (int) $row[$severityField] < 1) {
                 continue;
             }
-            if ($severity === self::SEVERITY_NONE && ($row['Status'] === self::STATUS_UNCHECKED || $row['Problems'] > 0)) {
+            if ($severity === self::SEVERITY_NONE && ($row['DraftHidden'] || $row['Status'] === self::STATUS_UNCHECKED || $row['Problems'] > 0)) {
                 continue;
             }
             if ($check !== '' && (!$page['details'] || !in_array($check, $page['failing'], true))) {
@@ -111,7 +114,8 @@ class SiteReportData
         $failing = [];
         foreach ($this->pages() as $page) {
             $row = $page['row'];
-            if (!$row['Indexable']) {
+            # A row shown through the published version has no draft-derived values to count
+            if ($row['DraftHidden'] || !$row['Indexable']) {
                 continue;
             }
             $summary['indexable']++;
@@ -173,6 +177,10 @@ class SiteReportData
     }
 
     /**
+     * Per listed page: the row, its failing check ids (only read for pages with details) and whether details
+     * show. Built once per instance, with a fixed number of queries for the results and their staleness, plus
+     * what the permission checks cost (batched through the permission and version caches).
+     *
      * @return array<int, array{row:array<string, mixed>, failing:string[], details:bool}>
      */
     protected function pages(): array
@@ -181,50 +189,50 @@ class SiteReportData
             return $this->pages;
         }
         $this->pages = [];
-        $results = [];
-        foreach (SeoCheckResult::get()->filter('Stage', Versioned::DRAFT) as $result) {
-            $results[(int) $result->PageID] = $result;
-        }
         $titles = $this->checkTitles();
         $eligibility = PageEligibility::singleton();
 
-        Versioned::withVersionedMode(function () use ($results, $titles, $eligibility) {
+        Versioned::withVersionedMode(function () use ($titles, $eligibility) {
             Versioned::set_stage(Versioned::DRAFT);
-            $site = SiteData::create();
+            $pages = [];
             foreach (SiteTree::get()->sort('ID') as $page) {
-                if (!$eligibility->isEligible($page, 'seo')) {
-                    continue;
+                if ($eligibility->isEligible($page, 'seo')) {
+                    $pages[(int) $page->ID] = $page;
                 }
-                $title = $this->visibleTitle($page);
-                if ($title === null) {
-                    continue;
+            }
+            if (!$pages) {
+                return;
+            }
+            $ids = array_keys($pages);
+            $this->warmPermissionCaches($ids);
+            $results = $this->resultRows();
+            $context = StaleContext::create(Versioned::DRAFT)->preload($pages);
+            $site = SiteData::create();
+
+            $visible = [];
+            foreach ($pages as $id => $page) {
+                $draftVisible = (bool) $page->canView($this->viewer);
+                $title = $draftVisible ? (string) $page->Title : $this->liveTitle($page);
+                if ($title !== null) {
+                    $visible[$id] = [$title, $draftVisible, $draftVisible && $page->canEdit($this->viewer)];
                 }
-                $details = (bool) $page->canEdit($this->viewer);
-                $result = $results[(int) $page->ID] ?? null;
-                $failing = $result ? $this->failingChecks($result) : [];
-                $indexable = !PageAnalysis::create($page, null, $site)->isNoindex();
-                $status = !$result ? self::STATUS_UNCHECKED : ($result->isStale() ? self::STATUS_STALE : self::STATUS_FRESH);
-                $this->pages[(int) $page->ID] = [
-                    'failing' => $failing,
+            }
+            # The results JSON only for pages whose failing checks are shown
+            $withDetails = array_keys(array_filter(
+                $visible,
+                fn ($v, $id) => $v[2] && isset($results[$id]),
+                ARRAY_FILTER_USE_BOTH
+            ));
+            $failing = $this->failingByPage($withDetails);
+
+            foreach ($visible as $id => [$title, $draftVisible, $details]) {
+                $page = $pages[$id];
+                $this->pages[$id] = [
+                    'failing' => $details ? ($failing[$id] ?? []) : [],
                     'details' => $details,
-                    'row' => [
-                        'ID' => (int) $page->ID,
-                        'Title' => $title,
-                        'ClassName' => get_class($page),
-                        'PageType' => (string) $page->i18n_singular_name(),
-                        'Indexable' => $indexable,
-                        'IndexableLabel' => $indexable ? _t(__CLASS__ . '.IndexableYes', 'Yes') : _t(__CLASS__ . '.IndexableNo', 'No (noindex)'),
-                        'Problems' => $result ? (int) $result->Problems : 0,
-                        'Warnings' => $result ? (int) $result->Warnings : 0,
-                        'Tips' => $result ? (int) $result->Tips : 0,
-                        'CheckedAt' => $result ? (string) $result->CheckedAt : '',
-                        'Status' => $status,
-                        'StatusLabel' => static::statusLabel($status),
-                        'FailingChecks' => $details
-                            ? implode(', ', array_map(fn ($id) => $titles[$id] ?? $id, $failing))
-                            : '',
-                        'EditLink' => $details ? (string) $page->CMSEditLink() : '',
-                    ],
+                    'row' => $draftVisible
+                        ? $this->draftRow($page, $title, $results[$id] ?? null, $context, $site, $details ? ($failing[$id] ?? []) : null, $titles)
+                        : $this->liveOnlyRow($page, $title),
                 ];
             }
         });
@@ -232,15 +240,127 @@ class SiteReportData
     }
 
     /**
-     * The title the viewer may see, or null when the viewer may not see the page: the draft's title when the
-     * viewer may view the draft, else the published title (a viewer without draft rights still sees published
-     * pages that have unpublished changes, but not their unpublished title).
+     * The row of a page whose draft the viewer may see: everything from the draft and its stored result.
+     *
+     * @param array<string, mixed>|null $result The raw result columns
+     * @param string[]|null $failing Failing check ids, null when the viewer gets no details
+     * @param array<string, string> $titles
+     * @return array<string, mixed>
      */
-    protected function visibleTitle(SiteTree $draft): ?string
+    protected function draftRow(SiteTree $page, string $title, ?array $result, StaleContext $context, SiteData $site, ?array $failing, array $titles): array
     {
-        if ($draft->canView($this->viewer)) {
-            return (string) $draft->Title;
+        $indexable = !PageAnalysis::create($page, null, $site)->isNoindex();
+        $status = !$result
+            ? self::STATUS_UNCHECKED
+            : (SeoCheckResult::isStaleRow($result, $context) ? self::STATUS_STALE : self::STATUS_FRESH);
+        return [
+            'ID' => (int) $page->ID,
+            'Title' => $title,
+            'ClassName' => get_class($page),
+            'PageType' => (string) $page->i18n_singular_name(),
+            'DraftHidden' => false,
+            'Indexable' => $indexable,
+            'IndexableLabel' => $indexable ? _t(__CLASS__ . '.IndexableYes', 'Yes') : _t(__CLASS__ . '.IndexableNo', 'No (noindex)'),
+            'Problems' => $result ? (int) $result['Problems'] : 0,
+            'Warnings' => $result ? (int) $result['Warnings'] : 0,
+            'Tips' => $result ? (int) $result['Tips'] : 0,
+            'CheckedAt' => $result ? (string) $result['CheckedAt'] : '',
+            'Status' => $status,
+            'StatusLabel' => static::statusLabel($status),
+            'FailingChecks' => $failing !== null
+                ? implode(', ', array_map(fn ($id) => $titles[$id] ?? $id, $failing))
+                : '',
+            'EditLink' => $failing !== null ? (string) $page->CMSEditLink() : '',
+        ];
+    }
+
+    /**
+     * The row of a page the viewer sees only as published: the published title, and nothing that comes from
+     * the draft or its check (counts, indexing, page type, status), which the viewer may not see.
+     *
+     * @return array<string, mixed>
+     */
+    protected function liveOnlyRow(SiteTree $page, string $title): array
+    {
+        $na = _t(__CLASS__ . '.NeedsDraftAccess', 'Not available without draft access');
+        return [
+            'ID' => (int) $page->ID,
+            'Title' => $title,
+            'ClassName' => get_class($page),
+            'PageType' => $na,
+            'DraftHidden' => true,
+            'Indexable' => null,
+            'IndexableLabel' => $na,
+            'Problems' => null,
+            'Warnings' => null,
+            'Tips' => null,
+            'CheckedAt' => '',
+            'Status' => '',
+            'StatusLabel' => $na,
+            'FailingChecks' => '',
+            'EditLink' => '',
+        ];
+    }
+
+    /**
+     * Fill core's permission and version caches for all pages at once, so the canView() and canEdit() calls per
+     * page that follow are answered from them (the per-page calls stay, for extensions that change access).
+     *
+     * @param int[] $ids
+     */
+    protected function warmPermissionCaches(array $ids): void
+    {
+        Versioned::prepopulate_versionnumber_cache(SiteTree::class, Versioned::LIVE, $ids);
+        Versioned::prepopulate_versionnumber_cache(SiteTree::class, Versioned::DRAFT, $ids);
+        $checker = SiteTree::singleton()->getPermissionChecker();
+        if ($checker instanceof InheritedPermissions) {
+            $checker->canViewMultiple($ids, $this->viewer, false);
+            $checker->canEditMultiple($ids, $this->viewer, false);
         }
+    }
+
+    /**
+     * The draft results without their JSON, page ID => columns.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function resultRows(): array
+    {
+        $columns = ['"PageID"', '"Stage"', '"CheckedAt"', '"Problems"', '"Warnings"', '"Tips"', '"Stale"', '"Format"', '"ConfigHash"', '"CrossPage"'];
+        $rows = [];
+        foreach (SQLSelect::create($columns, '"SeoCheckResult"', ['"Stage"' => Versioned::DRAFT])->execute() as $row) {
+            $rows[(int) $row['PageID']] = $row;
+        }
+        return $rows;
+    }
+
+    /**
+     * Failing, not ignored check ids per page, decoded from the stored JSON of these pages only.
+     *
+     * @param int[] $pageIDs
+     * @return array<int, string[]>
+     */
+    protected function failingByPage(array $pageIDs): array
+    {
+        if (!$pageIDs) {
+            return [];
+        }
+        $failing = [];
+        $query = SQLSelect::create(['"PageID"', '"Results"'], '"SeoCheckResult"')
+            ->addWhere(['"Stage"' => Versioned::DRAFT])
+            ->addWhere(['"PageID" IN (' . implode(',', array_fill(0, count($pageIDs), '?')) . ')' => $pageIDs]);
+        foreach ($query->execute() as $row) {
+            $entries = json_decode((string) $row['Results'], true);
+            $failing[(int) $row['PageID']] = $this->failingChecks(is_array($entries) ? $entries : []);
+        }
+        return $failing;
+    }
+
+    /**
+     * The published title, when the viewer may view the published version; null otherwise.
+     */
+    protected function liveTitle(SiteTree $draft): ?string
+    {
         if (!$draft->isPublished()) {
             return null;
         }
@@ -249,14 +369,15 @@ class SiteReportData
     }
 
     /**
-     * Ids of the failing, not ignored checks of a stored result.
+     * Ids of the failing, not ignored checks among stored entries.
      *
+     * @param array<string, array> $entries
      * @return string[]
      */
-    protected function failingChecks(SeoCheckResult $result): array
+    protected function failingChecks(array $entries): array
     {
         $ids = [];
-        foreach ($result->getEntries() as $id => $entry) {
+        foreach ($entries as $id => $entry) {
             if (($entry['status'] ?? '') === CheckResult::FAIL && empty($entry['ignored'])) {
                 $ids[] = (string) $id;
             }

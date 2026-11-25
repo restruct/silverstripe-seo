@@ -473,6 +473,17 @@ and reflects the render of whoever checked last. Messages are stored as translat
 reader's language. Block writes, publishes and deletes (Elemental) mark the page's result stale too, and a
 result older than the last edit of the page or one of its blocks counts as stale.
 
+Two changes elsewhere also make a result stale:
+
+- **Another page changed.** The checks that read other pages (`title-duplicate`, `description-duplicate`,
+  `broken-links`, `unpublished-links`, `link-redirects`, `orphan-page`; a check says so with `cross_page: true`)
+  can be wrong once any page changed. A result that holds one of them is stale when any page was edited after
+  it was checked. Since most pages run `broken-links`, an edit anywhere makes most results stale: the panel
+  re-checks on the next open, and a site run with only stale results checks most pages again.
+- **The checks changed.** Every result stores a fingerprint of the check configuration: the enabled checks,
+  their classes and config (thresholds, severity, priority) and `CheckRunner::CHECKS_VERSION`, which a release
+  raises when what a check finds changes. A result checked under another fingerprint is stale.
+
 **Rendering has side effects** that a page's own code can cause: the render runs the page's controller and
 template in the same PHP process (see the render library's README). Code that should not run during a check
 (analytics, counters, mail) can test `Restruct\Silverstripe\PageRender\PageRenderer::isRendering()`.
@@ -577,13 +588,18 @@ stored results; the report itself renders nothing.
 
 **Who sees what.** The report needs the permission **View the SEO status report** (`VIEW_SEO_REPORT`, group
 settings, category SEO) plus access to the Reports section (`CMS_ACCESS_ReportAdmin`); administrators have both.
-It lists only pages the reader may view (the draft, or the published version with its published title for a
-reader without draft access). Which checks fail, the check filter, and the link to edit the page are only there for pages the reader
-may edit; for other pages the reader sees the counts.
+It lists only pages the reader may view. A reader without draft access sees a page with unpublished changes
+by its published title, and "Not available without draft access" instead of its counts, indexing, type and
+status, which come from the draft (such rows are left out of the summary). Which checks fail, the check filter,
+the top failing checks in the summary and the link to edit the page are only there for pages the reader may
+edit; for other pages the reader sees the counts.
 
-**Cost.** Every view of the report reads all eligible pages and their stored results, and checks view and edit
-rights and staleness per page (up to two small queries each). That is fine for hundreds of pages; on a site with
-many thousands it gets slow.
+**Cost.** Every view of the report reads all eligible pages and their stored results, with a fixed number of
+queries: the staleness of every row in three, view and edit rights through core's batched permission and
+version caches, and the results JSON only for pages whose failing checks the reader sees. Measured on the test
+host (MariaDB, one view building the summary, the filters and the list): 200 pages took about 0.15 s and 35
+queries, 1000 pages about 0.65 s and the same 35 queries. Time grows with the number of pages (each page
+object is loaded and checked for noindex); fine for hundreds to a few thousand pages.
 
 It is a report rather than a CMS section of its own because silverstripe/reports comes with silverstripe/cms and
 already brings the filter form, the sortable and paginated list, print and export.

@@ -271,6 +271,7 @@ nl:
   Restruct\Silverstripe\SEO\Report\SiteReportData:
     IndexableNo: 'Nee (noindex)'
     IndexableYes: Ja
+    NeedsDraftAccess: 'Niet beschikbaar zonder toegang tot concepten'
     StatusFresh: Actueel
     StatusStale: Verouderd
     StatusUnchecked: 'Niet gecontroleerd'

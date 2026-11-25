@@ -271,6 +271,7 @@ en:
   Restruct\Silverstripe\SEO\Report\SiteReportData:
     IndexableNo: 'No (noindex)'
     IndexableYes: 'Yes'
+    NeedsDraftAccess: 'Not available without draft access'
     StatusFresh: 'Up to date'
     StatusStale: 'Out of date'
     StatusUnchecked: 'Not checked'
