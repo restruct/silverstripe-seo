@@ -57,6 +57,11 @@ class MigrationRun
     private array $files = [];
 
     /**
+     * @var string[]|null
+     */
+    private ?array $tableNames = null;
+
+    /**
      * @var array<string, array{0: string, 1: int}|null> Per "table.column": [chars|bytes, limit], null for none.
      */
     private array $limits = [];
@@ -91,24 +96,64 @@ class MigrationRun
     }
 
     /**
-     * Where an old column lives: the first of the candidate tables that has it, or that table renamed to
-     * `_obsolete_<table>` by db:build.
+     * Where an old column lives: the first of the candidate tables that has it, or a copy db:build renamed it
+     * to. db:build renames a table it no longer needs to `_obsolete_<table>`, and on a clash adds a number after
+     * the whole name: `_obsolete_Page2`, and `_obsolete_Page_Live2` for `Page_Live`. So the live table is looked
+     * up by its own name, and of several renamed copies holding the column the highest number (the latest
+     * rename) is used, with a warning. A table still in use wins over its renamed copies.
      *
      * @param string[] $candidates base table names, e.g. ['Page', 'SiteTree']
-     * @return array{draft: string, live: ?string}|null the table, and its _Live table when that has the column too
+     * @return array{draft: string, live: ?string}|null the table, and the live table when one has the column
      */
     public function locateColumn(array $candidates, string $column): ?array
     {
         foreach ($candidates as $base) {
-            foreach (['', '_obsolete_'] as $prefix) {
-                $table = $prefix . $base;
-                if ($this->hasColumn($table, $column)) {
-                    $live = $prefix . $base . '_Live';
-                    return ['draft' => $table, 'live' => $this->hasColumn($live, $column) ? $live : null];
-                }
+            if ($draft = $this->pickTable($base, $column)) {
+                return ['draft' => $draft, 'live' => $this->pickTable($base . '_Live', $column)];
             }
         }
         return null;
+    }
+
+    /**
+     * The table, or the latest of its renamed copies, that has the column.
+     */
+    protected function pickTable(string $name, string $column): ?string
+    {
+        $matches = [];
+        if ($this->hasColumn($name, $column)) {
+            $matches[] = $name;
+        }
+        $renamed = [];
+        $pattern = '/^_obsolete_' . preg_quote($name, '/') . '(\d*)$/i';
+        foreach ($this->tableNames() as $table) {
+            if (preg_match($pattern, $table, $m) && $this->hasColumn($table, $column)) {
+                # The first rename has no number: it counts as 1
+                $renamed[$table] = $m[1] === '' ? 1 : (int) $m[1];
+            }
+        }
+        arsort($renamed);
+        $matches = array_merge($matches, array_keys($renamed));
+        if (!$matches) {
+            return null;
+        }
+        if (count($matches) > 1) {
+            $this->warnOnce(sprintf(
+                '%s is in more than one table (%s): read from %s.',
+                $column,
+                implode(', ', $matches),
+                $matches[0]
+            ));
+        }
+        return $matches[0];
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function tableNames(): array
+    {
+        return $this->tableNames ??= array_values(DB::table_list());
     }
 
     /**
@@ -314,7 +359,8 @@ class MigrationRun
             $this->add(new MigrationResult($label, MigrationResult::MISSING));
             return;
         }
-        $versioned = $this->hasTable($this->baseOf($located['draft']) . '_Live');
+        # A renamed copy has no _Live table of the same name (see locateColumn()): the live copy tells
+        $versioned = $located['live'] !== null || $this->hasTable($this->baseOf($located['draft']) . '_Live');
         foreach ([self::STAGE_DRAFT => $located['draft'], self::STAGE_LIVE => $located['live']] as $stage => $table) {
             if ($table === null) {
                 continue;
@@ -351,6 +397,16 @@ class MigrationRun
     public function warn(string $text): void
     {
         $this->entries[] = ['warning', $text];
+    }
+
+    /**
+     * A warning that may come up for several columns or stages, reported once.
+     */
+    protected function warnOnce(string $text): void
+    {
+        if (!in_array(['warning', $text], $this->entries, true)) {
+            $this->warn($text);
+        }
     }
 
     /**
