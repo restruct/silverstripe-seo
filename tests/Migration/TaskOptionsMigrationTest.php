@@ -31,4 +31,11 @@ class TaskOptionsMigrationTest extends SeoMigrationTestCase
         $this->assertStringNotContainsString('href="javascript', $html);
         $this->assertStringContainsString('&lt;href=javascript:alert(1)&gt;click&lt;/&gt;', $html);
     }
+
+    public function testApplyAndDryRunTogetherAreRefused(): void
+    {
+        $output = $this->runMigration('liveseo', ['--apply' => true, '--dry-run' => true], Command::INVALID);
+
+        $this->assertStringContainsString('not both', $output);
+    }
 }
