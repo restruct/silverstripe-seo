@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Text;
 
 use SilverStripe\View\Parsers\HTMLValue;
+use SilverStripe\View\Parsers\ShortcodeParser;
 
 /**
  * Turns a block of HTML into a short plain-text description: the first paragraph that has any text, cut at a word
@@ -15,6 +16,15 @@ use SilverStripe\View\Parsers\HTMLValue;
 class DescriptionSummary
 {
     /**
+     * Elements whose boundaries separate words, as a browser lays them out on separate lines.
+     */
+    protected const BLOCK_ELEMENTS = [
+        'address', 'article', 'aside', 'blockquote', 'caption', 'dd', 'details', 'div', 'dl', 'dt', 'figcaption',
+        'figure', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li', 'main', 'nav', 'ol', 'p',
+        'pre', 'section', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul',
+    ];
+
+    /**
      * @param string $html Field HTML, shortcodes and all
      * @param int $maxLength Maximum length in characters (not bytes)
      */
@@ -25,9 +35,23 @@ class DescriptionSummary
         }
 
         # Shortcodes are not text: [image ...] would otherwise end up verbatim in the description. Only the
-        # bracketed shortcode syntax is matched (a name directly after the bracket), so ordinary text in
-        # brackets like "[1]" is kept.
-        $html = preg_replace('/\[\/?[a-z_][a-z0-9_]*(?:[\s,][^\]]*)?\]/i', '', $html) ?? $html;
+        # bracketed shortcode syntax is matched (a name directly after the bracket), and only names registered
+        # with the active parser are removed, so ordinary text in brackets like "[1]" or "[sic]" is kept. The
+        # handlers are not run: the text is all that is needed, and a handler may query or render.
+        $parser = ShortcodeParser::get_active();
+        $html = preg_replace_callback(
+            '/\[\/?([a-z_][a-z0-9_]*)(?:[\s,][^\]]*)?\]/i',
+            fn (array $match): string => $parser->registered(strtolower($match[1])) ? '' : $match[0],
+            $html
+        ) ?? $html;
+
+        # A space at every line break and block boundary, so "one<br>two" and "<li>one</li><li>two</li>" do not
+        # run their words together; normalise() collapses the extra spaces again
+        $html = preg_replace(
+            '#<(?:br|/?(?:' . implode('|', static::BLOCK_ELEMENTS) . '))\b[^>]*>#i',
+            ' $0 ',
+            $html
+        ) ?? $html;
 
         $text = '';
         $value = HTMLValue::create($html);
@@ -38,20 +62,22 @@ class DescriptionSummary
                 break;
             }
         }
-        # No paragraph markup at all (a div, a list, plain text): fall back to all of the text
-        if ($text === '') {
-            $text = static::normalise(strip_tags($html));
+        # No paragraph markup at all (a div, a list, plain text): fall back to all of the text. Read from the DOM
+        # as well (not strip_tags), so entities are decoded the same single time as in a paragraph
+        if ($text === '' && ($body = $value->getBody())) {
+            $text = static::normalise($body->textContent);
         }
 
         return static::truncate($text, $maxLength);
     }
 
     /**
-     * Collapses whitespace and decodes entities, so lengths are counted as a reader sees the text.
+     * Collapses whitespace, so lengths are counted as a reader sees the text. Entities are not decoded here: the
+     * text comes from the DOM, which decoded them once already, and a second pass would turn text that reads
+     * "&lt;b&gt;" into "<b>".
      */
     protected static function normalise(string $text): string
     {
-        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         # \s with the u flag also matches non-breaking spaces
         return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
     }
