@@ -141,6 +141,13 @@ class SeoSiteTreeExtension extends Extension
     private static int $seo_description_fallback_length = 155;
 
     /**
+     * Send `noindex, nofollow` (meta tag and header) on every page when the environment is not live
+     * (Director::isLive()), so a test or acceptance site that is reachable from outside stays out of search
+     * results. Off by default.
+     */
+    private static bool $seo_noindex_non_live = false;
+
+    /**
      * Which robots directive each flag column stands for, in output order. Associative on purpose: a project can
      * then add its own flag column without the list merging into duplicates.
      */
@@ -419,6 +426,10 @@ class SeoSiteTreeExtension extends Extension
                     $directives[] = $directive;
                 }
             }
+        }
+        # Site-wide, so it also overrides a shown record that wants to be indexed
+        if ($page->config()->get('seo_noindex_non_live') && !Director::isLive()) {
+            $directives = array_merge(['noindex', 'nofollow'], $directives);
         }
         $page->extend('updateSeoRobotsDirectives', $directives);
         return array_values(array_unique(array_filter($directives)));
