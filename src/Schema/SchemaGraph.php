@@ -2,7 +2,9 @@
 
 namespace Restruct\Silverstripe\SEO\Schema;
 
+use Psr\Log\LoggerInterface;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
 
 /**
  * The structured data of one page: a schema.org `@graph` of nodes, output as a single JSON-LD script.
@@ -108,13 +110,67 @@ class SchemaGraph
     }
 
     /**
-     * The graph as JSON that is safe to place between `<script type="application/ld+json">` tags. An empty
-     * string only when encoding fails outright (it does not for invalid UTF-8, which is substituted).
+     * The graph as JSON that is safe to place between `<script type="application/ld+json">` tags.
+     *
+     * A value JSON cannot hold (NAN or INF from a calculation, a resource, an object) is dropped with a warning
+     * in the log, so one bad value costs that value, not the page's structured data. Invalid UTF-8 is
+     * substituted. JSON_PARTIAL_OUTPUT_ON_ERROR is the last safety net; an empty string only if even that fails.
      */
     public function toJson(int $extraFlags = 0): string
     {
-        $json = json_encode($this->toArray(), static::JSON_FLAGS | $extraFlags);
+        $dropped = [];
+        $data = $this->encodable($this->toArray(), '', $dropped);
+        if ($dropped) {
+            $this->logWarning('Structured data: values JSON cannot encode were left out: ' . implode(', ', $dropped));
+        }
+        $json = json_encode($data, static::JSON_FLAGS | JSON_PARTIAL_OUTPUT_ON_ERROR | $extraFlags);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->logWarning('Structured data: JSON encoding was partial: ' . json_last_error_msg());
+        }
         return $json === false ? '' : $json;
+    }
+
+    /**
+     * The data without the values json_encode() cannot represent; their paths are collected in $dropped.
+     */
+    protected function encodable(array $data, string $path, array &$dropped): array
+    {
+        foreach ($data as $key => $value) {
+            $here = $path === '' ? (string) $key : $path . '.' . $key;
+            if (is_array($value)) {
+                $data[$key] = $this->encodable($value, $here, $dropped);
+            } elseif ((is_float($value) && !is_finite($value))
+                || is_resource($value)
+                || (is_object($value) && !$value instanceof \JsonSerializable)
+            ) {
+                unset($data[$key]);
+                $dropped[] = $here;
+            }
+        }
+        # A list keeps its indexes consecutive after a removal, or it would be encoded as an object
+        return $this->wasList($data) ? array_values($data) : $data;
+    }
+
+    /**
+     * Whether the keys are integers (a list with a gap after a removal).
+     */
+    protected function wasList(array $data): bool
+    {
+        foreach (array_keys($data) as $key) {
+            if (!is_int($key)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected function logWarning(string $message): void
+    {
+        try {
+            Injector::inst()->get(LoggerInterface::class)->warning($message);
+        } catch (\Throwable) {
+            # No logger configured: nothing to do
+        }
     }
 
     /**
