@@ -52,6 +52,14 @@ class SchemaTypeRegistryTest extends SapphireTest
         $this->assertContains('headline', $registry->required('NewsArticle'));
     }
 
+    public function testOrganizationSubtypesKeepTheNameRequired(): void
+    {
+        $registry = $this->registry();
+        foreach (['EducationalOrganization', 'CollegeOrUniversity', 'Corporation', 'NGO'] as $type) {
+            $this->assertSame(['name'], $registry->missingRequired(['@type' => $type]), $type);
+        }
+    }
+
     public function testMissingRequired(): void
     {
         $registry = $this->registry();
