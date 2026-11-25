@@ -167,6 +167,24 @@ class StructuredDataOutputTest extends FunctionalTest
         $this->assertSame($first, $second);
     }
 
+    public function testWebPageFollowsTheCanonicalOfActionsAndKeptParameters(): void
+    {
+        $this->publish(SeoTestPage::create(['Title' => 'About us', 'URLSegment' => 'about-us']));
+
+        # An action URL is a page of its own, with its own canonical; the WebPage describes that URL
+        $url = Director::absoluteURL('/about-us/detail');
+        $graph = $this->graph('about-us/detail');
+        $this->assertArrayHasKey($url . '#webpage', $graph);
+        $this->assertSame($url, $graph[$url . '#webpage']['url']);
+
+        # A parameter kept in the canonical (pagination) makes another page too
+        SiteTree::config()->set('seo_canonical_query_params', ['page']);
+        $url = Director::absoluteURL('/about-us') . '?page=2';
+        $graph = $this->graph('about-us?page=2&utm_source=x');
+        $this->assertArrayHasKey($url . '#webpage', $graph);
+        $this->assertSame($url, $graph[$url . '#webpage']['url']);
+    }
+
     public function testWebPageSubtypeComesFromThePageClass(): void
     {
         Config::modify()->set(SeoTestPage::class, 'schema_webpage_type', 'AboutPage');
