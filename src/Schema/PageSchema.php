@@ -136,7 +136,7 @@ class PageSchema
             if ($value instanceof DataList) {
                 $value = $mapper->prepareList($value, $limit > 0 ? $limit - $included : 0);
             }
-            foreach ($this->records($value) as $record) {
+            foreach ($this->records($value, $mapper) as $record) {
                 if ($limit > 0 && $included >= $limit) {
                     break 2;
                 }
@@ -299,7 +299,7 @@ class PageSchema
         }
 
         $items = [];
-        foreach ($this->records($list) as $record) {
+        foreach ($this->records($list, $mapper) as $record) {
             $items[] = ['@type' => 'ListItem', 'position' => count($items) + 1, 'url' => $context->recordURL($record)];
             if ($limit > 0 && count($items) >= $limit) {
                 break;
@@ -316,19 +316,20 @@ class PageSchema
     }
 
     /**
-     * The records in a resolved value: one record, a list, or a list of lists from a dotted path.
+     * The records in a resolved value (one record, a list, or a list of lists from a dotted path) that an
+     * anonymous visitor may see ({@see SchemaMapper::isVisible()}).
      *
      * @return DataObject[]
      */
-    protected function records(mixed $value): array
+    protected function records(mixed $value, SchemaMapper $mapper): array
     {
         if ($value instanceof DataObject) {
-            return $value->exists() ? [$value] : [];
+            return $value->exists() && $mapper->isVisible($value) ? [$value] : [];
         }
         $records = [];
         if ($value instanceof SS_List || is_array($value)) {
             foreach ($value as $item) {
-                array_push($records, ...$this->records($item));
+                array_push($records, ...$this->records($item, $mapper));
             }
         }
         return $records;

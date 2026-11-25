@@ -68,6 +68,13 @@ class SchemaSource extends Extension
     private static array $schema_allowed_methods = [];
 
     /**
+     * Whether a record of this class, reached through a relation, `schema_includes` or `schema_item_list`, must
+     * pass canView() for an anonymous visitor. Null: for pages always, for other classes when they define
+     * canView() themselves (see SchemaMapper::isVisible()).
+     */
+    private static ?bool $schema_check_can_view = null;
+
+    /**
      * The record's nodes, for use outside a page render (a report, a test). The context says which page they
      * are described on.
      *

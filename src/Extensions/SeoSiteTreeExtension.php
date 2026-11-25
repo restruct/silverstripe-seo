@@ -273,6 +273,17 @@ class SeoSiteTreeExtension extends Extension
      */
     private static int $schema_includes_limit = 50;
 
+    /**
+     * Page methods a structured-data map, `schema_includes` or `schema_item_list` may call (besides fields,
+     * relations, getters and cast methods): the child pages and the links. A list, so a project's YAML adds to it.
+     */
+    private static array $schema_allowed_methods = [
+        'Children',
+        'AllChildren',
+        'Link',
+        'AbsoluteLink',
+    ];
+
     # --- CMS -----------------------------------------------------------------------------------------------------
 
     protected function updateCMSFields(FieldList $fields): void

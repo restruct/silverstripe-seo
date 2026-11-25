@@ -3,10 +3,12 @@
 namespace Restruct\Silverstripe\SEO\Schema;
 
 use DateTimeInterface;
+use ReflectionMethod;
 use Restruct\Silverstripe\SEO\Extensions\SchemaSource;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
 use Restruct\Silverstripe\SEO\Text\SchemaHtml;
 use SilverStripe\Assets\Image;
+use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\Model\List\SS_List;
@@ -18,6 +20,7 @@ use SilverStripe\ORM\FieldType\DBDate;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\FieldType\DBHTMLVarchar;
+use SilverStripe\Security\Member;
 use Throwable;
 
 /**
@@ -125,6 +128,37 @@ class SchemaMapper
             return $result;
         } finally {
             $this->depth--;
+        }
+    }
+
+    /**
+     * Whether an anonymous visitor may see the record, for records reached through a relation, `schema_includes`
+     * or `schema_item_list` (the page itself and the record it shows are being viewed already). Anonymous, never
+     * the logged-in visitor: the head is cached by proxies and static caches, so it must not depend on who asked.
+     *
+     * Checked for pages always, and for other records when their class defines canView() itself: DataObject's
+     * own canView() lets only administrators see a record, which would hide every plain DataObject a site
+     * shows in templates without any permission check. `schema_check_can_view: true` or `false` on a class
+     * decides explicitly.
+     */
+    public function isVisible(DataObject $record): bool
+    {
+        $setting = $record->config()->get('schema_check_can_view');
+        if ($setting === false) {
+            return true;
+        }
+        if ($setting !== true && !$record instanceof SiteTree && !static::definesCanView($record)) {
+            return true;
+        }
+        return (bool) Member::actAs(null, fn () => $record->canView());
+    }
+
+    protected static function definesCanView(DataObject $record): bool
+    {
+        try {
+            return (new ReflectionMethod($record, 'canView'))->getDeclaringClass()->getName() !== DataObject::class;
+        } catch (Throwable) {
+            return false;
         }
     }
 
@@ -339,7 +373,7 @@ class SchemaMapper
             return $this->context->imageObject($value);
         }
         if ($value instanceof DataObject) {
-            if (!$value->exists()) {
+            if (!$value->exists() || !$this->isVisible($value)) {
                 return null;
             }
             # A related record that is a source itself is described by its own map
@@ -399,6 +433,9 @@ class SchemaMapper
         if ($target instanceof SS_List || is_array($target)) {
             $nodes = [];
             foreach ($target as $item) {
+                if ($item instanceof DataObject && !$this->isVisible($item)) {
+                    continue;
+                }
                 if ($item instanceof ModelData && ($node = $this->nestedNode($item, $type, $map))) {
                     $nodes[] = $node;
                 }
@@ -406,7 +443,7 @@ class SchemaMapper
             return $nodes ?: null;
         }
         # An empty has_one gives an unsaved record: no node
-        if ($target instanceof DataObject && !$target->exists()) {
+        if ($target instanceof DataObject && (!$target->exists() || !$this->isVisible($target))) {
             return null;
         }
         return $target instanceof ModelData ? $this->nestedNode($target, $type, $map) : null;
