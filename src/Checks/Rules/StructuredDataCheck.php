@@ -45,7 +45,7 @@ class StructuredDataCheck extends AbstractCheck
         if ($analysis->isRendered()) {
             foreach ($analysis->head()->jsonLd() as $i => $decoded) {
                 if ($decoded === null) {
-                    $details[] = _t(__CLASS__ . '.InvalidJson', 'JSON-LD block {n} is not valid JSON', ['n' => $i + 1]);
+                    $details[] = $this->_t(__CLASS__ . '.InvalidJson', 'JSON-LD block {n} is not valid JSON', ['n' => $i + 1]);
                 }
             }
         }
@@ -69,8 +69,8 @@ class StructuredDataCheck extends AbstractCheck
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', 'Some structured data cannot be used by search engines.'),
-            array_values(array_unique($details))
+            $this->_t(__CLASS__ . '.Message', 'Some structured data cannot be used by search engines.'),
+            static::unique($details)
         );
     }
 }

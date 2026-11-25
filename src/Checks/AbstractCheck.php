@@ -65,11 +65,31 @@ abstract class AbstractCheck implements Check
     }
 
     /**
-     * @param string[] $details
+     * @param string|array $message A message from _t() (translated when shown) or plain text
+     * @param array<int, string|array> $details Plain data (a URL, an alt text) or messages
      */
-    protected function fail(string $message, array $details = [], string $howToFix = ''): CheckResult
+    protected function fail(string|array $message, array $details = [], string|array $howToFix = ''): CheckResult
     {
         return CheckResult::fail($message, $details, $howToFix);
+    }
+
+    /**
+     * A message to store with a result, translated when it is shown ({@see CheckMessage}). Written like a
+     * normal _t() call, so the text collector finds it.
+     *
+     * @return array{_t: string, default: string, params: array<string, mixed>}
+     */
+    protected function _t(string $key, string $default, array $params = []): array
+    {
+        return CheckMessage::_t($key, $default, $params);
+    }
+
+    /**
+     * Without duplicates, also when the items are messages (arrays).
+     */
+    protected static function unique(array $items): array
+    {
+        return array_values(array_unique($items, SORT_REGULAR));
     }
 
     /**

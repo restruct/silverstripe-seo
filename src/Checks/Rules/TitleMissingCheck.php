@@ -38,10 +38,10 @@ class TitleMissingCheck extends AbstractCheck
     {
         $title = $analysis->title();
         if ($title === null) {
-            return $this->fail(_t(__CLASS__ . '.NoElement', 'The page has no <title> element.'));
+            return $this->fail($this->_t(__CLASS__ . '.NoElement', 'The page has no <title> element.'));
         }
         if (trim($title) === '') {
-            return $this->fail(_t(__CLASS__ . '.Empty', 'The page title is empty.'));
+            return $this->fail($this->_t(__CLASS__ . '.Empty', 'The page title is empty.'));
         }
         return $this->pass();
     }

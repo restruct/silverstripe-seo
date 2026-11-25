@@ -94,7 +94,7 @@ class SeoCheckController extends AdminController
     protected function answer(SiteTree $page): HTTPResponse
     {
         $result = SeoCheckResult::forPage($page);
-        $entries = $result ? $result->getEntries() : [];
+        $entries = $result ? CheckRunner::singleton()->renderEntries($result->getEntries()) : [];
         $this->getResponse()->addHeader('X-Content-Type-Options', 'nosniff');
         return $this->jsonSuccess(200, [
             'pageID' => (int) $page->ID,

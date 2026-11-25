@@ -57,17 +57,17 @@ class TitleBoilerplateCheck extends AbstractCheck
         $siteName = trim((string) ($config->SeoTitleSuffix ?: $config->Title));
 
         if ($siteName !== '' && mb_strtolower($own) === mb_strtolower($siteName)) {
-            return $this->fail(_t(__CLASS__ . '.IsSiteName', 'The title is just the site name: "{title}".', ['title' => $full]));
+            return $this->fail($this->_t(__CLASS__ . '.IsSiteName', 'The title is just the site name: "{title}".', ['title' => $full]));
         }
         if ($siteName !== '' && mb_substr_count(mb_strtolower($full), mb_strtolower($siteName)) > 1) {
             return $this->fail(
-                _t(__CLASS__ . '.Repeated', 'The site name is in the title more than once.'),
+                $this->_t(__CLASS__ . '.Repeated', 'The site name is in the title more than once.'),
                 [$full]
             );
         }
         $placeholders = array_map('mb_strtolower', (array) static::config()->get('placeholder_titles'));
         if (in_array(mb_strtolower($own), $placeholders, true)) {
-            return $this->fail(_t(__CLASS__ . '.Placeholder', 'The title "{title}" is a placeholder.', ['title' => $own]));
+            return $this->fail($this->_t(__CLASS__ . '.Placeholder', 'The title "{title}" is a placeholder.', ['title' => $own]));
         }
         return $this->pass();
     }

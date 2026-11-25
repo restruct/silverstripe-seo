@@ -48,7 +48,7 @@ class TitleWidthCheck extends AbstractCheck
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', 'The title is about {pixels} px wide; search results show about {max} px.', [
+            $this->_t(__CLASS__ . '.Message', 'The title is about {pixels} px wide; search results show about {max} px.', [
                 'pixels' => (int) round($pixels),
                 'max' => $max,
             ]),

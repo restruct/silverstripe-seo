@@ -50,7 +50,7 @@ class DescriptionDuplicateCheck extends AbstractCheck
             $details[] = sprintf('%s (%s)', $other->Title, $other->RelativeLink());
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} other page(s) have the same meta description.', ['count' => $count]),
+            $this->_t(__CLASS__ . '.Message', '{count} other page(s) have the same meta description.', ['count' => $count]),
             $details
         );
     }

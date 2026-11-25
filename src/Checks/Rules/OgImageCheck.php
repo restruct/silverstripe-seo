@@ -42,6 +42,6 @@ class OgImageCheck extends AbstractCheck
         }
         return $found
             ? $this->pass()
-            : $this->fail(_t(__CLASS__ . '.Message', 'The page has no sharing image, and there is no site default.'));
+            : $this->fail($this->_t(__CLASS__ . '.Message', 'The page has no sharing image, and there is no site default.'));
     }
 }

@@ -105,13 +105,25 @@ class CheckRunner
     }
 
     /**
-     * Run the checks on the draft of a page and return the entries, keyed by check id, without storing them.
-     * Ignores recorded for the page are applied (an ignored failure keeps its status and is marked `ignored`).
+     * Run the checks on the draft of a page and return the entries, keyed by check id, translated into the
+     * current locale, without storing them. Ignores recorded for the page are applied (an ignored failure keeps
+     * its status and is marked `ignored`).
      *
      * @param Member|null $member Who to render as; null renders as an anonymous visitor
-     * @return array<string, array> See {@see entry()} for the shape
+     * @return array<string, array> See {@see entry()} for the shape, with every text a string
      */
     public function run(SiteTree $page, ?Member $member): array
+    {
+        return $this->renderEntries($this->collect($page, $member));
+    }
+
+    /**
+     * The entries as stored: messages as {@see CheckMessage} arrays (key, default, parameters), so they are
+     * translated when shown.
+     *
+     * @return array<string, array>
+     */
+    public function collect(SiteTree $page, ?Member $member): array
     {
         if (!PageEligibility::singleton()->isEligible($page, 'seo')) {
             return [];
@@ -151,13 +163,39 @@ class CheckRunner
      */
     public function checkPage(SiteTree $page, ?Member $member): SeoCheckResult
     {
-        return SeoCheckResult::store($page, Versioned::DRAFT, $this->run($page, $member));
+        return SeoCheckResult::store($page, Versioned::DRAFT, $this->collect($page, $member));
+    }
+
+    /**
+     * Stored entries in the current locale: message, details and how-to-fix translated; the title and general
+     * advice of a registered check taken from the check itself. Entries of the earlier format (plain text) are
+     * shown as they are.
+     *
+     * @param array<string, array> $entries
+     * @return array<string, array>
+     */
+    public function renderEntries(array $entries): array
+    {
+        $checks = $this->getChecks();
+        foreach ($entries as $id => $entry) {
+            $check = $checks[$id] ?? null;
+            $entry['title'] = $check ? $check->title() : CheckMessage::text($entry['title'] ?? '');
+            $entry['message'] = CheckMessage::text($entry['message'] ?? '');
+            $entry['details'] = array_map([CheckMessage::class, 'text'], (array) ($entry['details'] ?? []));
+            $howToFix = CheckMessage::text($entry['howToFix'] ?? '');
+            if (($entry['status'] ?? '') === CheckResult::FAIL && $howToFix === '' && $check) {
+                $howToFix = $check->howToFix();
+            }
+            $entry['howToFix'] = ($entry['status'] ?? '') === CheckResult::FAIL ? $howToFix : '';
+            $entries[$id] = $entry;
+        }
+        return $entries;
     }
 
     protected function runCheck(Check $check, PageAnalysis $analysis): CheckResult
     {
         if ($check->needsRender() && !$analysis->isRendered()) {
-            return CheckResult::skipped(_t(__CLASS__ . '.SkippedNoRender', 'Not checked: the page could not be rendered.'));
+            return CheckResult::skipped(CheckMessage::_t(__CLASS__ . '.SkippedNoRender', 'Not checked: the page could not be rendered.'));
         }
         try {
             return $check->run($analysis);
@@ -166,7 +204,7 @@ class CheckRunner
             $this->logger()->warning(sprintf('[seo] Check "%s" failed: %s', $check->id(), $e->getMessage()), [
                 'exception' => $e,
             ]);
-            return CheckResult::skipped(_t(__CLASS__ . '.SkippedError', 'Not checked: the check failed ({message}).', [
+            return CheckResult::skipped(CheckMessage::_t(__CLASS__ . '.SkippedError', 'Not checked: the check failed ({message}).', [
                 'message' => $e->getMessage(),
             ]));
         }
@@ -176,7 +214,8 @@ class CheckRunner
      * The stored and transported form of one result.
      *
      * @return array{id:string, group:string, severity:string, priority:string, title:string, status:string,
-     *               message:string, details:string[], howToFix:string, docs:string, ignored:bool, ignoredBy:?array}
+     *               message:string|array, details:array, howToFix:string|array, docs:string, ignored:bool,
+     *               ignoredBy:?array}
      */
     protected function entry(string $id, Check $check, CheckResult $result): array
     {
@@ -185,11 +224,13 @@ class CheckRunner
             'group' => $check->group(),
             'severity' => $check->severity(),
             'priority' => $check->priority(),
+            # Shown from the check itself in the reader's language; kept for a check that is later removed
             'title' => $check->title(),
             'status' => $result->getStatus(),
             'message' => $result->getMessage(),
             'details' => $result->getDetails(),
-            'howToFix' => $result->isFail() ? ($result->getHowToFix() ?: $check->howToFix()) : '',
+            # Only advice specific to this result is stored; the check's general advice is added when shown
+            'howToFix' => $result->isFail() ? $result->getHowToFix() : '',
             'docs' => sprintf((string) static::config()->get('docs_url'), rawurlencode($id)),
             'ignored' => false,
             'ignoredBy' => null,
@@ -200,18 +241,18 @@ class CheckRunner
     {
         $status = $render->getStatusCode();
         $message = $status >= 300 && $status < 400
-            ? _t(__CLASS__ . '.RenderRedirected', 'The page did not render: it redirected (status {status}). The checks that read the rendered page were skipped.', ['status' => $status])
-            : _t(__CLASS__ . '.RenderFailed', 'The page did not render (status {status}). The checks that read the rendered page were skipped.', ['status' => $status]);
+            ? CheckMessage::_t(__CLASS__ . '.RenderRedirected', 'The page did not render: it redirected (status {status}). The checks that read the rendered page were skipped.', ['status' => $status])
+            : CheckMessage::_t(__CLASS__ . '.RenderFailed', 'The page did not render (status {status}). The checks that read the rendered page were skipped.', ['status' => $status]);
         return [
             'id' => self::RENDER_ENTRY,
             'group' => Check::GROUP_INDEXING,
             'severity' => Check::PROBLEM,
             'priority' => Check::HIGH,
-            'title' => _t(__CLASS__ . '.RenderTitle', 'The page renders'),
+            'title' => CheckMessage::_t(__CLASS__ . '.RenderTitle', 'The page renders'),
             'status' => CheckResult::FAIL,
             'message' => $message,
             'details' => array_values(array_filter([(string) $render->getError()])),
-            'howToFix' => _t(__CLASS__ . '.RenderHowToFix', 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.'),
+            'howToFix' => CheckMessage::_t(__CLASS__ . '.RenderHowToFix', 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.'),
             'docs' => '',
             'ignored' => false,
             'ignoredBy' => null,

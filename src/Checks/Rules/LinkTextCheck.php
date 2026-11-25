@@ -65,7 +65,7 @@ class LinkTextCheck extends AbstractCheck
             $href = static::short((string) $link->getAttribute('href'), 100);
             $text = $this->textOf($link);
             if ($text === '') {
-                $issues[] = _t(__CLASS__ . '.Empty', 'A link without text, to {href}', ['href' => $href]);
+                $issues[] = $this->_t(__CLASS__ . '.Empty', 'A link without text, to {href}', ['href' => $href]);
                 continue;
             }
             $normalised = mb_strtolower(trim((string) preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text)));
@@ -77,7 +77,7 @@ class LinkTextCheck extends AbstractCheck
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} link(s) have no text, or text that does not say where they go.', ['count' => count($issues)]),
+            $this->_t(__CLASS__ . '.Message', '{count} link(s) have no text, or text that does not say where they go.', ['count' => count($issues)]),
             array_slice($issues, 0, (int) static::config()->get('max_listed'))
         );
     }

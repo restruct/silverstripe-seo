@@ -13,13 +13,15 @@ final class CheckResult
     public const SKIPPED = 'skipped';
 
     /**
-     * @param string[] $details
+     * Message, details and how-to-fix are plain text or {@see CheckMessage} arrays, translated when shown.
+     *
+     * @param array<int, string|array> $details
      */
     private function __construct(
         private readonly string $status,
-        private readonly string $message = '',
+        private readonly string|array $message = '',
         private readonly array $details = [],
-        private readonly string $howToFix = ''
+        private readonly string|array $howToFix = ''
     ) {
     }
 
@@ -29,15 +31,17 @@ final class CheckResult
     }
 
     /**
-     * @param string[] $details Plain text, one item each (an image source, a link and its text); escaped on output
-     * @param string $howToFix Specific advice; empty to use the check's general advice
+     * @param array<int, string|array> $details Plain text or messages, one item each (an image source, a link
+     *                                       and its text); escaped on output
+     * @param string|array $howToFix Specific advice; empty to use the check's general advice
      */
-    public static function fail(string $message, array $details = [], string $howToFix = ''): self
+    public static function fail(string|array $message, array $details = [], string|array $howToFix = ''): self
     {
-        return new self(self::FAIL, $message, array_values(array_map('strval', $details)), $howToFix);
+        $details = array_values(array_map(fn ($d) => is_array($d) ? $d : (string) $d, $details));
+        return new self(self::FAIL, $message, $details, $howToFix);
     }
 
-    public static function skipped(string $reason): self
+    public static function skipped(string|array $reason): self
     {
         return new self(self::SKIPPED, $reason);
     }
@@ -57,20 +61,20 @@ final class CheckResult
         return $this->status === self::FAIL;
     }
 
-    public function getMessage(): string
+    public function getMessage(): string|array
     {
         return $this->message;
     }
 
     /**
-     * @return string[]
+     * @return array<int, string|array>
      */
     public function getDetails(): array
     {
         return $this->details;
     }
 
-    public function getHowToFix(): string
+    public function getHowToFix(): string|array
     {
         return $this->howToFix;
     }

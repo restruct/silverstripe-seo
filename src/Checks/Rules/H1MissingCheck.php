@@ -41,6 +41,6 @@ class H1MissingCheck extends AbstractCheck
         if ($analysis->query('//body//h1')) {
             return $this->pass();
         }
-        return $this->fail(_t(__CLASS__ . '.Message', 'The page has no main heading (H1).'));
+        return $this->fail($this->_t(__CLASS__ . '.Message', 'The page has no main heading (H1).'));
     }
 }

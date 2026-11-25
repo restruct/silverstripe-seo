@@ -25,10 +25,16 @@ use SilverStripe\Versioned\Versioned;
  * @property int $Warnings
  * @property int $Tips
  * @property bool $Stale
+ * @property int $Format
  * @method SiteTree Page()
  */
 class SeoCheckResult extends DataObject
 {
+    /**
+     * Results hold message keys and parameters, translated when shown ({@see CheckMessage}).
+     */
+    public const FORMAT = 2;
+
     private static string $table_name = 'SeoCheckResult';
 
     private static string $singular_name = 'SEO check result';
@@ -43,6 +49,8 @@ class SeoCheckResult extends DataObject
         'Warnings' => 'Int',
         'Tips' => 'Int',
         'Stale' => 'Boolean',
+        # The shape of Results: 0 for rows of the first version (finished text), FORMAT for message keys
+        'Format' => 'Int',
     ];
 
     private static array $has_one = [
@@ -73,6 +81,7 @@ class SeoCheckResult extends DataObject
         $result = static::forPage($page, $stage) ?? static::create(['PageID' => (int) $page->ID, 'Stage' => $stage]);
         $result->CheckedAt = DBDatetime::now()->getValue();
         $result->Stale = false;
+        $result->Format = static::FORMAT;
         $result->setEntries($entries);
         $result->write();
         return $result;
@@ -96,7 +105,8 @@ class SeoCheckResult extends DataObject
      */
     public function isStale(): bool
     {
-        if ($this->Stale) {
+        # A row of an earlier format holds finished text in the language of whoever ran it
+        if ($this->Stale || (int) $this->Format < static::FORMAT) {
             return true;
         }
         $checkedAt = (string) $this->CheckedAt;

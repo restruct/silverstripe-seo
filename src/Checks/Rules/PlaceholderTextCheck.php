@@ -51,16 +51,20 @@ class PlaceholderTextCheck extends AbstractCheck
     public function run(PageAnalysis $analysis): CheckResult
     {
         $sources = [
-            _t(__CLASS__ . '.InContent', 'content') => $analysis->contentText(),
-            _t(__CLASS__ . '.InTitle', 'title') => (string) $analysis->title(),
-            _t(__CLASS__ . '.InDescription', 'description') => $analysis->description(),
+            [$this->_t(__CLASS__ . '.InContent', 'content'), $analysis->contentText()],
+            [$this->_t(__CLASS__ . '.InTitle', 'title'), (string) $analysis->title()],
+            [$this->_t(__CLASS__ . '.InDescription', 'description'), $analysis->description()],
         ];
         $found = [];
-        foreach ($sources as $where => $text) {
+        foreach ($sources as [$where, $text]) {
             foreach ((array) static::config()->get('patterns') as $pattern) {
                 if ($pattern && preg_match_all((string) $pattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
                     foreach ($matches[0] as [$match, $offset]) {
-                        $found[] = sprintf('%s: "%s" in "%s"', $where, $match, $this->context($text, (int) $offset, $match));
+                        $found[] = $this->_t(__CLASS__ . '.Found', '{where}: "{match}" in "{context}"', [
+                            'where' => $where,
+                            'match' => $match,
+                            'context' => $this->context($text, (int) $offset, $match),
+                        ]);
                     }
                 }
             }
@@ -69,8 +73,8 @@ class PlaceholderTextCheck extends AbstractCheck
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', 'The page still contains placeholder text.'),
-            array_slice(array_values(array_unique($found)), 0, 10)
+            $this->_t(__CLASS__ . '.Message', 'The page still contains placeholder text.'),
+            array_slice(static::unique($found), 0, 10)
         );
     }
 

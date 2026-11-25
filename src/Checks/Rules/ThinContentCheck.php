@@ -47,7 +47,7 @@ class ThinContentCheck extends AbstractCheck
         if ($words >= (int) static::config()->get('min_words')) {
             return $this->pass();
         }
-        return $this->fail(_t(
+        return $this->fail($this->_t(
             __CLASS__ . '.Message',
             'The page has {count} words of text. That can be fine (a contact page, a form), but gives search engines little to show.',
             ['count' => $words]

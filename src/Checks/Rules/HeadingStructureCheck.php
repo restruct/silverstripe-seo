@@ -51,7 +51,7 @@ class HeadingStructureCheck extends AbstractCheck
         foreach ($analysis->query('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6') as $heading) {
             $level = (int) substr($heading->nodeName, 1);
             if ($level > $previous + 1) {
-                $details[] = _t(__CLASS__ . '.Skipped', 'h{level} "{text}" follows h{previous}', [
+                $details[] = $this->_t(__CLASS__ . '.Skipped', 'h{level} "{text}" follows h{previous}', [
                     'level' => $level,
                     'text' => static::short($heading->textContent),
                     'previous' => $previous,
@@ -64,8 +64,8 @@ class HeadingStructureCheck extends AbstractCheck
             return $this->pass();
         }
         $message = count($h1s) > 1
-            ? _t(__CLASS__ . '.MultipleH1', 'The page has {count} main headings (H1), or skips heading levels.', ['count' => count($h1s)])
-            : _t(__CLASS__ . '.SkippedLevels', 'The content skips heading levels.');
+            ? $this->_t(__CLASS__ . '.MultipleH1', 'The page has {count} main headings (H1), or skips heading levels.', ['count' => count($h1s)])
+            : $this->_t(__CLASS__ . '.SkippedLevels', 'The content skips heading levels.');
         return $this->fail($message, $details);
     }
 }

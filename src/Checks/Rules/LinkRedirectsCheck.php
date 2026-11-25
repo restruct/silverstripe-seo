@@ -47,30 +47,30 @@ class LinkRedirectsCheck extends AbstractCheck
         foreach ($analysis->query('.//a[@href]') as $link) {
             $href = trim((string) $link->getAttribute('href'));
             if ($https && stripos($href, 'http://') === 0) {
-                $issues[] = _t(__CLASS__ . '.Insecure', '{href}: http:// on an https site', ['href' => static::short($href, 120)]);
+                $issues[] = $this->_t(__CLASS__ . '.Insecure', '{href}: http:// on an https site', ['href' => static::short($href, 120)]);
                 continue;
             }
             $target = $analysis->links()->resolve($href);
             if ($target['type'] === LinkResolver::OLD_URL) {
-                $issues[] = _t(__CLASS__ . '.OldUrl', '{href}: an old address of {target}, which redirects', [
+                $issues[] = $this->_t(__CLASS__ . '.OldUrl', '{href}: an old address of {target}, which redirects', [
                     'href' => static::short($href, 120),
                     'target' => $target['record'] ? (string) $target['record']->Link() : '?',
                 ]);
                 continue;
             }
             if ($target['type'] === LinkResolver::PAGE && $target['record'] instanceof RedirectorPage) {
-                $issues[] = _t(__CLASS__ . '.Redirector', '{href}: redirects to {target}', [
+                $issues[] = $this->_t(__CLASS__ . '.Redirector', '{href}: redirects to {target}', [
                     'href' => static::short($href, 120),
                     'target' => (string) $target['record']->redirectionLink(),
                 ]);
             }
         }
-        $issues = array_values(array_unique($issues));
+        $issues = static::unique($issues);
         if (!$issues) {
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} link(s) go through a redirect.', ['count' => count($issues)]),
+            $this->_t(__CLASS__ . '.Message', '{count} link(s) go through a redirect.', ['count' => count($issues)]),
             array_slice($issues, 0, (int) static::config()->get('max_listed'))
         );
     }

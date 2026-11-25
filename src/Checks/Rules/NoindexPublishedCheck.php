@@ -41,7 +41,7 @@ class NoindexPublishedCheck extends AbstractCheck
         if (!$analysis->isNoindex() || !$page->isPublished()) {
             return $this->pass();
         }
-        return $this->fail(_t(
+        return $this->fail($this->_t(
             __CLASS__ . '.Message',
             'This page is published, but asks search engines not to list it (noindex). Is that intentional?'
         ));

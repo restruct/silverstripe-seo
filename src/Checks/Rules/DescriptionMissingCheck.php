@@ -60,12 +60,12 @@ class DescriptionMissingCheck extends AbstractCheck
         if ($content) {
             $suggestion = DescriptionSummary::fromHtml($content->getHtml(), (int) static::config()->get('suggestion_length'));
             if ($suggestion !== '' && $suggestion !== $fallback) {
-                $details[] = _t(__CLASS__ . '.Suggestion', 'From the page: {text}', ['text' => $suggestion]);
+                $details[] = $this->_t(__CLASS__ . '.Suggestion', 'From the page: {text}', ['text' => $suggestion]);
             }
         }
         $message = $fallback === ''
-            ? _t(__CLASS__ . '.Missing', 'There is no meta description, and none can be derived from the page content.')
-            : _t(__CLASS__ . '.Weak', 'There is no meta description; the one derived from the content is short: "{text}".', ['text' => $fallback]);
+            ? $this->_t(__CLASS__ . '.Missing', 'There is no meta description, and none can be derived from the page content.')
+            : $this->_t(__CLASS__ . '.Weak', 'There is no meta description; the one derived from the content is short: "{text}".', ['text' => $fallback]);
         return $this->fail($message, $details);
     }
 }

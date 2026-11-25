@@ -54,7 +54,7 @@ class BrokenLinksCheck extends AbstractCheck
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} link(s) or image(s) do not work.', ['count' => count($broken)]),
+            $this->_t(__CLASS__ . '.Message', '{count} link(s) or image(s) do not work.', ['count' => count($broken)]),
             array_slice($broken, 0, (int) static::config()->get('max_listed'))
         );
     }
@@ -79,14 +79,14 @@ class BrokenLinksCheck extends AbstractCheck
                 }
             } elseif ($tracked && str_contains($url, '#')) {
                 # Link tracking also checks that the anchor of a link exists on the target page
-                $broken[] = $this->describe($url, $label, _t(__CLASS__ . '.Anchor', 'the anchor is not on the target page'));
+                $broken[] = $this->describe($url, $label, $this->_t(__CLASS__ . '.Anchor', 'the anchor is not on the target page'));
             } elseif ($tracked || $type === LinkResolver::EMPTY) {
-                $broken[] = $this->describe($url, $label, _t(__CLASS__ . '.Deleted', 'the linked page or file no longer exists'));
+                $broken[] = $this->describe($url, $label, $this->_t(__CLASS__ . '.Deleted', 'the linked page or file no longer exists'));
             } elseif (LinkResolver::isBroken($type) && !$draft) {
                 $broken[] = $this->describe($url, $label, $this->reason($type));
             }
         }
-        return array_values(array_unique($broken));
+        return static::unique($broken);
     }
 
     /**
@@ -143,21 +143,21 @@ class BrokenLinksCheck extends AbstractCheck
         return trim((string) preg_replace('/\s+/u', ' ', $element->textContent));
     }
 
-    protected function reason(string $type): string
+    protected function reason(string $type): array
     {
         return match ($type) {
-            LinkResolver::DRAFT_PAGE => _t(__CLASS__ . '.DraftPage', 'the page is not published'),
-            LinkResolver::DRAFT_FILE => _t(__CLASS__ . '.DraftFile', 'the file is not published'),
-            LinkResolver::MISSING_FILE => _t(__CLASS__ . '.MissingFile', 'no such file'),
-            default => _t(__CLASS__ . '.MissingPage', 'no such page'),
+            LinkResolver::DRAFT_PAGE => $this->_t(__CLASS__ . '.DraftPage', 'the page is not published'),
+            LinkResolver::DRAFT_FILE => $this->_t(__CLASS__ . '.DraftFile', 'the file is not published'),
+            LinkResolver::MISSING_FILE => $this->_t(__CLASS__ . '.MissingFile', 'no such file'),
+            default => $this->_t(__CLASS__ . '.MissingPage', 'no such page'),
         };
     }
 
-    protected function describe(string $url, string $label, string $reason): string
+    protected function describe(string $url, string $label, array $reason): array
     {
-        $url = $url === '' ? _t(__CLASS__ . '.EmptyHref', '(empty link)') : static::short($url, 120);
+        $url = $url === '' ? $this->_t(__CLASS__ . '.EmptyHref', '(empty link)') : static::short($url, 120);
         return $label !== ''
-            ? sprintf('"%s" %s: %s', static::short($label, 60), $url, $reason)
-            : sprintf('%s: %s', $url, $reason);
+            ? $this->_t(__CLASS__ . '.DetailLabelled', '"{label}" {url}: {reason}', ['label' => static::short($label, 60), 'url' => $url, 'reason' => $reason])
+            : $this->_t(__CLASS__ . '.Detail', '{url}: {reason}', ['url' => $url, 'reason' => $reason]);
     }
 }

@@ -53,7 +53,7 @@ class TitleDuplicateCheck extends AbstractCheck
             $details[] = sprintf('%s (%s)', $other->Title, $other->RelativeLink());
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} other page(s) have the same title: "{title}".', [
+            $this->_t(__CLASS__ . '.Message', '{count} other page(s) have the same title: "{title}".', [
                 'count' => $count,
                 'title' => $title,
             ]),

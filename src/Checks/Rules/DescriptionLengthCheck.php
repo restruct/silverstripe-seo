@@ -52,8 +52,8 @@ class DescriptionLengthCheck extends AbstractCheck
             return $this->pass();
         }
         $message = $length < $min
-            ? _t(__CLASS__ . '.Short', 'The description is {length} characters; {min} or more gives search engines something to show.', ['length' => $length, 'min' => $min])
-            : _t(__CLASS__ . '.Long', 'The description is {length} characters; search results show about {max}.', ['length' => $length, 'max' => $max]);
+            ? $this->_t(__CLASS__ . '.Short', 'The description is {length} characters; {min} or more gives search engines something to show.', ['length' => $length, 'min' => $min])
+            : $this->_t(__CLASS__ . '.Long', 'The description is {length} characters; search results show about {max}.', ['length' => $length, 'max' => $max]);
         return $this->fail($message, [static::short($description, 200)]);
     }
 }

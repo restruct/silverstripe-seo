@@ -38,7 +38,7 @@ class UnpublishedLinksCheck extends BrokenLinksCheck
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} link(s) or image(s) point at a page or file that is not published yet.', ['count' => count($unpublished)]),
+            $this->_t(__CLASS__ . '.Message', '{count} link(s) or image(s) point at a page or file that is not published yet.', ['count' => count($unpublished)]),
             array_slice($unpublished, 0, (int) static::config()->get('max_listed'))
         );
     }

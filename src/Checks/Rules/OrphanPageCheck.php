@@ -47,7 +47,7 @@ class OrphanPageCheck extends AbstractCheck
         if ($analysis->site()->isInMenu($page) || $analysis->site()->inboundLinkCount($page) > 0) {
             return $this->pass();
         }
-        return $this->fail(_t(
+        return $this->fail($this->_t(
             __CLASS__ . '.Message',
             'No other page links to this page, and it is not in the menu.'
         ));

@@ -4,6 +4,7 @@ namespace Restruct\Silverstripe\SEO\Forms;
 
 use Restruct\Silverstripe\SEO\Checks\Check;
 use Restruct\Silverstripe\SEO\Checks\CheckResult;
+use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Control\SeoCheckController;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use SilverStripe\CMS\Model\SiteTree;
@@ -29,6 +30,8 @@ class SeoChecksField extends FormField
     protected $schemaDataType = FormField::SCHEMA_DATA_TYPE_STRUCTURAL;
 
     protected SeoCheckResult|false|null $result = false;
+
+    protected ?array $entries = null;
 
     public function __construct(string $name, ?string $title, protected SiteTree $page)
     {
@@ -186,7 +189,10 @@ class SeoChecksField extends FormField
      */
     protected function entries(): array
     {
-        return $this->getResult()?->getEntries() ?? [];
+        if ($this->entries === null) {
+            $this->entries = CheckRunner::singleton()->renderEntries($this->getResult()?->getEntries() ?? []);
+        }
+        return $this->entries;
     }
 
     protected function entryData(array $entry): ArrayData

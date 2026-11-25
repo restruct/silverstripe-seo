@@ -59,11 +59,11 @@ class UrlSegmentCheck extends AbstractCheck
         $segment = (string) $analysis->getPage()->URLSegment;
         $issues = [];
         if (str_contains($segment, '_')) {
-            $issues[] = _t(__CLASS__ . '.Underscore', 'contains underscores (_); hyphens (-) separate words');
+            $issues[] = $this->_t(__CLASS__ . '.Underscore', 'contains underscores (_); hyphens (-) separate words');
         }
         $max = (int) static::config()->get('max_length');
         if (mb_strlen($segment) > $max) {
-            $issues[] = _t(__CLASS__ . '.Long', '{length} characters; {max} or fewer reads better', [
+            $issues[] = $this->_t(__CLASS__ . '.Long', '{length} characters; {max} or fewer reads better', [
                 'length' => mb_strlen($segment),
                 'max' => $max,
             ]);
@@ -79,13 +79,13 @@ class UrlSegmentCheck extends AbstractCheck
             fn (string $word) => isset($stop[$word])
         ));
         if (count($found) >= (int) static::config()->get('stop_words_min')) {
-            $issues[] = _t(__CLASS__ . '.StopWords', 'small words that add little: {words}', ['words' => implode(', ', array_unique($found))]);
+            $issues[] = $this->_t(__CLASS__ . '.StopWords', 'small words that add little: {words}', ['words' => implode(', ', array_unique($found))]);
         }
         if (!$issues) {
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', 'The URL segment "{segment}" could be easier to read.', ['segment' => $segment]),
+            $this->_t(__CLASS__ . '.Message', 'The URL segment "{segment}" could be easier to read.', ['segment' => $segment]),
             $issues
         );
     }

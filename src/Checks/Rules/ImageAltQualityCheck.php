@@ -77,48 +77,52 @@ class ImageAltQualityCheck extends AbstractCheck
             if ($reason === null) {
                 $key = mb_strtolower($alt);
                 if (isset($seen[$key]) && $seen[$key] !== $src) {
-                    $reason = _t(__CLASS__ . '.Duplicate', 'same alt text as {src}', ['src' => $seen[$key]]);
+                    $reason = $this->_t(__CLASS__ . '.Duplicate', 'same alt text as {src}', ['src' => $seen[$key]]);
                 }
                 $seen[$key] ??= $src;
             }
             if ($reason !== null) {
-                $issues[] = sprintf('%s: "%s" (%s)', $src, static::short($alt, 60), $reason);
+                $issues[] = $this->_t(__CLASS__ . '.Issue', '{src}: "{alt}" ({reason})', [
+                    'src' => $src,
+                    'alt' => static::short($alt, 60),
+                    'reason' => $reason,
+                ]);
             }
         }
         if (!$issues) {
             return $this->pass();
         }
         return $this->fail(
-            _t(__CLASS__ . '.Message', 'The alt text of {count} image(s) could describe the image better.', ['count' => count($issues)]),
+            $this->_t(__CLASS__ . '.Message', 'The alt text of {count} image(s) could describe the image better.', ['count' => count($issues)]),
             array_slice($issues, 0, (int) static::config()->get('max_listed'))
         );
     }
 
-    protected function problemWith(string $alt): ?string
+    protected function problemWith(string $alt): ?array
     {
         # A file name (IMG_4031.jpg, header-banner.png) or a camera name (DSC01234, IMG_4031)
         if (preg_match('/\.(jpe?g|png|gif|webp|avif|svg|tiff?|bmp|heic)$/i', $alt)
             || preg_match('/^(img|dsc|dscn|dcim|pxl|photo|image|screenshot)[\s_\-]?\d+/i', $alt)
         ) {
-            return _t(__CLASS__ . '.FileName', 'looks like a file name');
+            return $this->_t(__CLASS__ . '.FileName', 'looks like a file name');
         }
         $lower = mb_strtolower($alt);
         foreach ((array) static::config()->get('redundant_prefixes') as $prefix) {
             if ($prefix !== '' && str_starts_with($lower, mb_strtolower((string) $prefix))) {
-                return _t(__CLASS__ . '.Prefix', 'starts with "{prefix}"', ['prefix' => mb_substr($alt, 0, mb_strlen((string) $prefix))]);
+                return $this->_t(__CLASS__ . '.Prefix', 'starts with "{prefix}"', ['prefix' => mb_substr($alt, 0, mb_strlen((string) $prefix))]);
             }
         }
         $length = mb_strlen($alt);
         if ($length < (int) static::config()->get('min_length')) {
-            return _t(__CLASS__ . '.Short', 'very short');
+            return $this->_t(__CLASS__ . '.Short', 'very short');
         }
         if ($length > (int) static::config()->get('max_length')) {
-            return _t(__CLASS__ . '.Long', 'longer than {max} characters', ['max' => (int) static::config()->get('max_length')]);
+            return $this->_t(__CLASS__ . '.Long', 'longer than {max} characters', ['max' => (int) static::config()->get('max_length')]);
         }
         $words = preg_split('/[^\p{L}\p{N}]+/u', $lower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $counts = array_count_values(array_filter($words, fn ($w) => mb_strlen($w) >= 4));
         if ($counts && max($counts) >= (int) static::config()->get('stuffing_repeats')) {
-            return _t(__CLASS__ . '.Stuffing', 'repeats "{word}"', ['word' => array_search(max($counts), $counts, true)]);
+            return $this->_t(__CLASS__ . '.Stuffing', 'repeats "{word}"', ['word' => array_search(max($counts), $counts, true)]);
         }
         return null;
     }
