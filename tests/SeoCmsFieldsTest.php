@@ -4,6 +4,7 @@ namespace Restruct\Silverstripe\SEO\Tests;
 
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\CMS\Model\RedirectorPage;
+use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormField;
@@ -95,6 +96,25 @@ class SeoCmsFieldsTest extends SapphireTest
 
         foreach (['MetaTitle', 'CanonicalURL', 'SEOFBdescription', 'OGImage', 'MetaRobotsNoIndex'] as $name) {
             $this->assertArrayNotHasKey($name, $counts, "$name should not be on a redirector page");
+        }
+    }
+
+    public function testFieldsAreReadOnlyOnAVirtualPage(): void
+    {
+        # A virtual page copies these columns from its source on every write (getVirtualFields /
+        # refreshFromCopied): an editable field would silently lose what the editor typed. Core makes its own
+        # copied fields (MetaDescription among them) read-only the same way.
+        $source = SeoTestPage::create(['Title' => 'Original']);
+        $source->write();
+        $virtual = VirtualPage::create(['Title' => 'Copy', 'CopyContentFromID' => $source->ID]);
+        $virtual->write();
+
+        $fields = $virtual->getCMSFields();
+        $this->assertTrue($fields->dataFieldByName('MetaDescription')?->isReadonly(), 'core reference: read-only');
+        foreach (array_diff(self::PAGE_FIELDS, ['MetaDescription']) as $name) {
+            $field = $fields->dataFieldByName($name);
+            $this->assertNotNull($field, "$name is shown on a virtual page");
+            $this->assertTrue($field->isReadonly(), "$name should be read-only on a virtual page");
         }
     }
 
