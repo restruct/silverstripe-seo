@@ -1,0 +1,63 @@
+<?php
+
+namespace Restruct\Silverstripe\SEO\Checks\Rules;
+
+use Restruct\Silverstripe\SEO\Checks\AbstractCheck;
+use Restruct\Silverstripe\SEO\Checks\CheckResult;
+use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
+
+/**
+ * Check 4: another indexable page has the same title. Search engines then cannot tell the two apart in results.
+ */
+class TitleDuplicateCheck extends AbstractCheck
+{
+    private static string $id = 'title-duplicate';
+
+    private static string $group = self::GROUP_TITLE;
+
+    private static string $severity = self::WARNING;
+
+    private static string $priority = self::HIGH;
+
+    /**
+     * At most this many other pages are listed.
+     */
+    private static int $max_listed = 5;
+
+    public function title(): string
+    {
+        return _t(__CLASS__ . '.Title', 'Title is unique');
+    }
+
+    public function howToFix(): string
+    {
+        return _t(
+            __CLASS__ . '.HowToFix',
+            'Give each page its own title, saying what is different about it. If the pages really are the same, keep one and point the other at it (canonical URL).'
+        );
+    }
+
+    public function run(PageAnalysis $analysis): CheckResult
+    {
+        $title = trim($analysis->pageTitle());
+        if ($title === '') {
+            return $this->pass();
+        }
+        $others = $analysis->site()->pagesWithTitle($analysis->getPage(), $title);
+        $count = $others->count();
+        if (!$count) {
+            return $this->pass();
+        }
+        $details = [];
+        foreach ($others->limit((int) static::config()->get('max_listed')) as $other) {
+            $details[] = sprintf('%s (%s)', $other->Title, $other->RelativeLink());
+        }
+        return $this->fail(
+            _t(__CLASS__ . '.Message', '{count} other page(s) have the same title: "{title}".', [
+                'count' => $count,
+                'title' => $title,
+            ]),
+            $details
+        );
+    }
+}

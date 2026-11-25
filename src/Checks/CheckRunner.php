@@ -1,0 +1,228 @@
+<?php
+
+namespace Restruct\Silverstripe\SEO\Checks;
+
+use Psr\Log\LoggerInterface;
+use Restruct\Silverstripe\PageRender\PageEligibility;
+use Restruct\Silverstripe\PageRender\PageRenderer;
+use Restruct\Silverstripe\PageRender\RenderResult;
+use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
+use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Security\Member;
+use SilverStripe\Versioned\Versioned;
+use Throwable;
+
+/**
+ * Runs the registered checks on a page and stores the outcome.
+ *
+ * The page is rendered once, in the draft stage, as the member passed in (the CMS user who asked: the panel
+ * shows what that editor's draft looks like, and nobody gets to see a render they could not see themselves),
+ * through {@see PageRenderer}. The render is parsed once and shared by every check through {@see PageAnalysis}.
+ *
+ * Gating: a page that asks not to be indexed gets only the checks marked `runs_on_noindex` (the "is this
+ * intentional?" check), and is not rendered at all. Page types the shared {@see PageEligibility} excludes
+ * (redirectors, virtual pages, error pages) get no checks.
+ *
+ * Checks are registered in YAML, keyed by id:
+ *
+ * ```yaml
+ * Restruct\Silverstripe\SEO\Checks\CheckRunner:
+ *   checks:
+ *     thin-content:
+ *       enabled: false
+ *     my-check:
+ *       class: App\Seo\MyCheck
+ * ```
+ */
+class CheckRunner
+{
+    use Configurable;
+    use Injectable;
+
+    /**
+     * The id of the entry that reports a page that could not be rendered.
+     */
+    public const RENDER_ENTRY = 'render';
+
+    /**
+     * id => [class, enabled]. Set in the module's YAML; a project adds or disables entries in its own.
+     */
+    private static array $checks = [];
+
+    /**
+     * Where the spec of a check is published; `%s` is the check id. Linked from the panel, so an explanation can
+     * be improved without a release.
+     */
+    private static string $docs_url = 'https://github.com/restruct/silverstripe-seo/blob/main/docs/checks/%s.md';
+
+    /**
+     * @var array<string, Check>|null
+     */
+    protected ?array $instances = null;
+
+    /**
+     * The enabled checks, instantiated, keyed by id, in registration order.
+     *
+     * @return array<string, Check>
+     */
+    public function getChecks(): array
+    {
+        if ($this->instances !== null) {
+            return $this->instances;
+        }
+        $this->instances = [];
+        foreach ((array) static::config()->get('checks') as $id => $definition) {
+            $definition = is_array($definition) ? $definition : ['class' => $definition];
+            $class = (string) ($definition['class'] ?? '');
+            if (array_key_exists('enabled', $definition) && !$definition['enabled']) {
+                continue;
+            }
+            if ($class === '' || !class_exists($class)) {
+                $this->logger()->warning(sprintf('[seo] Check "%s" has no usable class (%s); skipped', $id, $class));
+                continue;
+            }
+            $check = Injector::inst()->create($class);
+            if (!$check instanceof Check) {
+                $this->logger()->warning(sprintf('[seo] Check "%s" (%s) does not implement Check; skipped', $id, $class));
+                continue;
+            }
+            $this->instances[(string) $id] = $check;
+        }
+        return $this->instances;
+    }
+
+    /**
+     * Whether a check id is registered and enabled.
+     */
+    public function hasCheck(string $id): bool
+    {
+        return isset($this->getChecks()[$id]);
+    }
+
+    /**
+     * Run the checks on the draft of a page and return the entries, keyed by check id, without storing them.
+     * Ignores recorded for the page are applied (an ignored failure keeps its status and is marked `ignored`).
+     *
+     * @param Member|null $member Who to render as; null renders as an anonymous visitor
+     * @return array<string, array> See {@see entry()} for the shape
+     */
+    public function run(SiteTree $page, ?Member $member): array
+    {
+        if (!PageEligibility::singleton()->isEligible($page, 'seo')) {
+            return [];
+        }
+        $draft = Versioned::get_by_stage(SiteTree::class, Versioned::DRAFT)->byID($page->ID);
+        if (!$draft instanceof SiteTree) {
+            return [];
+        }
+
+        # Field values and site lookups are read in the draft stage, as the render is
+        $entries = Versioned::withVersionedMode(function () use ($draft, $member) {
+            Versioned::set_stage(Versioned::DRAFT);
+
+            $site = SiteData::create();
+            $noindex = PageAnalysis::create($draft, null, $site)->isNoindex();
+            $render = $noindex ? null : PageRenderer::singleton()->render($draft, Versioned::DRAFT, $member);
+            $analysis = PageAnalysis::create($draft, $render, $site);
+
+            $entries = [];
+            if ($render && !$analysis->isRendered()) {
+                $entries[self::RENDER_ENTRY] = $this->renderEntry($render);
+            }
+            foreach ($this->getChecks() as $id => $check) {
+                if ($noindex && !$this->runsOnNoindex($check)) {
+                    continue;
+                }
+                $entries[$id] = $this->entry($id, $check, $this->runCheck($check, $analysis));
+            }
+            return $entries;
+        });
+
+        return SeoCheckResult::applyIgnores($page, $entries);
+    }
+
+    /**
+     * Run the checks and store the outcome as the page's draft result.
+     */
+    public function checkPage(SiteTree $page, ?Member $member): SeoCheckResult
+    {
+        return SeoCheckResult::store($page, Versioned::DRAFT, $this->run($page, $member));
+    }
+
+    protected function runCheck(Check $check, PageAnalysis $analysis): CheckResult
+    {
+        if ($check->needsRender() && !$analysis->isRendered()) {
+            return CheckResult::skipped(_t(__CLASS__ . '.SkippedNoRender', 'Not checked: the page could not be rendered.'));
+        }
+        try {
+            return $check->run($analysis);
+        } catch (Throwable $e) {
+            # One faulty check (a project's own, say) costs that check, never the panel
+            $this->logger()->warning(sprintf('[seo] Check "%s" failed: %s', $check->id(), $e->getMessage()), [
+                'exception' => $e,
+            ]);
+            return CheckResult::skipped(_t(__CLASS__ . '.SkippedError', 'Not checked: the check failed ({message}).', [
+                'message' => $e->getMessage(),
+            ]));
+        }
+    }
+
+    /**
+     * The stored and transported form of one result.
+     *
+     * @return array{id:string, group:string, severity:string, priority:string, title:string, status:string,
+     *               message:string, details:string[], howToFix:string, docs:string, ignored:bool, ignoredBy:?array}
+     */
+    protected function entry(string $id, Check $check, CheckResult $result): array
+    {
+        return [
+            'id' => $id,
+            'group' => $check->group(),
+            'severity' => $check->severity(),
+            'priority' => $check->priority(),
+            'title' => $check->title(),
+            'status' => $result->getStatus(),
+            'message' => $result->getMessage(),
+            'details' => $result->getDetails(),
+            'howToFix' => $result->isFail() ? ($result->getHowToFix() ?: $check->howToFix()) : '',
+            'docs' => sprintf((string) static::config()->get('docs_url'), rawurlencode($id)),
+            'ignored' => false,
+            'ignoredBy' => null,
+        ];
+    }
+
+    protected function renderEntry(RenderResult $render): array
+    {
+        $status = $render->getStatusCode();
+        $message = $status >= 300 && $status < 400
+            ? _t(__CLASS__ . '.RenderRedirected', 'The page did not render: it redirected (status {status}). The checks that read the rendered page were skipped.', ['status' => $status])
+            : _t(__CLASS__ . '.RenderFailed', 'The page did not render (status {status}). The checks that read the rendered page were skipped.', ['status' => $status]);
+        return [
+            'id' => self::RENDER_ENTRY,
+            'group' => Check::GROUP_INDEXING,
+            'severity' => Check::PROBLEM,
+            'priority' => Check::HIGH,
+            'title' => _t(__CLASS__ . '.RenderTitle', 'The page renders'),
+            'status' => CheckResult::FAIL,
+            'message' => $message,
+            'details' => array_values(array_filter([(string) $render->getError()])),
+            'howToFix' => _t(__CLASS__ . '.RenderHowToFix', 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.'),
+            'docs' => '',
+            'ignored' => false,
+            'ignoredBy' => null,
+        ];
+    }
+
+    protected function runsOnNoindex(Check $check): bool
+    {
+        return $check instanceof AbstractCheck && (bool) $check::config()->get('runs_on_noindex');
+    }
+
+    protected function logger(): LoggerInterface
+    {
+        return Injector::inst()->get(LoggerInterface::class);
+    }
+}

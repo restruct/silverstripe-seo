@@ -547,6 +547,15 @@ class SeoSiteTreeExtension extends Extension
     }
 
     /**
+     * The description derived from the page when none is typed (empty when the fallback is switched off). Shown
+     * as the field's placeholder and in the search result preview.
+     */
+    public function SeoDescriptionFallback(): string
+    {
+        return $this->descriptionFallback();
+    }
+
+    /**
      * The robots directives as one comma-separated value, or an empty string when the page is indexable and
      * followable (which is what search engines assume anyway, so nothing is output).
      */

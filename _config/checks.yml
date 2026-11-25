@@ -1,0 +1,77 @@
+---
+Name: restruct-seo-checks
+After:
+  - '#restruct-seo'
+---
+# The SEO checks: the panel and preview in the page's SEO section, and the upkeep of stored results
+SilverStripe\CMS\Model\SiteTree:
+  extensions:
+    seo-checks: Restruct\Silverstripe\SEO\Extensions\SeoChecksExtension
+
+# The catalogue, keyed by id (the id is also the name of the spec in docs/checks/<id>.md). A project disables a
+# check with `<id>: { enabled: false }`, or adds its own with `<id>: { class: App\Seo\MyCheck }`. Thresholds are
+# config of each check class. Check 22 of the design (focus keyword) was dropped; see docs/dropped-checks.md
+Restruct\Silverstripe\SEO\Checks\CheckRunner:
+  checks:
+    noindex-published:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\NoindexPublishedCheck
+    title-missing:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\TitleMissingCheck
+    title-boilerplate:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\TitleBoilerplateCheck
+    title-duplicate:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\TitleDuplicateCheck
+    title-width:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\TitleWidthCheck
+    description-missing:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\DescriptionMissingCheck
+    description-duplicate:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\DescriptionDuplicateCheck
+    description-length:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\DescriptionLengthCheck
+    h1-missing:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\H1MissingCheck
+    heading-structure:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\HeadingStructureCheck
+    image-alt-missing:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\ImageAltMissingCheck
+    image-alt-quality:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\ImageAltQualityCheck
+    broken-links:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck
+    link-text:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck
+    link-redirects:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\LinkRedirectsCheck
+    orphan-page:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\OrphanPageCheck
+    canonical:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\CanonicalCheck
+    placeholder-text:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\PlaceholderTextCheck
+    thin-content:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\ThinContentCheck
+    structured-data:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\StructuredDataCheck
+    og-image:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\OgImageCheck
+    url-segment:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\UrlSegmentCheck
+
+# The inbound-link graph of the orphan check, cached site-wide and cleared when pages change. Not segmented by
+# reading mode (disable-container): the graph is built from link tracking, which has no stages, and a clear on
+# publish (live mode) must clear what a check in draft mode reads
+SilverStripe\Core\Injector\Injector:
+  Psr\SimpleCache\CacheInterface.SeoLinkGraph:
+    factory: SilverStripe\Core\Cache\CacheFactory
+    constructor:
+      namespace: 'SeoLinkGraph'
+      disable-container: true
+
+# The panel's script (plain JS on the admin's jQuery/entwine, no build step) and styles, in every CMS view: the
+# edit form arrives by ajax, and the rules only match inside it
+SilverStripe\Admin\LeftAndMain:
+  extra_requirements_javascript:
+    'restruct/silverstripe-seo:client/dist/js/seo-checks.js': {}
+  extra_requirements_css:
+    'restruct/silverstripe-seo:client/dist/css/seo-checks.css': {}

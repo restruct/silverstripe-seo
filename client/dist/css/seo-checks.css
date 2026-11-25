@@ -1,0 +1,154 @@
+/* SEO checks panel and search result preview (restruct/silverstripe-seo). Plain CSS, served as-is. */
+
+.seo-checks {
+    border: 1px solid #ced5e1;
+    border-radius: 4px;
+    padding: 12px 16px;
+    background: #fff;
+}
+
+.seo-checks--busy {
+    opacity: .6;
+}
+
+.seo-checks__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 16px;
+}
+
+.seo-checks__counts {
+    font-weight: 600;
+    margin: 0;
+}
+
+.seo-checks__meta,
+.seo-checks__passed,
+.seo-checks__status {
+    color: #566b8d;
+    margin: 0;
+}
+
+.seo-checks__group,
+.seo-checks__ignored,
+.seo-checks__skipped {
+    margin-top: 16px;
+}
+
+.seo-checks__group-title {
+    font-size: 1rem;
+    margin: 0 0 6px;
+}
+
+.seo-checks__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.seo-checks__item {
+    border-left: 3px solid #ced5e1;
+    padding: 6px 0 6px 10px;
+    margin-bottom: 8px;
+}
+
+.seo-checks__item--problem {
+    border-left-color: #d40404;
+}
+
+.seo-checks__item--warning {
+    border-left-color: #e88f00;
+}
+
+.seo-checks__item--tip {
+    border-left-color: #0071c4;
+}
+
+.seo-checks__item--ignored {
+    border-left-color: #ced5e1;
+    color: #566b8d;
+}
+
+.seo-checks__badge {
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 0 6px;
+    border-radius: 3px;
+    color: #fff;
+    background: #566b8d;
+}
+
+.seo-checks__badge--problem {
+    background: #d40404;
+}
+
+.seo-checks__badge--warning {
+    background: #a85f00;
+}
+
+.seo-checks__badge--tip {
+    background: #0071c4;
+}
+
+.seo-checks__priority {
+    font-size: .8rem;
+    color: #566b8d;
+    margin: 0 6px;
+}
+
+.seo-checks__message,
+.seo-checks__fix {
+    margin: 4px 0;
+}
+
+.seo-checks__details {
+    margin: 4px 0 4px 18px;
+    padding: 0;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .8rem;
+    word-break: break-all;
+}
+
+/* Search result preview: roughly how a desktop result looks */
+.seo-snippet__result {
+    max-width: 600px;
+    font-family: Arial, sans-serif;
+    padding: 8px 0;
+}
+
+.seo-snippet__url {
+    font-size: 14px;
+    color: #202124;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.seo-snippet__title {
+    font-size: 20px;
+    line-height: 1.3;
+    color: #1a0dab;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.seo-snippet__description {
+    font-size: 14px;
+    line-height: 1.58;
+    color: #4d5156;
+}
+
+.seo-snippet__meter {
+    font-size: .85rem;
+    color: #566b8d;
+    margin: 2px 0;
+}
+
+.seo-snippet__meter--over {
+    color: #a85f00;
+    font-weight: 600;
+}
