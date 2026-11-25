@@ -2,6 +2,8 @@
 
 namespace Restruct\Silverstripe\SEO\Tests\Checks;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * Checks 11 and 12: alt text of the images in the rendered content, blocks included.
  */
@@ -41,9 +43,7 @@ class ImageChecksTest extends ChecksTestCase
         $this->assertCheckPasses($page, 'image-alt-quality');
     }
 
-    /**
-     * @dataProvider poorAltProvider
-     */
+    #[DataProvider('poorAltProvider')]
     public function testAltQualityFailsForPoorAltText(string $images, string $inDetails): void
     {
         $this->assertCheckFails($this->page($this->withImages($images)), 'image-alt-quality', $inDetails);

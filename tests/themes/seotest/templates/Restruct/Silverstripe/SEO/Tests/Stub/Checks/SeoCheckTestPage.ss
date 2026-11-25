@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     $MetaTags
+    $ExtraHead.RAW
 </head>
 <body>
     <%-- Outside <main>: the content checks must not see this, but the H1 count reads the whole body --%>

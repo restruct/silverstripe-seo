@@ -44,7 +44,8 @@ class LinkChecksTest extends ChecksTestCase
             '<a href="[sitetree_link,id=' . $target->ID . ']">the target page</a> '
             . '<a href="' . $file->getURL() . '">the timetable</a> '
             . '<a href="/target/some-action/5">an action on the target page</a> '
-            . '<a href="#prices">the prices below</a> '
+            # Link tracking checks that an anchor exists in the same text, so the target is there
+            . '<a href="#prices">the prices below</a><h2 id="prices">Prices</h2> '
             . '<a href="mailto:info@example.com">email us</a> '
             . '<a href="https://external.example.org/x">an external site</a>'
         ));

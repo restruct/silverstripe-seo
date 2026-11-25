@@ -51,9 +51,16 @@ class SeoCheckControllerTest extends FunctionalTest
             'Title' => 'Courses',
             'URLSegment' => 'courses',
             'HideH1' => true,
-            'Content' => '<p>A marker sentence that only the rendered page contains.</p>',
+            'Content' => '<p>Short text.</p>',
         ]);
         $page->write();
+        # In a block: the description fallback reads Content, and the results quote the description, so a
+        # marker there would show up in the answer without the rendered page being in it
+        SeoCheckTestBlock::create([
+            'PageID' => $page->ID,
+            'Title' => 'Block',
+            'Content' => '<p>A marker sentence that only the rendered page contains.</p>',
+        ])->write();
         return $page;
     }
 

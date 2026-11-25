@@ -57,7 +57,8 @@ class ContentChecksTest extends ChecksTestCase
         $this->assertCheckFails(
             $this->page(['Content' => static::GOOD_TEXT . '<p>Lorem ipsum dolor sit amet.</p>']),
             'placeholder-text',
-            'lorem ipsum'
+            # Quoted as found in the text
+            'Lorem ipsum'
         );
         $this->assertCheckFails(
             $this->page([], [['Title' => 'Prices', 'Content' => '<p>TODO: add the prices</p>']]),

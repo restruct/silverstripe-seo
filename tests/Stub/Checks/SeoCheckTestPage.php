@@ -14,6 +14,7 @@ use SilverStripe\ORM\HasManyList;
  *
  * @property bool $HideH1
  * @property bool $IncompleteEvent
+ * @property string $ExtraHead
  * @method HasManyList<SeoCheckTestBlock> Blocks()
  */
 class SeoCheckTestPage extends SiteTree implements TestOnly
@@ -27,6 +28,8 @@ class SeoCheckTestPage extends SiteTree implements TestOnly
         'HideH1' => 'Boolean',
         # Makes the page an Event without a start date, for the structured-data check
         'IncompleteEvent' => 'Boolean',
+        # Printed as-is in the head, for markup a theme or another module adds there (JSON-LD, say)
+        'ExtraHead' => 'Text',
     ];
 
     private static array $has_many = [

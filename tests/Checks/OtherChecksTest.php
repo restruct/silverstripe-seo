@@ -5,6 +5,7 @@ namespace Restruct\Silverstripe\SEO\Tests\Checks;
 use Restruct\Silverstripe\SEO\Checks\Rules\UrlSegmentCheck;
 use Restruct\Silverstripe\SEO\Tests\SeoTestImages;
 use SilverStripe\Assets\Dev\TestAssetStore;
+use SilverStripe\ORM\DB;
 
 /**
  * Checks 20 (structured data), 21 (sharing image) and 23 (URL segment).
@@ -32,10 +33,9 @@ class OtherChecksTest extends ChecksTestCase
 
     public function testStructuredDataFailsForInvalidJsonInTheHead(): void
     {
-        $page = $this->page();
-        $page->ExtraMeta = '<script type="application/ld+json">{"@type": "Thing",}</script>';
-        $page->write();
-        $this->assertCheckFails($page, 'structured-data');
+        # As a template or another module would print it (ExtraMeta only lets meta and link tags through)
+        $page = $this->page(['ExtraHead' => '<script type="application/ld+json">{"@type": "Thing",}</script>']);
+        $this->assertCheckFails($page, 'structured-data', 'not valid JSON');
     }
 
     public function testStructuredDataFailsForAMissingRequiredProperty(): void
@@ -62,7 +62,11 @@ class OtherChecksTest extends ChecksTestCase
 
     public function testUrlSegmentFailsForUnderscoresLengthAndStopWords(): void
     {
-        $this->assertCheckFails($this->page(['URLSegment' => 'pottery_courses']), 'url-segment', '_');
+        # Straight to the table: core's URL segment filter turns underscores into hyphens on write, so an
+        # underscore comes from imported or migrated content
+        $underscored = $this->page(['URLSegment' => 'pottery-courses']);
+        DB::prepared_query('UPDATE "SiteTree" SET "URLSegment" = ? WHERE "ID" = ?', ['pottery_courses', $underscored->ID]);
+        $this->assertCheckFails($underscored, 'url-segment', '_');
         $this->assertCheckFails(
             $this->page(['URLSegment' => str_repeat('pottery-', 12) . 'courses']),
             'url-segment'
