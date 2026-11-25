@@ -1,0 +1,51 @@
+{
+    "name": "restruct/silverstripe-seo",
+    "description": "SEO essentials for Silverstripe CMS 6: meta title, description fallback, robots (meta + X-Robots-Tag), canonical (tag + Link header), Open Graph with fallbacks, and a sitemap bridge.",
+    "type": "silverstripe-vendormodule",
+    "license": "MIT",
+    "keywords": [
+        "silverstripe",
+        "seo",
+        "meta",
+        "open graph",
+        "canonical",
+        "robots"
+    ],
+    "authors": [
+        {
+            "name": "Restruct",
+            "homepage": "https://restruct.nl"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "silverstripe/framework": "^6",
+        "silverstripe/cms": "^6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.3",
+        "wilr/silverstripe-googlesitemaps": "^4"
+    },
+    "suggest": {
+        "wilr/silverstripe-googlesitemaps": "sitemap.xml; pages set to noindex are left out of it automatically",
+        "dnadesign/silverstripe-elemental": "content blocks; later versions of this module check the rendered page, blocks included",
+        "restruct/silverstripe-ai": "optional AI suggestions in a later version"
+    },
+    "autoload": {
+        "psr-4": {
+            "Restruct\\Silverstripe\\SEO\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Restruct\\Silverstripe\\SEO\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.x-dev"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
