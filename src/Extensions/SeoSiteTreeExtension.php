@@ -406,7 +406,10 @@ class SeoSiteTreeExtension extends Extension
             if ($url && $request) {
                 $action = (string) $request->param('Action');
                 if ($action !== '' && strtolower($action) !== 'index') {
-                    $url = Controller::join_links($url, $action, $request->param('ID'), $request->param('OtherID'));
+                    # Built by the page itself, with the action: the homepage's link is the site root, and only
+                    # RelativeLink($action) keeps its "home" segment
+                    $actionPath = Controller::join_links($action, $request->param('ID'), $request->param('OtherID'));
+                    $url = strtok((string) $page->AbsoluteLink($actionPath), '?') ?: $url;
                 }
                 $kept = array_intersect_key(
                     $request->getVars(),
