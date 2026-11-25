@@ -203,6 +203,20 @@ class SchemaSourceTest extends SapphireTest
         $this->assertNull($this->mapper()->resolve($this->event(['Description' => '<p> </p>']), ['html' => 'Description']));
     }
 
+    public function testAnUnregisteredTypeIsOutputWithAWarning(): void
+    {
+        $event = $this->event();
+        Config::modify()->set(SchemaTestEvent::class, 'schema_type', 'Workshop');
+        $schema = PageSchema::create($this->holder, $event);
+
+        # Nothing is known to be required, so it is output
+        $this->assertContains('Workshop', array_column($schema->getGraph()->nodes(), '@type'));
+        $notices = array_values(array_filter($schema->getWarnings(), fn ($w) => $w['code'] === 'type-not-registered'));
+        $this->assertCount(1, $notices);
+        $this->assertSame('Workshop', $notices[0]['type']);
+        $this->assertTrue($notices[0]['emitted']);
+    }
+
     public function testEmptyValuesAreLeftOut(): void
     {
         $event = $this->event(['Language' => '', 'CategoryID' => 0, 'EndDate' => null, 'EndTime' => null]);
