@@ -65,7 +65,8 @@ class SeoCheckController extends AdminController
 
     /**
      * The page the request is about, after every guard: POST, CSRF token, CMS access, the page exists, and the
-     * member may edit it. Each failure ends the request with its own status code.
+     * member may edit it. Each failure ends the request with its own status code. Once all pass, the session
+     * lock is released.
      */
     protected function editablePage(HTTPRequest $request): SiteTree
     {
@@ -88,7 +89,25 @@ class SeoCheckController extends AdminController
         if (!$page->canEdit()) {
             $this->jsonError(403);
         }
+        $this->releaseSessionLock();
         return $page;
+    }
+
+    /**
+     * Let go of the PHP session lock once the request is authorised: a render can take seconds, and with the
+     * file session handler every other request of the editor (the CMS polls) waits for the lock meanwhile.
+     *
+     * Nothing this endpoint does needs the session afterwards (the render runs with a fresh session of its
+     * own, see PageRenderer). Note for anyone extending this endpoint: a session change made after this point
+     * is lost. Core's Session::save() at the end of the request only restarts a session it thinks was never
+     * started (isStarted() is a flag that stays true), so it applies the change to $_SESSION of a closed
+     * session.
+     */
+    protected function releaseSessionLock(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
     }
 
     protected function answer(SiteTree $page): HTTPResponse

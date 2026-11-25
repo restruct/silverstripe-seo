@@ -463,6 +463,15 @@ of date when they are.
 
 The endpoint is POST only, needs the CMS's CSRF token and CMS access, checks `canEdit()` on the page (the ID is
 the edit form's own) and answers with the results and the panel's markup, never with the rendered page.
+Once authorised it releases the PHP session lock, so a slow render does not block the editor's other CMS
+requests. The panel is only shown to members who may edit the page; the stored result is shared between them
+and reflects the render of whoever checked last. Messages are stored as translation keys and shown in the
+reader's language. Block writes, publishes and deletes (Elemental) mark the page's result stale too, and a
+result older than the last edit of the page or one of its blocks counts as stale.
+
+**Rendering has side effects** that a page's own code can cause: the render runs the page's controller and
+template in the same PHP process (see the render library's README). Code that should not run during a check
+(analytics, counters, mail) can test `Restruct\Silverstripe\PageRender\PageRenderer::isRendering()`.
 
 ### The catalogue
 
