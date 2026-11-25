@@ -7,6 +7,12 @@ use SilverStripe\Core\Config\Configurable;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 
+# queuedjobs is optional: without it this file declares nothing. The config manifest checks every class it lists
+# with class_exists() on flush, which would autoload this file and fatal on the missing parent class
+if (!class_exists(AbstractQueuedJob::class)) {
+    return;
+}
+
 /**
  * Checks every eligible page for the site report, a batch of pages per process() step, and stores the results
  * as the page editor's panel does. Needs symbiote/silverstripe-queuedjobs (a suggest of this module); without
