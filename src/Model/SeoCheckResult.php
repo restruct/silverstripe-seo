@@ -77,10 +77,15 @@ class SeoCheckResult extends DataObject
      *
      * @param array<string, array> $entries
      */
-    public static function store(SiteTree $page, string $stage, array $entries, bool $stale = false): static
+    /**
+     * @param string|null $checkedAt When the check started (default now): anything edited after it makes the
+     *                               result stale ({@see isStale()}), also edits made while the check ran
+     */
+    public static function store(SiteTree $page, string $stage, array $entries, bool $stale = false, ?string $checkedAt = null): static
     {
+        $checkedAt ??= DBDatetime::now()->getValue();
         $result = static::forPage($page, $stage) ?? static::create(['PageID' => (int) $page->ID, 'Stage' => $stage]);
-        static::fill($result, $entries, $stale);
+        static::fill($result, $entries, $stale, $checkedAt);
         try {
             $result->write();
         } catch (ValidationException $e) {
@@ -91,15 +96,15 @@ class SeoCheckResult extends DataObject
                 throw $e;
             }
             $result = $existing;
-            static::fill($result, $entries, $stale);
+            static::fill($result, $entries, $stale, $checkedAt);
             $result->write();
         }
         return $result;
     }
 
-    protected static function fill(SeoCheckResult $result, array $entries, bool $stale): void
+    protected static function fill(SeoCheckResult $result, array $entries, bool $stale, string $checkedAt): void
     {
-        $result->CheckedAt = DBDatetime::now()->getValue();
+        $result->CheckedAt = $checkedAt;
         $result->Stale = $stale;
         $result->Format = static::FORMAT;
         $result->setEntries($entries);

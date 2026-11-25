@@ -11,6 +11,7 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\Queries\SQLSelect;
 use SilverStripe\Security\Member;
 use SilverStripe\Versioned\Versioned;
@@ -164,12 +165,13 @@ class CheckRunner
      */
     public function checkPage(SiteTree $page, ?Member $member): SeoCheckResult
     {
+        $startedAt = DBDatetime::now()->getValue();
         $before = $this->draftLastEdited($page);
         $entries = $this->collect($page, $member);
         # Saved while the check ran (another tab, a block): the result describes an older draft, so store it as
         # out of date and let the panel ask again
         $changed = $this->draftLastEdited($page) !== $before;
-        return SeoCheckResult::store($page, Versioned::DRAFT, $entries, $changed);
+        return SeoCheckResult::store($page, Versioned::DRAFT, $entries, $changed, $startedAt);
     }
 
     protected function draftLastEdited(SiteTree $page): string
