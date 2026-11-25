@@ -14,8 +14,9 @@ use Symfony\Component\Console\Input\InputOption;
  * Checks every eligible page for the site report in one run: `sake tasks:seo-check-site`, for sites without
  * queuedjobs (with it, queue {@see \Restruct\Silverstripe\SEO\Jobs\SeoSiteCheckJob} instead).
  *
- * `--only-stale` skips pages whose stored result is fresh; `--limit=N` stops after N pages were rendered
- * (skipped pages do not count), so a cron can work through a large site a slice at a time. Renders as a visitor
+ * `--only-stale` skips pages whose stored result is fresh; `--limit=N` stops after N pages were checked
+ * (skipped and failed pages do not count) and says where to go on; `--from-id=N` starts at that page ID, so a
+ * cron can work through a large site a slice at a time. Renders as a visitor
  * or as `SiteCheck.run_as`, never as the member running the task; see {@see SiteCheck} for that choice and for
  * the side effects of rendering every page.
  */
@@ -39,19 +40,17 @@ class SeoCheckSiteTask extends BuildTask
         return [
             new InputOption('limit', null, InputOption::VALUE_REQUIRED, 'Stop after rendering this many pages'),
             new InputOption('only-stale', null, InputOption::VALUE_NONE, 'Skip pages whose stored result is up to date'),
+            new InputOption('from-id', null, InputOption::VALUE_REQUIRED, 'Start at the page with this ID (pages are checked by ID)'),
         ];
     }
 
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
-        $limitOption = $input->getOption('limit');
-        $limit = null;
-        if ($limitOption !== null && $limitOption !== false) {
-            if (!ctype_digit((string) $limitOption) || (int) $limitOption < 1) {
-                $output->writeln('Give --limit as a whole number of 1 or more.');
-                return Command::INVALID;
-            }
-            $limit = (int) $limitOption;
+        $limit = $this->positiveInt($input, 'limit');
+        $fromID = $this->positiveInt($input, 'from-id');
+        if ($limit === false || $fromID === false) {
+            $output->writeln('Give --limit and --from-id as whole numbers of 1 or more.');
+            return Command::INVALID;
         }
         $onlyStale = (bool) $input->getOption('only-stale');
 
@@ -63,6 +62,10 @@ class SeoCheckSiteTask extends BuildTask
             return Command::FAILURE;
         }
         $ids = $siteCheck->pageIDs();
+        if ($fromID !== null) {
+            # Resume a run that stopped at --limit: the IDs are in order
+            $ids = array_values(array_filter($ids, fn (int $id) => $id >= $fromID));
+        }
         $output->writeln(sprintf('%d eligible pages%s.', count($ids), $onlyStale ? ', skipping up-to-date results' : ''));
 
         $counts = SiteCheck::emptyCounts();
@@ -75,13 +78,29 @@ class SeoCheckSiteTask extends BuildTask
             $outcome = $siteCheck->checkPage($id, $onlyStale, $member);
             $counts[$outcome]++;
             $done++;
-            if (in_array($outcome, [SiteCheck::CHECKED, SiteCheck::FAILED], true)) {
+            # Only stored checks count: a page that fails is logged and does not use up the limit
+            if ($outcome === SiteCheck::CHECKED) {
                 $rendered++;
             }
         }
 
         $left = count($ids) - $done;
         $output->writeln(SiteCheck::describe($counts) . ($left > 0 ? sprintf(', %d left', $left) : '') . '.');
+        if ($left > 0) {
+            $output->writeln(sprintf('Continue with --from-id=%d.', $ids[$done]));
+        }
         return $counts[SiteCheck::FAILED] > 0 ? Command::FAILURE : Command::SUCCESS;
+    }
+
+    /**
+     * The option as a whole number of 1 or more; null when not given, false when not valid.
+     */
+    protected function positiveInt(InputInterface $input, string $name): int|false|null
+    {
+        $value = $input->getOption($name);
+        if ($value === null || $value === false) {
+            return null;
+        }
+        return ctype_digit((string) $value) && (int) $value >= 1 ? (int) $value : false;
     }
 }

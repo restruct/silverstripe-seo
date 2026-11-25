@@ -34,8 +34,8 @@ All notable changes to this module are documented here. The format follows
   permission plus Reports access; lists only pages the reader may view, details only for pages they may edit.
 - CSV export of the report with every formula-like cell (`= + - @`, tab, carriage return) prefixed with `'`.
 - `SeoSiteCheckJob` (with symbiote/silverstripe-queuedjobs, now a suggest): checks every eligible page in
-  batches, resumable, skipping fresh results; and `sake tasks:seo-check-site` (`--only-stale`, `--limit=N`) for
-  sites without queuedjobs. Both render as a visitor with the draft readable, or as `SiteCheck.run_as`, never as
+  batches, resumable, skipping fresh results; and `sake tasks:seo-check-site` (CLI only; `--only-stale`, `--limit=N`,
+  `--from-id=N`) for sites without queuedjobs. Both render as a visitor with the draft readable, or as `SiteCheck.run_as`, never as
   the member who started them.
 
 ### Changed

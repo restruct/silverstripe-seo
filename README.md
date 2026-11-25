@@ -598,9 +598,10 @@ The panel checks a page when an editor opens it. To fill and refresh the report 
   carries on, and skips pages whose result is up to date (`new SeoSiteCheckJob(false)` checks every page). It
   runs on the large queue (`SeoSiteCheckJob.queue`), so that queue needs its runner. To check nightly, add it to
   `QueuedJobService.defaultJobs` (an Injector property) or queue it from a cron.
-- **Without queuedjobs**: `vendor/bin/sake tasks:seo-check-site`, with `--only-stale` to skip up-to-date
-  results and `--limit=N` to stop after rendering N pages (skipped pages do not count), so a cron can work through
-  a large site a slice at a time.
+- **Without queuedjobs**: `vendor/bin/sake tasks:seo-check-site` (CLI only), with `--only-stale` to skip
+  up-to-date results, `--limit=N` to stop after checking N pages (skipped and failed pages do not count; the task
+  then prints the ID to go on from) and `--from-id=N` to start at that page ID, so a cron can work through a
+  large site a slice at a time.
 
 **Who the site check renders as.** Not as the member who queued the job or ran the task (the queue runs a job as
 whoever queued it). By default it renders as a **visitor**, with the draft readable for the duration of each
