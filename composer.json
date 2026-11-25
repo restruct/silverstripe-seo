@@ -27,11 +27,13 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^11.3",
-        "wilr/silverstripe-googlesitemaps": "^4"
+        "wilr/silverstripe-googlesitemaps": "^4",
+        "symbiote/silverstripe-queuedjobs": "^6"
     },
     "suggest": {
         "wilr/silverstripe-googlesitemaps": "sitemap.xml; pages set to noindex are left out of it automatically",
         "dnadesign/silverstripe-elemental": "content blocks; the page checks read the rendered page, blocks included",
+        "symbiote/silverstripe-queuedjobs": "checks the whole site in the background (SeoSiteCheckJob) for the site report; without it, run sake tasks:seo-check-site",
         "restruct/silverstripe-ai": "optional AI suggestions in a later version"
     },
     "autoload": {
