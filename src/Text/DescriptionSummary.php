@@ -53,22 +53,36 @@ class DescriptionSummary
     }
 
     /**
-     * All of the text of a block of HTML, without a length limit: shortcodes removed, words separated at line
-     * breaks and block boundaries, entities decoded once. Used for HTML fields in structured data.
+     * A character that never occurs in text (Unicode private use), marking block boundaries while the text is
+     * read from the DOM, so they can be told apart from line breaks in the HTML source.
+     */
+    protected const BOUNDARY = "\u{E000}";
+
+    /**
+     * All of the text of a block of HTML, without a length limit: shortcodes removed, entities decoded once, and
+     * one line per paragraph, list item, heading or line break (`\n`), so the structure survives as far as plain
+     * text allows. Used for HTML fields in structured data.
      */
     public static function plainText(string $html): string
     {
         if (trim($html) === '') {
             return '';
         }
-        $body = static::prepare($html)->getBody();
-        return $body ? static::normalise($body->textContent) : '';
+        $body = static::prepare($html, static::BOUNDARY)->getBody();
+        if (!$body) {
+            return '';
+        }
+        $lines = array_filter(
+            array_map(fn (string $line): string => static::normalise($line), explode(static::BOUNDARY, $body->textContent)),
+            fn (string $line): bool => $line !== ''
+        );
+        return implode("\n", $lines);
     }
 
     /**
-     * The HTML parsed, with registered shortcodes removed and a space at every word boundary a browser would show.
+     * Removes the registered shortcodes from field HTML (see prepare()).
      */
-    protected static function prepare(string $html): HTMLValue
+    public static function stripShortcodes(string $html): string
     {
         # Shortcodes are not text: [image ...] would otherwise end up verbatim in the description. Only the
         # bracketed shortcode syntax is matched (a name directly after the bracket), and only names registered
@@ -80,12 +94,22 @@ class DescriptionSummary
             fn (array $match): string => $parser->registered(strtolower($match[1])) ? '' : $match[0],
             $html
         ) ?? $html;
+        return $html;
+    }
+
+    /**
+     * The HTML parsed, with registered shortcodes removed and a space (or the given boundary marker) at every word
+     * boundary a browser would show.
+     */
+    protected static function prepare(string $html, string $boundary = ' '): HTMLValue
+    {
+        $html = static::stripShortcodes($html);
 
         # A space at every line break and block boundary, so "one<br>two" and "<li>one</li><li>two</li>" do not
         # run their words together; normalise() collapses the extra spaces again
         $html = preg_replace(
             '#<(?:br|/?(?:' . implode('|', static::BLOCK_ELEMENTS) . '))\b[^>]*>#i',
-            ' $0 ',
+            $boundary . '$0' . $boundary,
             $html
         ) ?? $html;
 

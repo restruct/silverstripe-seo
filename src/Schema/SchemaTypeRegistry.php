@@ -16,6 +16,10 @@ use SilverStripe\Core\Injector\Injectable;
  * A property may be a dotted path (`location.address`): when the first part is a list, every entry must have
  * the rest. A reference (`{"@id": ...}`) is followed when a resolver is given, and taken on trust otherwise.
  *
+ * A required entry may name alternatives, separated by `|`, each of which may need several properties joined
+ * by `&`: `jobLocation | applicantLocationRequirements & jobLocationType` is met by a job location, or by both
+ * properties of a remote job. The entry as written is what is reported missing.
+ *
  * Projects add types or properties in YAML; a type inherits the lists of its `parent`:
  *
  * ```yml
@@ -88,7 +92,8 @@ class SchemaTypeRegistry
         ],
         # event
         'Event' => [
-            'required' => ['name', 'startDate', 'location', 'location.address'],
+            # An online event has a VirtualLocation with a url instead of an address
+            'required' => ['name', 'startDate', 'location', 'location.address | location.url'],
             'recommended' => [
                 'description', 'endDate', 'eventStatus', 'image', 'location.name', 'offers', 'organizer',
                 'performer', 'previousStartDate',
@@ -104,7 +109,12 @@ class SchemaTypeRegistry
         'TheaterEvent' => ['parent' => 'Event'],
         # job-posting
         'JobPosting' => [
-            'required' => ['datePosted', 'description', 'hiringOrganization', 'jobLocation', 'title'],
+            # A fully remote job has no jobLocation: applicantLocationRequirements and jobLocationType TELECOMMUTE
+            # instead (the value TELECOMMUTE is not checked, only that both are there)
+            'required' => [
+                'datePosted', 'description', 'hiringOrganization',
+                'jobLocation | applicantLocationRequirements & jobLocationType', 'title',
+            ],
             'recommended' => [
                 'applicantLocationRequirements', 'baseSalary', 'directApply', 'employmentType', 'identifier',
                 'jobLocationType', 'validThrough',
@@ -222,11 +232,35 @@ class SchemaTypeRegistry
     {
         $missing = [];
         foreach ($properties as $property) {
-            if (!$this->present($node, explode('.', $property), $resolve, 0)) {
+            if (!$this->satisfied($node, $property, $resolve)) {
                 $missing[] = $property;
             }
         }
         return $missing;
+    }
+
+    /**
+     * Whether one entry (a property, or alternatives with `|` and `&`) is met.
+     */
+    protected function satisfied(array $node, string $entry, ?callable $resolve): bool
+    {
+        foreach (explode('|', $entry) as $alternative) {
+            $parts = array_filter(array_map('trim', explode('&', $alternative)), fn ($part) => $part !== '');
+            if (!$parts) {
+                continue;
+            }
+            $all = true;
+            foreach ($parts as $part) {
+                if (!$this->present($node, explode('.', $part), $resolve, 0)) {
+                    $all = false;
+                    break;
+                }
+            }
+            if ($all) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

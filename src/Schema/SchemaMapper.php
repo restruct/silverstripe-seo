@@ -5,6 +5,7 @@ namespace Restruct\Silverstripe\SEO\Schema;
 use DateTimeInterface;
 use Restruct\Silverstripe\SEO\Extensions\SchemaSource;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
+use Restruct\Silverstripe\SEO\Text\SchemaHtml;
 use SilverStripe\Assets\Image;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Model\ArrayData;
@@ -37,6 +38,8 @@ use Throwable;
  * - `{ ref: organization }`: a reference `{"@id": ".../#organization"}` to a site node (`website`, `organization`),
  *   or to a node of this page view (`webpage`, `breadcrumb`, `itemlist`); a full URL is used as it is;
  * - `{ date: DateField, time: TimeField }`: one ISO 8601 value with the site timezone's offset;
+ * - `{ html: Field }`: the field's HTML reduced to simple markup ({@see SchemaHtml}), for a JobPosting
+ *   description, where Google shows paragraphs and lists;
  * - a nested map, optionally with its own `@type` and a `from` relation to read from (a has_many or many_many
  *   gives a list of nested nodes);
  * - a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
@@ -193,6 +196,14 @@ class SchemaMapper
         }
         if (isset($spec['ref'])) {
             return ['@id' => $this->referenceId((string) $spec['ref'])];
+        }
+        if (isset($spec['html'])) {
+            $value = $this->resolvePath($record, (string) $spec['html']);
+            if ($value instanceof DBField) {
+                $value = $value->getValue();
+            }
+            $html = is_string($value) ? SchemaHtml::sanitise($value) : '';
+            return $html !== '' ? $html : null;
         }
         if (isset($spec['date'])) {
             $time = isset($spec['time']) ? $this->resolvePath($record, (string) $spec['time']) : null;
