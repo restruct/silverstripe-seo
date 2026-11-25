@@ -404,11 +404,10 @@ class SeoSiteTreeExtension extends Extension
             # In draft the page link carries ?stage=Stage; the canonical is always the clean public URL
             $url = strtok((string) $page->AbsoluteLink(), '?') ?: null;
             if ($url && $request) {
-                $action = (string) $request->param('Action');
-                if ($action !== '' && strtolower($action) !== 'index') {
+                $actionPath = $this->requestActionPath($request);
+                if ($actionPath !== '') {
                     # Built by the page itself, with the action: the homepage's link is the site root, and only
                     # RelativeLink($action) keeps its "home" segment
-                    $actionPath = Controller::join_links($action, $request->param('ID'), $request->param('OtherID'));
                     $url = strtok((string) $page->AbsoluteLink($actionPath), '?') ?: $url;
                 }
                 $kept = array_intersect_key(
@@ -605,6 +604,49 @@ class SeoSiteTreeExtension extends Extension
     protected function currentRequest(): ?HTTPRequest
     {
         return $this->currentController()?->getRequest();
+    }
+
+    /**
+     * The part of the requested URL after the page's own path (`archive/2024/05/12` on /blog/archive/2024/05/12),
+     * with the action segment lowercased; an empty string for the page itself or its index action.
+     *
+     * The URL is used rather than the Action/ID/OtherID parameters, because a url_handler can match more segments
+     * than those three. RequestHandler answers a URL it did not fully parse with a 404, so whatever is left after
+     * the page's path on a rendered page was matched by the action. A request that does not start with the page's
+     * path (a custom Director rule) falls back to the three parameters.
+     */
+    protected function requestActionPath(HTTPRequest $request): string
+    {
+        $split = fn (string $path): array => array_values(array_filter(
+            explode('/', trim($path, '/')),
+            fn ($part) => $part !== ''
+        ));
+        # RelativeLink(true) keeps the homepage's own segment ("home"), which the request URL carries as well:
+        # RootURLController rewrites a request for the site root to the homepage's segment
+        $pageParts = $split((string) strtok((string) $this->getOwner()->RelativeLink(true), '?'));
+        $requestParts = $split((string) $request->getURL());
+
+        $normalise = fn (array $parts): array => array_map(fn ($part) => mb_strtolower(rawurldecode($part)), $parts);
+        if ($normalise(array_slice($requestParts, 0, count($pageParts))) === $normalise($pageParts)) {
+            $parts = array_slice($requestParts, count($pageParts));
+        } else {
+            $parts = $split(Controller::join_links(
+                (string) $request->param('Action'),
+                (string) $request->param('ID'),
+                (string) $request->param('OtherID')
+            ));
+        }
+        if (!$parts) {
+            return '';
+        }
+
+        # Actions match case-insensitively (RequestHandler::hasAction), so /page/DETAIL and /page/detail are one
+        # page; the segments after the action are values (IDs, slugs) and keep their case
+        $parts[0] = strtolower($parts[0]);
+        if ($parts === ['index']) {
+            return '';
+        }
+        return implode('/', $parts);
     }
 
     protected static function isUsableImage(mixed $image): bool
