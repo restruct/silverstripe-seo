@@ -8,6 +8,8 @@ use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormField;
+use SilverStripe\i18n\i18n;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\SiteConfig\SiteConfig;
 
 /**
@@ -77,6 +79,15 @@ class SeoCmsFieldsTest extends SapphireTest
             $this->assertNotNull($toggle->getChildren()->dataFieldByName($name), "$name should be in the Metadata toggle");
         }
 
+        # Below the content, as the name says: the toggle comes after the Content editor in the Main tab
+        $main = array_values(array_map(fn ($f) => $f->getName(), $fields->fieldByName('Root.Main')->getChildren()->toArray()));
+        $this->assertContains('Content', $main);
+        $this->assertGreaterThan(
+            array_search('Content', $main, true),
+            array_search('Metadata', $main, true),
+            'the Metadata toggle comes after Content'
+        );
+
         # Meta title goes right before the description, where editors look for it
         $names = array_map(fn ($f) => $f->getName(), $toggle->getChildren()->dataFields());
         $names = array_values($names);
@@ -131,5 +142,16 @@ class SeoCmsFieldsTest extends SapphireTest
         # Labels come from the module's lang files, not raw column names
         $this->assertNotSame('SEOFBdescription', $labels['SEOFBdescription'] ?? 'SEOFBdescription');
         $this->assertNotSame('MetaRobotsNoCache', $labels['MetaRobotsNoCache'] ?? 'MetaRobotsNoCache');
+
+        # ...and in another locale from that locale's file: proof the keys resolve through i18n, not only the
+        # English defaults in the code. fieldLabels() caches per class, not per locale, hence the resets.
+        $dutch = i18n::with_locale('nl_NL', function () {
+            DataObject::reset();
+            return SeoTestPage::singleton()->fieldLabels();
+        });
+        DataObject::reset();
+        $this->assertSame('Deelbeschrijving', $dutch['SEOFBdescription'] ?? null);
+        $this->assertSame('Geen kopie in de cache van zoekmachines (noarchive)', $dutch['MetaRobotsNoCache'] ?? null);
+        $this->assertSame('Metatitel', $dutch['MetaTitle'] ?? null);
     }
 }
