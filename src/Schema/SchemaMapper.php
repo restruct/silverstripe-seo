@@ -350,28 +350,18 @@ class SchemaMapper
     }
 
     /**
-     * One step of a path: a method (relations included), then a database field as its DBField (so dates and HTML
-     * are recognised), then any other field, then a `get<Name>()` getter.
+     * One step of a path, read the way a template reads it: through obj(), so a method wins, then a `get<Name>()`
+     * getter (an overriding getTitle() included), then the field; and the result is cast by the record's
+     * `casting` or the column type, so a method cast as HTMLText is recognised as HTML and a Date column as a
+     * date. Null when nothing on the record backs the name.
      */
     protected function readOne(ModelData $record, string $name): mixed
     {
-        if ($record->hasMethod($name)) {
-            return $record->$name();
+        try {
+            return $record->obj($name);
+        } catch (Throwable) {
+            # A getter that needs arguments, or a casting class that rejects the value: no value
+            return null;
         }
-        if ($record instanceof DataObject && $record->hasField($name)) {
-            try {
-                $field = $record->dbObject($name);
-            } catch (Throwable) {
-                $field = null;
-            }
-            return $field ?? $record->getField($name);
-        }
-        if ($record->hasField($name)) {
-            return $record->getField($name);
-        }
-        if ($record->hasMethod('get' . $name)) {
-            return $record->{'get' . $name}();
-        }
-        return null;
     }
 }
