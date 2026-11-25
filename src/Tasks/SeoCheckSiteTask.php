@@ -2,10 +2,12 @@
 
 namespace Restruct\Silverstripe\SEO\Tasks;
 
+use Restruct\Silverstripe\SEO\Model\StaleContext;
 use Restruct\Silverstripe\SEO\Report\SiteCheck;
 use RuntimeException;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\PolyExecution\PolyOutput;
+use SilverStripe\Versioned\Versioned;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -69,13 +71,15 @@ class SeoCheckSiteTask extends BuildTask
         $output->writeln(sprintf('%d eligible pages%s.', count($ids), $onlyStale ? ', skipping up-to-date results' : ''));
 
         $counts = SiteCheck::emptyCounts();
+        # One staleness context for the run: the site epoch and the config fingerprint are read once
+        $context = $onlyStale ? StaleContext::create(Versioned::DRAFT) : null;
         $rendered = 0;
         $done = 0;
         foreach ($ids as $id) {
             if ($limit !== null && $rendered >= $limit) {
                 break;
             }
-            $outcome = $siteCheck->checkPage($id, $onlyStale, $member);
+            $outcome = $siteCheck->checkPage($id, $onlyStale, $member, $context);
             $counts[$outcome]++;
             $done++;
             # Only stored checks count: a page that fails is logged and does not use up the limit

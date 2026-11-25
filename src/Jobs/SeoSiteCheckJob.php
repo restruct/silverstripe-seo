@@ -2,8 +2,10 @@
 
 namespace Restruct\Silverstripe\SEO\Jobs;
 
+use Restruct\Silverstripe\SEO\Model\StaleContext;
 use Restruct\Silverstripe\SEO\Report\SiteCheck;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Versioned\Versioned;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 
@@ -89,8 +91,10 @@ class SeoSiteCheckJob extends AbstractQueuedJob
         # Read, change, write back: job data properties are copies (__get), not references
         $counts = array_merge(SiteCheck::emptyCounts(), (array) $this->counts);
         $failed = (array) $this->failedIDs;
+        # One staleness context per step: the site epoch and the config fingerprint are read once
+        $context = $onlyStale ? StaleContext::create(Versioned::DRAFT) : null;
         foreach ($batch as $id) {
-            $outcome = $siteCheck->checkPage((int) $id, $onlyStale, $member);
+            $outcome = $siteCheck->checkPage((int) $id, $onlyStale, $member, $context);
             $counts[$outcome] = ($counts[$outcome] ?? 0) + 1;
             if ($outcome === SiteCheck::FAILED && count($failed) < static::FAILED_SHOWN) {
                 $failed[] = (int) $id;

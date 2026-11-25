@@ -7,6 +7,7 @@ use ReflectionProperty;
 use Restruct\Silverstripe\PageRender\PageEligibility;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
+use Restruct\Silverstripe\SEO\Model\StaleContext;
 use RuntimeException;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Configurable;
@@ -93,19 +94,21 @@ class SiteCheck
     /**
      * Check one page and store the result, unless it is fresh and only stale results are asked for.
      *
+     * @param StaleContext|null $context Shared by the pages of one run (the site epoch and the config
+     *                                   fingerprint are read once); null builds one for this page
      * @return string One of the outcome constants
      */
-    public function checkPage(int $pageID, bool $onlyStale, ?Member $member): string
+    public function checkPage(int $pageID, bool $onlyStale, ?Member $member, ?StaleContext $context = null): string
     {
         try {
-            return Member::actAs($member, fn () => $this->withDraftAccess($member, function () use ($pageID, $onlyStale, $member) {
+            return Member::actAs($member, fn () => $this->withDraftAccess($member, function () use ($pageID, $onlyStale, $member, $context) {
                 $page = Versioned::get_by_stage(SiteTree::class, Versioned::DRAFT)->byID($pageID);
                 if (!$page instanceof SiteTree) {
                     return self::MISSING;
                 }
                 if ($onlyStale) {
                     $result = SeoCheckResult::forPage($page);
-                    if ($result && !$result->isStale()) {
+                    if ($result && !$result->isStale($context)) {
                         return self::FRESH;
                     }
                 }
