@@ -6,6 +6,24 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- SEO checks on the rendered draft (Elemental blocks and template text included), rendered in-process as the
+  CMS user by restruct/silverstripe-page-render: checks 1-21 and 23 of the catalogue (the focus keyword check
+  was dropped), each a class behind the `Check` interface, registered in `CheckRunner.checks` and configurable
+  per class (thresholds, severity, priority). A noindex page gets only the noindex check.
+- A spec per check in `docs/checks/<id>.md` (what, why, thresholds, source, last reviewed) and
+  `docs/dropped-checks.md`.
+- `SeoCheckResult` (stored results per page and stage, counts per severity, a stale flag set on save) and
+  `SeoCheckIgnore` (an editor ignores a check for a page; who and when are kept).
+- The SEO checks panel in the page editor: counts, failing checks grouped with priority, details and how to fix,
+  ignored and skipped checks; no score. Server-rendered, so it reads without JavaScript.
+- A search result preview below the meta description, updated per keystroke, with the title width and the
+  description length checked against the same thresholds as the stored checks.
+- `admin/seo-checks/recheck` and `admin/seo-checks/ignore` (POST, CSRF token, CMS access, `canEdit()` on the
+  page): the panel re-checks after a save and on its button; nothing is rendered during the save itself.
+- `SeoDescriptionFallback()` on pages: the description derived when none is typed.
+
 ### Changed
 
 - Requires restruct/silverstripe-page-render for rendering a page in-process and narrowing it to its content.

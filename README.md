@@ -16,16 +16,20 @@ Search and sharing metadata for Silverstripe CMS 6 pages, with sensible fallback
 - **Structured data** (JSON-LD): one `@graph` per page with WebSite, Organization, WebPage and BreadcrumbList,
   plus nodes mapped in YAML from the records you already have (events, vacancies, courses). Nodes missing
   required properties are left out, and the page editor shows a preview with warnings.
+- **SEO checks** on the page as the site renders it (Elemental blocks and template text included): headings, alt
+  text, links, duplicates, canonical, structured data and more, as a panel in the page editor with counts per
+  severity (no score), how to fix each finding, and a search result preview that updates while you type.
 - **Sitemap bridge**: with [wilr/silverstripe-googlesitemaps](https://github.com/wilr/silverstripe-googlesitemaps)
   installed, noindex pages are left out of `sitemap.xml`.
 
-Planned for later versions: page checks on the rendered page (Elemental blocks included), a site-wide report,
-and optional AI suggestions.
+Planned for later versions: a site-wide report and optional AI suggestions.
 
 ## Requirements
 
 - PHP 8.3+
 - Silverstripe CMS 6 (`silverstripe/framework` ^6, `silverstripe/cms` ^6)
+- [restruct/silverstripe-page-render](https://github.com/restruct/silverstripe-page-render) (installed with it):
+  renders a page in-process for the checks
 
 ## Installation
 
@@ -424,6 +428,104 @@ Restruct\Silverstripe\SEO\Schema\SchemaTypeRegistry:
     Store:
       parent: LocalBusiness
 ```
+
+## SEO checks
+
+The checks run on the **draft as the site renders it**: the page is rendered in-process through its own
+controller and templates (no HTTP request, so drafts, basic auth and test environments all work), as the CMS
+user who asks, by [restruct/silverstripe-page-render](https://github.com/restruct/silverstripe-page-render). The
+render is parsed once and shared by all checks; content checks read the content area (`<main>`, else `<body>`,
+minus what `ContentNarrower.ignore_selectors` and `data-content-ignore` mark), head checks read the full head.
+
+In the page editor, under **Search engines and sharing**:
+
+- **SEO checks**: "1 problem, 2 warnings, 3 tips", then the failing checks per group (indexing, title,
+  description, content, images, links, structured data, social, URL), each with its priority, the message,
+  details (the image sources or links concerned) and how to fix it, with a link to the check's spec. There is no
+  score: severity says how bad it is (problem / warning / tip), priority how much it matters (high / medium / low).
+- **Ignore for this page**: an editor can ignore a check where the page is fine as it is; it is stored with who
+  and when, listed as ignored and not counted.
+- **Search result preview** below the meta description: title, URL breadcrumb and description, with the title's
+  approximate width and the description's length, updated on every keystroke. The numbers are the checks' own
+  thresholds, passed from PHP config, so the counter and the checks agree.
+
+A page that asks not to be indexed gets only the "published but noindex: intentional?" check. Redirector, virtual
+and error pages are not checked (`PageEligibility.excluded_classes` of the render library).
+
+### When the checks run
+
+Results are stored per page (`SeoCheckResult`: page, stage, checked at, the results as JSON, counts per
+severity). **Nothing is rendered while a page is saved**: a save marks the stored result stale, and the panel's
+script then asks `admin/seo-checks/recheck` for a fresh check in a request of its own, once the form has
+reloaded; it also re-checks after every save or publish (a save that only changed blocks does not write the
+page) and on the **Re-check** button. Without JavaScript the panel still shows the stored results, marked as out
+of date when they are.
+
+The endpoint is POST only, needs the CMS's CSRF token and CMS access, checks `canEdit()` on the page (the ID is
+the edit form's own) and answers with the results and the panel's markup, never with the rendered page.
+
+### The catalogue
+
+| Check | Finds | Severity / priority |
+|---|---|---|
+| `noindex-published` | a published page set to noindex | problem / high |
+| `title-missing` | no `<title>`, or an empty one | problem / high |
+| `title-boilerplate` | the title is the site name, has it twice, or is a placeholder ("New Page") | warning / high |
+| `title-duplicate` | another indexable page with the same title | warning / high |
+| `title-width` | a title wider than about 600 px (estimated per character) | tip / medium |
+| `description-missing` | no description typed and a weak fallback (suggests one from the rendered page) | warning / medium |
+| `description-duplicate` | another indexable page with the same typed description | warning / medium |
+| `description-length` | a description under 70 or over 160 characters | tip / low |
+| `h1-missing` | no H1 in the rendered page | warning / medium |
+| `heading-structure` | more than one H1, or skipped heading levels in the content | tip / low |
+| `image-alt-missing` | images without alt text (decorative images marked as such pass) | warning / high |
+| `image-alt-quality` | alt text that is a file name, "image of...", too short or long, duplicated, or stuffed | tip / medium |
+| `broken-links` | links and images to missing or unpublished pages and files (database only, no HTTP) | problem / high |
+| `link-text` | links without text, or "click here" / "lees meer" | tip / medium |
+| `link-redirects` | links to redirector pages, http:// links on an https site | tip / low |
+| `orphan-page` | not in the menus and no inbound links from other pages or blocks | warning / medium |
+| `canonical` | a canonical pointing elsewhere, invalid, or given twice | warning / high |
+| `placeholder-text` | lorem ipsum, TODO, xxx in the content, title or description | problem / high |
+| `thin-content` | very little text (information only, no word-count target) | tip / low |
+| `structured-data` | invalid JSON-LD, or nodes missing required properties | problem / medium |
+| `og-image` | no sharing image and no site default | tip / low |
+| `url-segment` | underscores, a long segment, many small words | tip / low |
+
+Each check has a spec in [docs/checks](docs/checks) (what, why, thresholds, source, last reviewed), and
+[docs/dropped-checks.md](docs/dropped-checks.md) lists what is left out on purpose (focus keyword, keyword
+density, word-count targets, readability scores, ...) and why.
+
+### Configuration
+
+```yaml
+# Switch a check off, or add your own (a class implementing Check, usually extending AbstractCheck)
+Restruct\Silverstripe\SEO\Checks\CheckRunner:
+  checks:
+    thin-content:
+      enabled: false
+    my-check:
+      class: App\Seo\MyCheck
+
+# Thresholds, severity and priority are config of each check class
+Restruct\Silverstripe\SEO\Checks\Rules\DescriptionLengthCheck:
+  min_length: 80
+  max_length: 155
+Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck:
+  non_descriptive_texts:
+    de: ['hier klicken', 'mehr']
+Restruct\Silverstripe\SEO\Checks\Rules\OrphanPageCheck:
+  severity: tip
+```
+
+A check gets a `PageAnalysis`: the draft record, the `RenderResult`, `content()` (the narrowed DOM, with
+`query()` for XPath), `head()`, `title()`, `description()`, `links()` (resolves an internal URL to a page or file
+from the database) and `site()` (duplicate lookups, inbound links, menu placement). Set `needs_render: true` on a
+check that reads the render; it is then skipped, not failed, when the page does not render.
+
+The inbound-link graph comes from core's link tracking (`SiteTreeLink`, which Elemental blocks feed as well) and
+is cached site-wide (`Psr\SimpleCache\CacheInterface.SeoLinkGraph`), cleared when a page is written, published,
+unpublished or archived. Links printed by templates (a footer) are not in it; ignore the orphan check for pages
+that are linked that way.
 
 ## Extension hooks
 
