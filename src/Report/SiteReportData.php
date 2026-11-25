@@ -100,7 +100,7 @@ class SiteReportData
     /**
      * The site status, over the pages the viewer may view, unfiltered: indexable pages (eligible, not noindex),
      * how many of them were checked without problems, how many are unchecked or out of date, and the checks
-     * failing on most indexable pages.
+     * failing on most indexable pages the viewer may edit.
      *
      * @return array{indexable:int, withoutProblems:int, unchecked:int, stale:int,
      *               topChecks:array<int, array{id:string, title:string, count:int}>}
@@ -124,6 +124,10 @@ class SiteReportData
             }
             if ($row['Problems'] === 0) {
                 $summary['withoutProblems']++;
+            }
+            # Which checks fail is a detail: only pages the viewer may edit count towards the top failing checks
+            if (!$page['details']) {
+                continue;
             }
             foreach ($page['failing'] as $id) {
                 $failing[$id] = ($failing[$id] ?? 0) + 1;

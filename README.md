@@ -568,7 +568,7 @@ stored results; the report itself renders nothing.
   date, out of date, not checked), whether it is indexable, and which checks fail.
 - **Summary** at the top: "Pages without problems: N of M indexable pages" (a noindex page is not indexable; a
   page not checked yet counts towards M, not N), how many pages are not checked or out of date, and the checks
-  that fail on most pages. There is no score.
+  that fail on most pages the reader may edit. There is no score.
 - **Filters**: severity (with problems / warnings / tips, or checked without problems), a failing check, page
   type, status. The list sorts on every column.
 - **CSV export** of the filtered list (every page, not one page of the list), with the edit link. Every cell

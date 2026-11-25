@@ -30,7 +30,7 @@ All notable changes to this module are documented here. The format follows
 - The site report (**Reports > SEO status**, `SeoSiteReport`): per page the counts per severity, last checked,
   status (up to date, out of date, not checked), indexable and failing checks; filters on severity, failing
   check, page type and status; sorting; a summary ("pages without problems: N of M indexable pages", unchecked
-  and out-of-date counts, the checks failing on most pages); no score. Needs the new `VIEW_SEO_REPORT`
+  and out-of-date counts, the checks failing on most pages the reader may edit); no score. Needs the new `VIEW_SEO_REPORT`
   permission plus Reports access; lists only pages the reader may view, details only for pages they may edit.
 - CSV export of the report with every formula-like cell (`= + - @`, tab, carriage return) prefixed with `'`.
 - `SeoSiteCheckJob` (with symbiote/silverstripe-queuedjobs, now a suggest): checks every eligible page in
