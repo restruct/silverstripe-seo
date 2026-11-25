@@ -11,6 +11,7 @@ use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\Model\List\SS_List;
 use SilverStripe\Model\ModelData;
+use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBDate;
@@ -125,6 +126,68 @@ class SchemaMapper
         } finally {
             $this->depth--;
         }
+    }
+
+    /**
+     * A list of records about to be mapped: limited, and with the relations their map reads eager-loaded, so
+     * fifty events with their venues cost a handful of queries rather than one or two per event.
+     *
+     * @param int $limit 0 for no limit
+     */
+    public function prepareList(DataList $list, int $limit = 0): DataList
+    {
+        if ($limit > 0) {
+            $list = $list->limit($limit);
+        }
+        $class = $list->dataClass();
+        $singleton = DataObject::singleton($class);
+        if (!$singleton->hasExtension(SchemaSource::class) || $singleton->hasMethod('provideSchemaData')) {
+            # A method decides for itself what it reads
+            return $list;
+        }
+        $relations = [];
+        foreach ((array) $singleton->config()->get('schema_map') as $spec) {
+            foreach ($this->pathsIn($spec) as $path) {
+                $first = explode('.', $path)[0];
+                if ($first !== '' && $singleton->getRelationType($first) !== null) {
+                    $relations[$first] = true;
+                }
+            }
+        }
+        if (!$relations) {
+            return $list;
+        }
+        try {
+            return $list->eagerLoad(array_keys($relations));
+        } catch (Throwable) {
+            # A relation eager loading does not support (a polymorphic has_one, say): load as usual
+            return $list;
+        }
+    }
+
+    /**
+     * The paths a map value reads first: the string itself, a nested map's `from`, the date and time fields.
+     *
+     * @return string[]
+     */
+    protected function pathsIn(mixed $spec): array
+    {
+        if (is_string($spec)) {
+            return [$spec];
+        }
+        if (!is_array($spec)) {
+            return [];
+        }
+        if (array_is_list($spec)) {
+            return array_merge(...array_map(fn ($entry) => $this->pathsIn($entry), $spec ?: [[]]));
+        }
+        $paths = [];
+        foreach (['from', 'date', 'time', 'html'] as $key) {
+            if (isset($spec[$key]) && is_string($spec[$key])) {
+                $paths[] = $spec[$key];
+            }
+        }
+        return $paths;
     }
 
     /**

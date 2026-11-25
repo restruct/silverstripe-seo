@@ -267,6 +267,12 @@ class SeoSiteTreeExtension extends Extension
      */
     private static array $schema_includes = [];
 
+    /**
+     * At most this many included records per page view, over all of `schema_includes`; 0 for no limit. Each is
+     * mapped on every page view, as nothing is cached.
+     */
+    private static int $schema_includes_limit = 50;
+
     # --- CMS -----------------------------------------------------------------------------------------------------
 
     protected function updateCMSFields(FieldList $fields): void

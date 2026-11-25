@@ -11,6 +11,7 @@ use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\i18n\i18n;
 use SilverStripe\Model\List\SS_List;
+use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use Throwable;
 
@@ -23,7 +24,8 @@ use Throwable;
  *    record at the end; left out when the trail has fewer than two entries (the home page itself);
  * 4. the content source's own nodes: the record the page shows (its SEO subject) or else the page itself; the
  *    first of them is the WebPage's `mainEntity`;
- * 5. the records the content source lists in `schema_includes`, as nodes of their own;
+ * 5. the records the content source lists in `schema_includes`, as nodes of their own, at most
+ *    `schema_includes_limit` of them;
  * 6. on the page itself (not on a shown record), an ItemList (`#itemlist`) of the relation or method named in
  *    `schema_item_list`; it is the main entity when nothing else is;
  * 7. the page's `updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)` hook.
@@ -126,9 +128,20 @@ class PageSchema
             $graph->add($breadcrumb);
         }
         $graph->addAll($mainNodes);
+        # Every included record is mapped on every page view (nothing is cached), so their number is capped
+        $limit = (int) $source->config()->get('schema_includes_limit');
+        $included = 0;
         foreach ((array) $source->config()->get('schema_includes') as $name) {
-            foreach ($this->records($mapper->resolvePath($source, (string) $name)) as $record) {
+            $value = $mapper->resolvePath($source, (string) $name);
+            if ($value instanceof DataList) {
+                $value = $mapper->prepareList($value, $limit > 0 ? $limit - $included : 0);
+            }
+            foreach ($this->records($value) as $record) {
+                if ($limit > 0 && $included >= $limit) {
+                    break 2;
+                }
                 $graph->addAll($mapper->nodesFor($record));
+                $included++;
             }
         }
         if ($itemList) {

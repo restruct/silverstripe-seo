@@ -55,6 +55,12 @@ class SchemaSource extends Extension
     private static array $schema_includes = [];
 
     /**
+     * At most this many included records per page view, over all of `schema_includes`; 0 for no limit. Each is
+     * mapped on every page view, as nothing is cached.
+     */
+    private static int $schema_includes_limit = 50;
+
+    /**
      * Methods a `schema_map` may call besides database fields, relations, `get<Name>()` getters and methods in
      * `casting`. Any other name in a map is not called and shows up as a warning. A list, so a project's YAML
      * adds to it.
