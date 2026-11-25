@@ -7,7 +7,9 @@ use Restruct\Silverstripe\SEO\Model\SeoCheckIgnore;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestBlock;
 use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
+use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckSpyController;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Security\SecurityToken;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -142,6 +144,24 @@ class SeoCheckControllerTest extends FunctionalTest
         $response = $this->postAjax('recheck', ['ID' => $page->ID]);
         $this->assertSame(403, $response->getStatusCode());
         $this->assertSame(0, SeoCheckResult::get()->filter('PageID', $page->ID)->count());
+    }
+
+    public function testTheSessionLockIsReleasedOnlyAfterAuthorisation(): void
+    {
+        # The render can take seconds; holding the session lock that long blocks the editor's other CMS requests
+        Injector::inst()->registerService(SeoCheckSpyController::create(), SeoCheckController::class);
+        SeoCheckSpyController::$calls = [];
+        $page = $this->page();
+
+        $this->logInWithPermission('CMS_ACCESS_CMSMain');
+        $page->CanEditType = 'OnlyTheseUsers';
+        $page->write();
+        $this->assertSame(403, $this->postAjax('recheck', ['ID' => $page->ID])->getStatusCode());
+        $this->assertSame([], SeoCheckSpyController::$calls, 'not for a refused request');
+
+        $this->logInWithPermission('ADMIN');
+        $this->assertSame(200, $this->postAjax('recheck', ['ID' => $page->ID])->getStatusCode());
+        $this->assertSame(['release'], SeoCheckSpyController::$calls);
     }
 
     public function testAnUnknownPageIs404(): void
