@@ -11,6 +11,7 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\ORM\Queries\SQLSelect;
 use SilverStripe\Security\Member;
 use SilverStripe\Versioned\Versioned;
 use Throwable;
@@ -163,7 +164,18 @@ class CheckRunner
      */
     public function checkPage(SiteTree $page, ?Member $member): SeoCheckResult
     {
-        return SeoCheckResult::store($page, Versioned::DRAFT, $this->collect($page, $member));
+        $before = $this->draftLastEdited($page);
+        $entries = $this->collect($page, $member);
+        # Saved while the check ran (another tab, a block): the result describes an older draft, so store it as
+        # out of date and let the panel ask again
+        $changed = $this->draftLastEdited($page) !== $before;
+        return SeoCheckResult::store($page, Versioned::DRAFT, $entries, $changed);
+    }
+
+    protected function draftLastEdited(SiteTree $page): string
+    {
+        # Straight from the draft table: the page object in memory does not see a save made by another request
+        return (string) SQLSelect::create('"LastEdited"', '"SiteTree"', ['"ID"' => (int) $page->ID])->execute()->value();
     }
 
     /**

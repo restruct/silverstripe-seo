@@ -5,6 +5,7 @@ namespace Restruct\Silverstripe\SEO\Model;
 use Restruct\Silverstripe\SEO\Checks\Check;
 use Restruct\Silverstripe\SEO\Checks\CheckResult;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Permission;
@@ -76,15 +77,32 @@ class SeoCheckResult extends DataObject
      *
      * @param array<string, array> $entries
      */
-    public static function store(SiteTree $page, string $stage, array $entries): static
+    public static function store(SiteTree $page, string $stage, array $entries, bool $stale = false): static
     {
         $result = static::forPage($page, $stage) ?? static::create(['PageID' => (int) $page->ID, 'Stage' => $stage]);
+        static::fill($result, $entries, $stale);
+        try {
+            $result->write();
+        } catch (ValidationException $e) {
+            # Another request (a second re-check) inserted the row between our lookup and our insert: the unique
+            # index refuses ours, so update theirs. Anything else is not ours to swallow.
+            $existing = $result->isInDB() ? null : static::forPage($page, $stage);
+            if (!$existing) {
+                throw $e;
+            }
+            $result = $existing;
+            static::fill($result, $entries, $stale);
+            $result->write();
+        }
+        return $result;
+    }
+
+    protected static function fill(SeoCheckResult $result, array $entries, bool $stale): void
+    {
         $result->CheckedAt = DBDatetime::now()->getValue();
-        $result->Stale = false;
+        $result->Stale = $stale;
         $result->Format = static::FORMAT;
         $result->setEntries($entries);
-        $result->write();
-        return $result;
     }
 
     /**
