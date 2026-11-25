@@ -34,3 +34,4 @@ en:
     MethodNotAllowed: 'The structured-data map of {class} names {property}, which is not a field, relation, getter or allowed method: it is not read. Add it to schema_allowed_methods if it is safe to call.'
     MissingRecommended: '{type} lacks {property}, which is recommended.'
     MissingRequired: '{type} lacks {property}, which is required: it is not output.'
+    TypeNotRegistered: '{type} is not in the type registry, so its required properties are not checked. Register it (with a parent type) in SchemaTypeRegistry.types.'

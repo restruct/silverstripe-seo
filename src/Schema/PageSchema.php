@@ -78,7 +78,8 @@ class PageSchema
      * What the type registry and the mapper have to say about the nodes of this page view, one entry per
      * finding: `type`, `id`, `property`, `severity` (`required`, `recommended` or `notice`), `emitted` (false
      * when the node was left out for it), a readable `message`, and a `code`: `missing-required`,
-     * `missing-recommended`, `method-not-allowed` (a map names something it may not call).
+     * `missing-recommended`, `method-not-allowed` (a map names something it may not call), `type-not-registered`
+     * (the node is output, but nothing about it could be checked).
      *
      * @return array<int,array{type:string,id:?string,property:string,severity:string,emitted:bool,message:string,code:string}>
      */
@@ -236,6 +237,24 @@ class PageSchema
         foreach ($graph->nodes() as $node) {
             foreach ($registry->missingRecommended($node, $resolve) as $property) {
                 $this->warn($node, $property, 'recommended', true);
+            }
+            # Nothing can be checked for a type the registry does not know: say so, the node is output anyway
+            foreach ($registry->typesOf($node) as $type) {
+                if (!$registry->isKnown($type)) {
+                    $this->warnings[] = [
+                        'type' => $type,
+                        'id' => isset($node['@id']) && is_string($node['@id']) ? $node['@id'] : null,
+                        'property' => '@type',
+                        'severity' => 'notice',
+                        'emitted' => true,
+                        'message' => _t(
+                            __CLASS__ . '.TypeNotRegistered',
+                            '{type} is not in the type registry, so its required properties are not checked. Register it (with a parent type) in SchemaTypeRegistry.types.',
+                            ['type' => $type]
+                        ),
+                        'code' => 'type-not-registered',
+                    ];
+                }
             }
         }
     }
