@@ -186,14 +186,16 @@ class SeoSubjectTest extends FunctionalTest
 
     public function testVirtualPageCanonicalPointsAtItsSource(): void
     {
-        $virtual = VirtualPage::create(['Title' => 'Courses copy', 'URLSegment' => 'courses-copy']);
+        $virtual = VirtualPage::create(['Title' => 'Courses copy']);
         $virtual->CopyContentFromID = $this->holder->ID;
         $virtual->write();
         $virtual->publishRecursive();
 
         $this->assertSame(Director::absoluteURL('/courses'), $virtual->SeoCanonicalURL());
 
-        $response = $this->get('courses-copy');
+        # VirtualPage copies URLSegment from its source on first write (VirtualPage.initially_copied_fields), so
+        # the requested URL comes from the record, not from the segment given above
+        $response = $this->get($virtual->Link());
         $this->assertSame('<' . Director::absoluteURL('/courses') . '>; rel="canonical"', $response->getHeader('Link'));
     }
 }
