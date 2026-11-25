@@ -31,5 +31,6 @@ en:
     SeoTitleSuffixHelp: 'Added after every page title in search results, e.g. "About us | Your Site". Leave empty to use the site title.'
     TabTitle: 'SEO'
   Restruct\Silverstripe\SEO\Schema\PageSchema:
+    MethodNotAllowed: 'The structured-data map of {class} names {property}, which is not a field, relation, getter or allowed method: it is not read. Add it to schema_allowed_methods if it is safe to call.'
     MissingRecommended: '{type} lacks {property}, which is recommended.'
     MissingRequired: '{type} lacks {property}, which is required: it is not output.'

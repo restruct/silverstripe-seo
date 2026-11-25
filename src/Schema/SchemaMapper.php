@@ -31,7 +31,8 @@ use Throwable;
  *
  * A `schema_map` value is one of:
  * - `FieldName`, `MethodName` or a dotted path through relations (`Venue.City`); a has_many or many_many on the
- *   way gives a list;
+ *   way gives a list. Only database fields, relations, getters, methods in `casting` and methods listed in
+ *   `schema_allowed_methods` are read (see isAllowed());
  * - `{ literal: value }`: the value as written;
  * - `{ ref: organization }`: a reference `{"@id": ".../#organization"}` to a site node (`website`, `organization`),
  *   or to a node of this page view (`webpage`, `breadcrumb`, `itemlist`); a full URL is used as it is;
@@ -350,6 +351,59 @@ class SchemaMapper
     }
 
     /**
+     * Whether a map may read this name on the record: a database field (ID, Created and LastEdited included), a
+     * relation, a `get<Name>()` getter, a method declared in `casting` (so it is meant to be read as a value), or
+     * a method listed in the class's `schema_allowed_methods`. Anything else is never called: a map is
+     * configuration, and a typo or a careless map (`delete`, `write`, `publishRecursive`) must not run a method
+     * with side effects on every page view.
+     */
+    protected function isAllowed(ModelData $record, string $name): bool
+    {
+        if ($record instanceof DataObject) {
+            if ($record->getSchema()->fieldSpec(get_class($record), $name) || $record->getRelationType($name) !== null) {
+                return true;
+            }
+        } elseif ($record->hasField($name)) {
+            # ArrayData and similar: its keys are its data
+            return true;
+        }
+        # getField() is no getter of a field called "Field" (ModelData::__get makes the same exception)
+        if (strtolower($name) !== 'field' && $record->hasMethod('get' . $name)) {
+            return true;
+        }
+        if (array_key_exists($name, (array) $record->config()->get('casting'))) {
+            return true;
+        }
+        return in_array($name, (array) $record->config()->get('schema_allowed_methods'), true);
+    }
+
+    /**
+     * Problems found while mapping that are not about a node's properties: a name the map may not call.
+     *
+     * @return array<int,array{code:string,class:string,property:string}>
+     */
+    public function getNotices(): array
+    {
+        return array_values($this->notices);
+    }
+
+    /**
+     * @var array<string,array{code:string,class:string,property:string}>
+     */
+    protected array $notices = [];
+
+    protected function notice(ModelData $record, string $property, string $code): void
+    {
+        $class = get_class($record);
+        # Once per class and name, however many records are mapped
+        $this->notices[$code . ' ' . $class . ' ' . $property] = [
+            'code' => $code,
+            'class' => $class,
+            'property' => $property,
+        ];
+    }
+
+    /**
      * One step of a path, read the way a template reads it: through obj(), so a method wins, then a `get<Name>()`
      * getter (an overriding getTitle() included), then the field; and the result is cast by the record's
      * `casting` or the column type, so a method cast as HTMLText is recognised as HTML and a Date column as a
@@ -357,6 +411,10 @@ class SchemaMapper
      */
     protected function readOne(ModelData $record, string $name): mixed
     {
+        if (!$this->isAllowed($record, $name)) {
+            $this->notice($record, $name, 'method-not-allowed');
+            return null;
+        }
         try {
             return $record->obj($name);
         } catch (Throwable) {

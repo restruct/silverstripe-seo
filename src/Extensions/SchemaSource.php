@@ -55,6 +55,13 @@ class SchemaSource extends Extension
     private static array $schema_includes = [];
 
     /**
+     * Methods a `schema_map` may call besides database fields, relations, `get<Name>()` getters and methods in
+     * `casting`. Any other name in a map is not called and shows up as a warning. A list, so a project's YAML
+     * adds to it.
+     */
+    private static array $schema_allowed_methods = [];
+
+    /**
      * The record's nodes, for use outside a page render (a report, a test). The context says which page they
      * are described on.
      *

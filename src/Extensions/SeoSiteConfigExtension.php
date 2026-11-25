@@ -49,6 +49,14 @@ class SeoSiteConfigExtension extends Extension
         'SeoLogo',
     ];
 
+    /**
+     * The methods below, for the Organization node's schema_map (a map calls only methods it is allowed to).
+     */
+    private static array $schema_allowed_methods = [
+        'SeoSchemaSiteURL',
+        'SeoSchemaSameAs',
+    ];
+
     protected function updateCMSFields(FieldList $fields): void
     {
         $config = $this->getOwner();

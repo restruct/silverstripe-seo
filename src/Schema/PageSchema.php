@@ -6,6 +6,7 @@ use Psr\Log\LoggerInterface;
 use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
 use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\i18n\i18n;
@@ -55,11 +56,12 @@ class PageSchema
     }
 
     /**
-     * What the type registry has to say about the nodes of this page view, one entry per missing property:
-     * `type`, `id`, `property`, `severity` (`required` or `recommended`), `emitted` (false when the node was left
-     * out for it) and a readable `message`.
+     * What the type registry and the mapper have to say about the nodes of this page view, one entry per
+     * finding: `type`, `id`, `property`, `severity` (`required`, `recommended` or `notice`), `emitted` (false
+     * when the node was left out for it), a readable `message`, and a `code`: `missing-required`,
+     * `missing-recommended`, `method-not-allowed` (a map names something it may not call).
      *
-     * @return array<int,array{type:string,id:?string,property:string,severity:string,emitted:bool,message:string}>
+     * @return array<int,array{type:string,id:?string,property:string,severity:string,emitted:bool,message:string,code:string}>
      */
     public function getWarnings(): array
     {
@@ -137,6 +139,21 @@ class PageSchema
         $page->extend('updateSeoSchemaGraph', $graph, $context);
 
         $this->guard($graph, $context);
+        foreach ($mapper->getNotices() as $notice) {
+            $this->warnings[] = [
+                'type' => ClassInfo::shortName($notice['class']),
+                'id' => null,
+                'property' => $notice['property'],
+                'severity' => 'notice',
+                'emitted' => true,
+                'message' => _t(
+                    __CLASS__ . '.MethodNotAllowed',
+                    'The structured-data map of {class} names {property}, which is not a field, relation, getter or allowed method: it is not read. Add it to schema_allowed_methods if it is safe to call.',
+                    ['class' => ClassInfo::shortName($notice['class']), 'property' => $notice['property']]
+                ),
+                'code' => $notice['code'],
+            ];
+        }
         $this->graph = $graph;
     }
 
@@ -196,6 +213,7 @@ class PageSchema
             'severity' => $severity,
             'emitted' => $emitted,
             'message' => $message,
+            'code' => 'missing-' . $severity,
         ];
     }
 

@@ -31,5 +31,6 @@ nl:
     SeoTitleSuffixHelp: 'Komt na elke paginatitel in zoekresultaten, bijvoorbeeld "Over ons | Uw site". Leeg laten om de sitetitel te gebruiken.'
     TabTitle: 'SEO'
   Restruct\Silverstripe\SEO\Schema\PageSchema:
+    MethodNotAllowed: 'De map voor gestructureerde gegevens van {class} noemt {property}, dat geen veld, relatie, getter of toegestane methode is: het wordt niet gelezen. Voeg het toe aan schema_allowed_methods als het veilig is om aan te roepen.'
     MissingRecommended: '{type} mist {property}, dat wordt aanbevolen.'
     MissingRequired: '{type} mist {property}, dat verplicht is: het wordt niet uitgevoerd.'
