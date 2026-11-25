@@ -6,6 +6,26 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Structured data (JSON-LD): one `<script type="application/ld+json">` per page with a single `@graph`, nodes
+  deduplicated by `@id`, JSON escaped so no value can close the script element. WebSite, Organization (mapped
+  from SiteConfig), WebPage (type per page class via `schema_webpage_type`), BreadcrumbList, the page's own node,
+  the shown record's node as the WebPage's `mainEntity`, records from `schema_includes`, and an ItemList from
+  `schema_item_list`.
+- `SchemaSource` extension: map any page type or DataObject in YAML (`schema_type`, `schema_map`) with fields,
+  methods, relation paths, literals, date + time pairs, nested maps, has_many and many_many lists and
+  references to site nodes. Or define `provideSchemaData(SchemaContext $ctx)` on the record; the
+  `updateSchemaData` and `updateSeoSchemaGraph` hooks tweak nodes and the graph.
+- Stable `@id`s: `<base>/#website`, `<base>/#organization`, `<page URL>#webpage`, `#breadcrumb`, `#itemlist`,
+  and `<record link>#<type>-<ID>` for records.
+- `SchemaTypeRegistry` with required and recommended properties per type after Google's documentation; nodes
+  missing a required property are left out, and `getSchemaWarnings()` lists what is missing.
+- `SchemaDates`: Date and Time fields combined into ISO 8601 with the offset of `seo_schema_timezone`.
+- SiteConfig: a logo and a list of profiles on other sites, for the Organization node.
+- A read-only preview of the page's structured data, with warnings, in the page editor.
+- `seo_output_structured_data` (default true) to switch the output off.
+
 ## [0.1.0] - 2026-11-25
 
 ### Added

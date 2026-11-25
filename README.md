@@ -13,11 +13,14 @@ Search and sharing metadata for Silverstripe CMS 6 pages, with sensible fallback
   `twitter:card`. Each falls back sensibly (sharing description to meta description, page image to a hook to a
   site-wide default image).
 - **Records shown on a page** (`/courses/item/12`) can supply all of the above for themselves.
+- **Structured data** (JSON-LD): one `@graph` per page with WebSite, Organization, WebPage and BreadcrumbList,
+  plus nodes mapped in YAML from the records you already have (events, vacancies, courses). Nodes missing
+  required properties are left out, and the page editor shows a preview with warnings.
 - **Sitemap bridge**: with [wilr/silverstripe-googlesitemaps](https://github.com/wilr/silverstripe-googlesitemaps)
   installed, noindex pages are left out of `sitemap.xml`.
 
-Planned for later versions: structured data (JSON-LD) mapped from existing records, page checks on the rendered
-page (Elemental blocks included), a site-wide report, and optional AI suggestions.
+Planned for later versions: page checks on the rendered page (Elemental blocks included), a site-wide report,
+and optional AI suggestions.
 
 ## Requirements
 
@@ -114,6 +117,10 @@ SilverStripe\CMS\Model\SiteTree:
   # noindex, nofollow on every page (meta tag and header) when the environment is not live, for a test or
   # acceptance site that is reachable from outside; its sitemap is then empty as well
   seo_noindex_non_live: false
+  # Print the structured data (JSON-LD); see Structured data
+  seo_output_structured_data: true
+  # Timezone of the dates and times in structured data; empty uses PHP's default timezone
+  seo_schema_timezone: 'Europe/Amsterdam'
 
 # og:type per page class
 App\Model\ArticlePage:
@@ -124,6 +131,8 @@ Site-wide, in the CMS under Settings > SEO:
 
 - **Title suffix**: replaces the site title after every page title (e.g. a shorter brand name).
 - **Default sharing image**: used when a page has no sharing image of its own.
+- **Logo** and **Profiles on other sites** (one URL per line): the Organization node's `logo` and `sameAs` in
+  structured data.
 
 A sharing image is fetched anonymously by the sites a page is shared on, so only a public image is used: one
 that is published, in the public asset store and viewable by anyone. A draft-only image, or one restricted to
@@ -170,6 +179,219 @@ illustrates the listing): it goes to the `updateSeoImageFallback` hook and then 
 A **virtual page** is a duplicate by definition: its canonical points at the page it copies. It also copies the
 SEO fields of that page, so they are read-only on the virtual page, as core's own copied fields are.
 
+## Structured data
+
+Every page gets one `<script type="application/ld+json">` in the head (through `$MetaTags`), holding one
+`@graph`. Nodes point at each other by `@id`, so the organisation is described once and every event or job
+posting refers to it.
+
+What a page outputs:
+
+| Node | `@id` | When |
+|---|---|---|
+| WebSite | `https://example.com/#website` | always (needs a site title) |
+| Organization | `https://example.com/#organization` | when SiteConfig gives it a name |
+| WebPage (or a subtype) | `<page URL>#webpage` | always |
+| BreadcrumbList | `<page URL>#breadcrumb` | when the trail (home page in front) has two or more entries |
+| the page's own node | `<page URL>#<type>-<ID>` | when the page class is a source (below) |
+| the shown record's node | `<record URL>#<type>-<ID>` | when the controller declared a record with `setSeoSubject()` |
+| included records | their own ids | for the relations and methods in `schema_includes` |
+| ItemList | `<page URL>#itemlist` | for the relation or method in `schema_item_list`, on the page itself |
+
+The **`@id` rule**: site nodes are `<base URL>/#<name>`; nodes of a page view are `<URL of the view>#<name>`, the
+URL of the view being the page's link, or the shown record's canonical URL; records are
+`<record link>#<type in lowercase>-<ID>`, using the page's link when the record has no `Link()`. Links are taken
+without their query string, so ids are the same in draft and live and with tracking parameters.
+
+The WebPage's `mainEntity` is the shown record, else the page's own node, else the ItemList. On a page that
+shows a record, the record takes the page's place as the content source: its node, its `schema_includes`, and
+it ends the breadcrumb; the page's own node and ItemList are left out there.
+
+No structured data is printed on an error page or an error status. Switch it off entirely with
+`seo_output_structured_data: false`.
+
+### Records as sources
+
+Apply the `SchemaSource` extension to any page type or DataObject and map its fields in YAML. There is no
+table of its own: the record's fields are the data.
+
+An event with a date and time in separate fields and several venues:
+
+```yml
+App\Model\Event:
+  extensions:
+    - Restruct\Silverstripe\SEO\Extensions\SchemaSource
+  schema_type: EducationEvent
+  schema_map:
+    name: Title
+    description: Content                         # HTML becomes plain text
+    url: AbsoluteLink                            # a method
+    startDate: { date: StartDate, time: StartTime }
+    endDate: { date: EndDate, time: EndTime }
+    eventStatus: { literal: 'https://schema.org/EventScheduled' }
+    eventAttendanceMode: { literal: 'https://schema.org/OfflineEventAttendanceMode' }
+    image: Image                                 # a has_one Image becomes an ImageObject
+    organizer: { ref: organization }
+    location: Venues                             # many_many to a class that is a source itself
+    offers:                                      # a nested map over a has_many
+      '@type': Offer
+      from: Tickets
+      name: Title
+      price: Price
+      priceCurrency: { literal: EUR }
+
+App\Model\Venue:
+  extensions:
+    - Restruct\Silverstripe\SEO\Extensions\SchemaSource
+  schema_type: Place
+  schema_map:
+    name: Title
+    address:
+      '@type': PostalAddress
+      streetAddress: Street
+      postalCode: PostalCode
+      addressLocality: City
+      addressCountry: Country
+    geo:
+      '@type': GeoCoordinates
+      latitude: Latitude
+      longitude: Longitude
+
+# The holder page shows one event on /events/event/12 (with setSeoSubject()) and lists them all
+App\Page\EventHolder:
+  schema_webpage_type: CollectionPage
+  schema_item_list: Events
+```
+
+A vacancy page whose hiring organisation is the site's Organization node:
+
+```yml
+App\Page\VacancyPage:
+  extensions:
+    - Restruct\Silverstripe\SEO\Extensions\SchemaSource
+  schema_type: JobPosting
+  schema_map:
+    title: Title
+    description: Content
+    datePosted: DatePosted                       # a Date field: 2027-01-05
+    validThrough: ClosingDate                    # a Datetime field, with the site timezone's offset
+    employmentType: EmploymentType
+    hiringOrganization: { ref: organization }
+    jobLocation:
+      '@type': Place
+      address:
+        '@type': PostalAddress
+        addressLocality: City
+        addressCountry: { literal: NL }
+```
+
+The value of a map entry is one of:
+
+- `FieldName`, `MethodName`, or a dotted path through relations (`Venue.City`); a has_many or many_many on the
+  way gives a list;
+- `{ literal: value }`: the value as written;
+- `{ ref: organization }`: a reference to a site node (`organization`, `website`) or to a node of the page view
+  (`webpage`, `breadcrumb`, `itemlist`); a full URL is used as it is;
+- `{ date: DateField, time: TimeField }`: one ISO 8601 value with the offset of `seo_schema_timezone` on that
+  date (so daylight saving time is right); without a time, just the date;
+- a nested map, with its own `@type` and optionally `from: Relation` to read from another record (a list gives
+  a list of nodes);
+- a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
+
+Values are converted for JSON: Date fields as `2027-01-05`, Datetime fields with the offset, HTML as plain text,
+images as an ImageObject (only public, published images, as for the sharing image), a related record that is a
+source itself as its own node. Empty values are left out. In YAML a project can drop an inherited property by
+setting it to `null`.
+
+### Data from a method
+
+For data that has no fields, such as course dates from an external API cached on a page, define
+`provideSchemaData()` on the record. It returns one node or a list of nodes, and wins over a map:
+
+```php
+use Restruct\Silverstripe\SEO\Schema\SchemaContext;
+
+public function provideSchemaData(SchemaContext $ctx): ?array
+{
+    $nodes = [];
+    foreach ($this->getCachedCourses() as $course) {
+        $nodes[] = [
+            '@type' => 'Course',
+            '@id' => $ctx->pageId('course-' . $course['code']),
+            'name' => $course['name'],
+            'description' => $course['summary'],
+            'provider' => ['@id' => $ctx->siteId('organization')],
+            'hasCourseInstance' => array_map(fn (array $run) => [
+                '@type' => 'CourseInstance',
+                'courseMode' => $run['mode'],
+                'startDate' => $ctx->combineDateTime($run['date'], $run['time']),
+            ], $course['runs']),
+        ];
+    }
+    return $nodes ?: null;
+}
+```
+
+The returned arrays are converted like map values (fields, images and lists inside are fine) and empty values
+removed. `SchemaContext` also offers `recordId($record, $type)`, `formatDate($value)` and `imageObject($image)`.
+
+To change a node without touching the map, implement `updateSchemaData(array &$node, SchemaContext $ctx)` in an
+extension on the record class. To change the whole graph of a page, implement
+`updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)` on the page.
+
+### The organisation
+
+The Organization node is mapped from SiteConfig with the same `schema_map`. The module ships a map using only
+core fields and its own: `name` (the site title), `url` (the site root), `logo` and `sameAs` (Settings > SEO).
+Extend it with the fields your site has:
+
+```yml
+SilverStripe\SiteConfig\SiteConfig:
+  schema_type: EducationalOrganization
+  schema_map:
+    telephone: Phone
+    email: Email
+    sameAs: [SeoSchemaSameAs, FacebookURL, LinkedInURL]
+    address:
+      '@type': PostalAddress
+      streetAddress: Street
+      postalCode: PostalCode
+      addressLocality: City
+      addressCountry: { literal: NL }
+```
+
+Without a site title there is no Organization node, and the references to it are removed.
+
+### Required properties and warnings
+
+The `SchemaTypeRegistry` lists required and recommended properties per type, after Google's structured-data
+documentation: Organization, LocalBusiness, WebSite, WebPage, BreadcrumbList, ItemList, Event (and its subtypes
+such as EducationEvent), JobPosting, Course, CourseInstance, EducationalOccupationalProgram, Article (and
+NewsArticle, BlogPosting), Place, PostalAddress, GeoCoordinates and ImageObject. Rich result types Google retired
+(FAQ, HowTo, Course Info) are not offered.
+
+A node that lacks a required property is **not output**, and references to it are removed; that can make
+another node incomplete in turn (a JobPosting whose organisation was not output), which is then left out too.
+Each skipped node is logged at debug level. `$page->getSchemaWarnings()` lists every missing required and
+recommended property, and the page editor shows them, with the JSON the page would output, under
+**Search engines and sharing > Structured data**.
+
+A type the registry does not know requires nothing, so its nodes are always output. When you use a more
+specific type (a LocalBusiness subtype such as `Store`, say), register it with its `parent` so the parent's
+requirements apply. Projects add types or properties:
+
+```yml
+Restruct\Silverstripe\SEO\Schema\SchemaTypeRegistry:
+  types:
+    Occupation:
+      required: [name]
+      recommended: [occupationalCategory, estimatedSalary]
+    Event:
+      recommended: [typicalAgeRange]
+    Store:
+      parent: LocalBusiness
+```
+
 ## Extension hooks
 
 Called on the page (implement them in an `Extension` applied to `SiteTree` or a page class):
@@ -181,7 +403,10 @@ Called on the page (implement them in an `Extension` applied to `SiteTree` or a 
 | `updateSeoRobotsDirectives(array &$directives)` | add directives such as `max-image-preview:large` |
 | `updateSeoCanonicalURL(?string &$url, ?HTTPRequest $request)` | change the canonical |
 | `updateSeoImageFallback(?Image &$image)` | supply a sharing image when the page has none (a hero image, say) |
-| `updateSeoMetaComponents(array &$tags)` | change any head tag this module produced, just before output |
+| `updateSeoMetaComponents(array &$tags)` | change any head tag this module produced, just before output (structured data is `structured-data`) |
+| `updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)` | add or change structured-data nodes, before incomplete ones are left out |
+
+Called on a structured-data source record: `updateSchemaData(array &$node, SchemaContext $ctx)`, once per node.
 
 The module itself uses core's `updateMetaComponents` hook. On SS6 the old `MetaTags` / `MetaComponents` extension
 method names are no longer called, so a module still using them outputs nothing, silently.
