@@ -106,6 +106,18 @@ class SeoSiteTreeExtensionTest extends SapphireTest
         );
     }
 
+    public function testSiteNameInsideAWordIsNotTakenForTheSuffix(): void
+    {
+        # "Workshop" ends with the letters of "Shop", but does not end with the site name
+        $config = SiteConfig::current_site_config();
+        $config->Title = 'Shop';
+        $config->write();
+
+        $this->assertSame('Workshop | Shop', $this->page(['MetaTitle' => 'Workshop'])->SeoTitle());
+        # A title already ending in the site name after another separator is still left alone
+        $this->assertSame('Courses - Shop', $this->page(['MetaTitle' => 'Courses - Shop'])->SeoTitle());
+    }
+
     # --- Description -------------------------------------------------------------------------------------------
 
     public function testMetaDescriptionIsUsedAsIs(): void
