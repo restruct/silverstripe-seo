@@ -26,7 +26,13 @@ class SeoCheckSiteTask extends BuildTask
     protected string $title = 'Check the SEO of every page';
 
     protected static string $description = 'Run the SEO checks on every eligible page and store the results for '
-        . 'the site report (--only-stale, --limit=N)';
+        . 'the site report (--only-stale, --limit=N, --from-id=N)';
+
+    /**
+     * It renders every page in one run: far longer than a web request may take, and a page render must not be
+     * started by visiting a URL.
+     */
+    private static bool $can_run_in_browser = false;
 
     public function getOptions(): array
     {
