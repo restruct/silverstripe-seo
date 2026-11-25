@@ -12,12 +12,13 @@ use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCustomTestCheck;
 class CheckRegistryTest extends ChecksTestCase
 {
     /**
-     * The design's catalogue: checks 1-21 and 23 (22, the focus keyword, was dropped).
+     * The design's catalogue: checks 1-21 and 23 (22, the focus keyword, was dropped), with check 13's
+     * unpublished targets as a check of their own (13b).
      */
     private const CATALOGUE = [
         'noindex-published', 'title-missing', 'title-boilerplate', 'title-duplicate', 'title-width',
         'description-missing', 'description-duplicate', 'description-length', 'h1-missing', 'heading-structure',
-        'image-alt-missing', 'image-alt-quality', 'broken-links', 'link-text', 'link-redirects', 'orphan-page',
+        'image-alt-missing', 'image-alt-quality', 'broken-links', 'unpublished-links', 'link-text', 'link-redirects', 'orphan-page',
         'canonical', 'placeholder-text', 'thin-content', 'structured-data', 'og-image', 'url-segment',
     ];
 

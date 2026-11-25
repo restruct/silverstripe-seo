@@ -27,11 +27,17 @@ class ImageChecksTest extends ChecksTestCase
     public function testAltMissingFailsAndListsTheImages(): void
     {
         $page = $this->page($this->withImages('<img src="/assets/no-alt.jpg">'), [
-            ['Title' => 'Gallery', 'Content' => '<p><img src="/assets/empty-alt.jpg" alt=""></p>'],
+            ['Title' => 'Gallery', 'Content' => '<p><img src="/assets/also-no-alt.jpg"></p>'],
         ]);
         $entry = $this->assertCheckFails($page, 'image-alt-missing', 'no-alt.jpg');
-        # An empty alt without a decorative marker is reported too: editors leave it empty by accident
-        $this->assertStringContainsString('empty-alt.jpg', implode("\n", $entry['details']));
+        $this->assertStringContainsString('also-no-alt.jpg', implode("\n", $entry['details']), 'in a block too');
+    }
+
+    public function testABareEmptyAltCountsAsDecorative(): void
+    {
+        # HTML: alt="" marks an image as decorative, with or without a role; only a missing alt is reported
+        $page = $this->page($this->withImages('<img src="/assets/empty-alt.jpg" alt="">'));
+        $this->assertCheckPasses($page, 'image-alt-missing');
     }
 
     public function testAltQualityPassesForGoodAltText(): void

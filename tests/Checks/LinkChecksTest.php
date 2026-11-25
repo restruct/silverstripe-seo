@@ -66,11 +66,29 @@ class LinkChecksTest extends ChecksTestCase
         $this->assertSame('problem', $entry['severity']);
     }
 
-    public function testBrokenLinksReportsDraftOnlyTargets(): void
+    public function testDraftOnlyTargetsAreAWarningOfTheirOwnNotBroken(): void
     {
+        # A target that exists but is not published yet: not broken (it may go live together with this page),
+        # but worth a warning, since the link breaks for visitors if it does not
         $this->page(['URLSegment' => 'not-yet-live']);
-        $page = $this->page($this->withLinks('<a href="/not-yet-live">a draft page</a>'));
-        $this->assertCheckFails($page, 'broken-links', 'not-yet-live');
+        $file = File::create();
+        $file->setFromString('Draft', 'Uploads/draft-only.txt');
+        $file->write();
+        $page = $this->page($this->withLinks(
+            '<a href="/not-yet-live">a draft page</a> <a href="' . $file->getURL() . '">a draft file</a>'
+        ));
+
+        $this->assertCheckPasses($page, 'broken-links');
+        $entry = $this->assertCheckFails($page, 'unpublished-links', 'not-yet-live');
+        $this->assertStringContainsString('draft-only.txt', implode("\n", $entry['details']));
+        $this->assertSame('warning', $entry['severity']);
+    }
+
+    public function testUnpublishedLinksPassesForPublishedTargets(): void
+    {
+        $target = $this->page(['URLSegment' => 'live-target'], [], true);
+        $page = $this->page($this->withLinks('<a href="' . $target->Link() . '">a live page</a>'));
+        $this->assertCheckPasses($page, 'unpublished-links');
     }
 
     public function testBrokenLinksInABlockAreFound(): void

@@ -41,7 +41,7 @@ class IndexingChecksTest extends ChecksTestCase
         $this->assertContains('broken-links', $ids);
         $this->assertContains('noindex-published', $ids);
         $this->assertNotContains('focus-keyword', $ids, 'check 22 was dropped');
-        $this->assertCount(22, $ids, 'checks 1-21 and 23');
+        $this->assertCount(23, $ids, 'checks 1-21 and 23, with 13b (unpublished link targets)');
     }
 
     public function testTheSiteWideNonLiveNoindexDoesNotCountAsThePageAskingForIt(): void
