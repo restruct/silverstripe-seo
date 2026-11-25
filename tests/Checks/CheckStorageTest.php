@@ -23,8 +23,20 @@ class CheckStorageTest extends ChecksTestCase
     protected function tearDown(): void
     {
         SeoRaceTestExtension::$armed = false;
+        SeoEditDuringRenderTestCheck::$blockMode = false;
         DBDatetime::clear_mock_now();
         parent::tearDown();
+    }
+
+    public function testCheckedAtIsWhenTheCheckStarted(): void
+    {
+        # So anything saved while it ran (a block, which does not touch the page row) is newer than CheckedAt
+        DBDatetime::set_mock_now('2026-11-25 10:00:00');
+        $page = $this->page();
+        SeoEditDuringRenderTestCheck::$blockMode = true;
+        CheckRunner::config()->merge('checks', ['edit-during-render' => ['class' => SeoEditDuringRenderTestCheck::class]]);
+        $result = CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
+        $this->assertSame('2026-11-25 10:00:00', $result->CheckedAt);
     }
 
     public function testStorageKeepsTheStagesApart(): void
