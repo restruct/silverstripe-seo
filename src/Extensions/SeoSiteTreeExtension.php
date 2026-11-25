@@ -224,6 +224,13 @@ class SeoSiteTreeExtension extends Extension
      */
     private static string $seo_twitter_card = 'summary_large_image';
 
+    /**
+     * The timezone of the dates and times in structured data (a PHP timezone name such as `Europe/Amsterdam`).
+     * Date, Time and Datetime fields are stored without one, as local time of the site; the offset is added on
+     * output. Empty: PHP's default timezone, which is what Silverstripe reads the stored values with.
+     */
+    private static string $seo_schema_timezone = '';
+
     # --- CMS -----------------------------------------------------------------------------------------------------
 
     protected function updateCMSFields(FieldList $fields): void
@@ -783,7 +790,7 @@ class SeoSiteTreeExtension extends Extension
      * the sites it is shared on, anonymously, so an image in the protected store (a draft-only file, or one with
      * view restrictions) would answer them with an error.
      */
-    protected static function isUsableImage(mixed $image): bool
+    public static function isUsableImage(mixed $image): bool
     {
         if (!$image instanceof Image || !$image->exists() || !$image->getIsImage()) {
             return false;

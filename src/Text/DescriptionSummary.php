@@ -34,6 +34,42 @@ class DescriptionSummary
             return '';
         }
 
+        $text = '';
+        $value = static::prepare($html);
+        foreach ($value->query('//p') as $paragraph) {
+            $candidate = static::normalise($paragraph->textContent);
+            if ($candidate !== '') {
+                $text = $candidate;
+                break;
+            }
+        }
+        # No paragraph markup at all (a div, a list, plain text): fall back to all of the text. Read from the DOM
+        # as well (not strip_tags), so entities are decoded the same single time as in a paragraph
+        if ($text === '' && ($body = $value->getBody())) {
+            $text = static::normalise($body->textContent);
+        }
+
+        return static::truncate($text, $maxLength);
+    }
+
+    /**
+     * All of the text of a block of HTML, without a length limit: shortcodes removed, words separated at line
+     * breaks and block boundaries, entities decoded once. Used for HTML fields in structured data.
+     */
+    public static function plainText(string $html): string
+    {
+        if (trim($html) === '') {
+            return '';
+        }
+        $body = static::prepare($html)->getBody();
+        return $body ? static::normalise($body->textContent) : '';
+    }
+
+    /**
+     * The HTML parsed, with registered shortcodes removed and a space at every word boundary a browser would show.
+     */
+    protected static function prepare(string $html): HTMLValue
+    {
         # Shortcodes are not text: [image ...] would otherwise end up verbatim in the description. Only the
         # bracketed shortcode syntax is matched (a name directly after the bracket), and only names registered
         # with the active parser are removed, so ordinary text in brackets like "[1]" or "[sic]" is kept. The
@@ -53,22 +89,7 @@ class DescriptionSummary
             $html
         ) ?? $html;
 
-        $text = '';
-        $value = HTMLValue::create($html);
-        foreach ($value->query('//p') as $paragraph) {
-            $candidate = static::normalise($paragraph->textContent);
-            if ($candidate !== '') {
-                $text = $candidate;
-                break;
-            }
-        }
-        # No paragraph markup at all (a div, a list, plain text): fall back to all of the text. Read from the DOM
-        # as well (not strip_tags), so entities are decoded the same single time as in a paragraph
-        if ($text === '' && ($body = $value->getBody())) {
-            $text = static::normalise($body->textContent);
-        }
-
-        return static::truncate($text, $maxLength);
+        return HTMLValue::create($html);
     }
 
     /**
