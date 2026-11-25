@@ -48,6 +48,19 @@ class SchemaGraph
     }
 
     /**
+     * Puts the node in place of the one with the same `@id` (or adds it), instead of merging.
+     */
+    public function replace(array $node): static
+    {
+        $id = isset($node['@id']) && is_string($node['@id']) && $node['@id'] !== '' ? $node['@id'] : null;
+        if ($id === null) {
+            return $this->add($node);
+        }
+        $this->nodes[$id] = $node;
+        return $this;
+    }
+
+    /**
      * @param iterable<array> $nodes
      */
     public function addAll(iterable $nodes): static

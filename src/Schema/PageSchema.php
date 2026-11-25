@@ -22,17 +22,18 @@ use Throwable;
  * 2. the WebPage (`#webpage`), with the type set per page class in `schema_webpage_type`;
  * 3. a BreadcrumbList (`#breadcrumb`) from the page's breadcrumb trail, with the home page in front and a shown
  *    record at the end; left out when the trail has fewer than two entries (the home page itself);
- * 4. the content source's own nodes: the record the page shows (its SEO subject) or else the page itself; the
- *    first of them is the WebPage's `mainEntity`;
+ * 4. the content source's own nodes: the record the page shows (its SEO subject) or else the page itself;
  * 5. the records the content source lists in `schema_includes`, as nodes of their own, at most
  *    `schema_includes_limit` of them;
  * 6. on the page itself (not on a shown record), an ItemList (`#itemlist`) of the relation or method named in
- *    `schema_item_list`; it is the main entity when nothing else is;
+ *    `schema_item_list`;
  * 7. the page's `updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)` hook.
  *
  * Then the guard: a node lacking a required property of its type ({@see SchemaTypeRegistry}) is left out, and
  * references to it are removed, which can make another node incomplete in turn (a JobPosting whose
- * hiringOrganization was not output); this repeats until nothing changes. What was left out, and what is
+ * hiringOrganization was not output); this repeats until nothing changes. Only then is the WebPage's
+ * `mainEntity` chosen, from what is left: the first node of the content source, else the ItemList (unless the
+ * hook set one already). What was left out, and what is
  * recommended but missing, is available from getWarnings().
  */
 class PageSchema
@@ -109,19 +110,14 @@ class PageSchema
             $graph->addAll($mapper->nodesFor($siteConfig));
         }
 
-        # 4 is built before 2, because the WebPage points at the main entity
+        # 4, with the candidates for the main entity, in order of preference
         $source = $this->subject ?? $page;
         $mainNodes = $mapper->nodesFor($source);
-        $mainId = null;
-        foreach ($mainNodes as $node) {
-            if (isset($node['@id'])) {
-                $mainId = $node['@id'];
-                break;
-            }
-        }
-
         $itemList = $this->subject ? null : $this->itemList($context, $mapper);
-        $mainId ??= $itemList['@id'] ?? null;
+        $candidates = array_values(array_filter(array_map(
+            fn (array $node) => isset($node['@id']) && is_string($node['@id']) ? $node['@id'] : null,
+            array_merge($mainNodes, $itemList ? [$itemList] : [])
+        )));
         $breadcrumb = $this->breadcrumb($context);
 
         # 2. The page
@@ -135,7 +131,6 @@ class PageSchema
             'isPartOf' => ['@id' => $context->siteId('website')],
             'inLanguage' => $this->language(),
             'breadcrumb' => $breadcrumb ? ['@id' => $breadcrumb['@id']] : null,
-            'mainEntity' => $mainId ? ['@id' => $mainId] : null,
         ];
         $graph->add(array_filter($webPage, fn ($value) => !SchemaMapper::isEmpty($value)));
 
@@ -168,6 +163,7 @@ class PageSchema
         $page->extend('updateSeoSchemaGraph', $graph, $context);
 
         $this->guard($graph, $context);
+        $this->chooseMainEntity($graph, $context->pageId('webpage'), $candidates);
         foreach ($mapper->getNotices() as $notice) {
             $this->warnings[] = [
                 'type' => ClassInfo::shortName($notice['class']),
@@ -184,6 +180,27 @@ class PageSchema
             ];
         }
         $this->graph = $graph;
+    }
+
+    /**
+     * Points the WebPage at the first candidate the guard kept: a main node left out for missing data no longer
+     * hides the ItemList behind it.
+     *
+     * @param string[] $candidates
+     */
+    protected function chooseMainEntity(SchemaGraph $graph, string $webPageId, array $candidates): void
+    {
+        $webPage = $graph->get($webPageId);
+        if (!$webPage || isset($webPage['mainEntity'])) {
+            return;
+        }
+        foreach ($candidates as $id) {
+            if ($graph->has($id)) {
+                $webPage['mainEntity'] = ['@id' => $id];
+                $graph->replace($webPage);
+                return;
+            }
+        }
     }
 
     /**
