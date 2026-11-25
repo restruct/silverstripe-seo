@@ -68,12 +68,16 @@ class SeoContentControllerExtension extends Extension
             return;
         }
 
-        $this->setHeader($response, 'X-Robots-Tag', $page->SeoRobots());
+        # A redirect (a RedirectorPage included) has no content of its own: the target answers for itself, so
+        # neither header goes on it. setHeader() also removes a value this extension set during init.
+        $status = $response->getStatusCode();
+        $isRedirect = $status >= 300 && $status < 400;
+        $this->setHeader($response, 'X-Robots-Tag', $isRedirect ? '' : $page->SeoRobots());
 
         # Only on a normal answer: a redirect or an error page has no canonical of its own
         $canonical = $page->SeoCanonicalURL($request);
         $link = '';
-        if ($canonical && $response->getStatusCode() < 300) {
+        if ($canonical && $status < 300) {
             # A URL can contain neither < nor > unescaped, but an override is editor input: encode to be sure
             $link = '<' . str_replace(['<', '>'], ['%3C', '%3E'], $canonical) . '>; rel="canonical"';
         }
