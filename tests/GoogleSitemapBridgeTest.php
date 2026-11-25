@@ -23,10 +23,12 @@ class GoogleSitemapBridgeTest extends SapphireTest
 
     protected function setUp(): void
     {
+        # Parent first: SapphireTest's tearDown restores state that only its setUp saved, so skipping before
+        # parent::setUp() turns the skip into a TypeError in tearDown
+        parent::setUp();
         if (!class_exists(GoogleSitemap::class)) {
             $this->markTestSkipped('wilr/silverstripe-googlesitemaps is not installed, so there is no sitemap to bridge to');
         }
-        parent::setUp();
     }
 
     private function publishedPage(string $segment, bool $noIndex): SeoTestPage
