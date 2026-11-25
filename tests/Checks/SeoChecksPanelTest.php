@@ -85,6 +85,16 @@ class SeoChecksPanelTest extends ChecksTestCase
         CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
         $html = (string) $this->panel($page)->FieldHolder();
         $this->assertStringNotContainsString('<b>', $html);
+        # Absence alone would also pass if the detail were dropped: the escaped form must be there
+        $this->assertStringContainsString('/x.jpg?a=&lt;b&gt;', $html);
+
+        # A message parameter (the title, in a translated message) is escaped as well
+        $titled = $this->page(['MetaTitle' => 'Courses <i>new</i>', 'HideH1' => true]);
+        $this->page(['MetaTitle' => 'Courses <i>new</i>'], [], true);
+        CheckRunner::singleton()->checkPage($titled, Security::getCurrentUser());
+        $html = (string) $this->panel($titled)->FieldHolder();
+        $this->assertStringNotContainsString('<i>', $html);
+        $this->assertStringContainsString('Courses &lt;i&gt;new&lt;/i&gt;', $html);
     }
 
     public function testAnIgnoredCheckIsListedSeparately(): void
