@@ -47,9 +47,15 @@ class SchemaDates
     }
 
     /**
-     * One date or date-time value as ISO 8601: a Date stays a date (`2027-07-01`), a Datetime gets the site's
-     * offset (`2027-07-01T08:15:00+02:00`), a string or DateTimeInterface with an offset of its own keeps it.
-     * Null for an empty or unreadable value.
+     * One date or date-time value as ISO 8601: a Date stays a date (`2027-07-01`), a string or DateTimeInterface
+     * with an offset of its own keeps it. Null for an empty or unreadable value.
+     *
+     * The two kinds of value without an offset are read differently:
+     * - a DBDatetime (a Datetime column, LastEdited, ...) holds PHP's default timezone, because that is what
+     *   Silverstripe writes (DBDatetime::now(), DatetimeField); it is read in that zone and then expressed in the
+     *   site timezone, so the moment stays the same;
+     * - a plain string (from provideSchemaData, an API) is taken as local time of the site timezone, as a Date and
+     *   Time pair is in combine().
      */
     public static function format(mixed $value, ?string $timezone = null): ?string
     {
@@ -58,6 +64,7 @@ class SchemaDates
         }
         # DBDatetime extends DBDate, so it is checked first
         $dateOnly = $value instanceof DBDate && !$value instanceof DBDatetime;
+        $serverTime = $value instanceof DBDatetime;
         if ($value instanceof DBField) {
             $value = $value->getValue();
         }
@@ -75,7 +82,11 @@ class SchemaDates
         }
         try {
             # The timezone argument is ignored by PHP when the string carries an offset of its own
-            $parsed = new DateTimeImmutable($value, static::timezone($timezone));
+            $readIn = $serverTime ? new DateTimeZone(date_default_timezone_get()) : static::timezone($timezone);
+            $parsed = new DateTimeImmutable($value, $readIn);
+            if ($serverTime) {
+                $parsed = $parsed->setTimezone(static::timezone($timezone));
+            }
         } catch (Throwable) {
             return null;
         }
