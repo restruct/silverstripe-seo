@@ -288,7 +288,16 @@ class SchemaMapper
                 $rest = implode('.', array_slice($parts, $i));
                 $values = [];
                 foreach ($current as $item) {
-                    $values[] = $item instanceof ModelData ? $this->resolvePath($item, $rest) : null;
+                    $value = $item instanceof ModelData ? $this->resolvePath($item, $rest) : null;
+                    # A second list further on (Events.Places): its items join this list, so the result stays
+                    # one flat list rather than a list per item
+                    if ($value instanceof SS_List) {
+                        array_push($values, ...$value->toArray());
+                    } elseif (is_array($value) && array_is_list($value)) {
+                        array_push($values, ...$value);
+                    } else {
+                        $values[] = $value;
+                    }
                 }
                 return $values;
             }
