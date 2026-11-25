@@ -2,12 +2,14 @@
 
 namespace Restruct\Silverstripe\SEO\Extensions;
 
+use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
 use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\Image;
 use SilverStripe\CMS\Controllers\ContentController;
 use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
@@ -20,6 +22,7 @@ use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\SiteConfig\SiteConfig;
 
 /**
@@ -33,6 +36,10 @@ use SilverStripe\SiteConfig\SiteConfig;
  * Everything reaches the page head through core's `updateMetaComponents` hook (the SS6 name; the SS5-era
  * `MetaComponents`/`MetaTags` extension methods are never called on SS6). The matching response headers are set
  * by {@see SeoContentControllerExtension}.
+ *
+ * When the page's controller shows a record on a sub-action and declares it with `setSeoSubject()`, the title,
+ * description, canonical, sharing values and (if the record has its own) robots come from that record instead;
+ * see {@see SubjectMetadata}.
  *
  * Extension hooks offered to projects and later versions of this module, all called on the page:
  * - `updateSeoTitle(string &$title)`: the full `<title>` text, suffix included;
@@ -134,6 +141,22 @@ class SeoSiteTreeExtension extends Extension
      * `start` for pagination). Every other parameter (tracking, sorting, `stage`) is dropped from it.
      */
     private static array $seo_canonical_query_params = [];
+
+    /**
+     * Query parameters stripped from a shown record's own link before it becomes the canonical (shell wildcards).
+     * A list, so a project's YAML adds to it.
+     */
+    private static array $seo_tracking_query_params = [
+        'utm_*',
+        'gclid',
+        'gbraid',
+        'wbraid',
+        'fbclid',
+        'msclkid',
+        'mc_cid',
+        'mc_eid',
+        '_ga',
+    ];
 
     /**
      * og:type, set per page class in YAML (e.g. `article` on a news article class).
@@ -275,6 +298,9 @@ class SeoSiteTreeExtension extends Extension
      */
     public function SeoPageTitle(): string
     {
+        if ($subject = $this->SeoSubjectMetadata()) {
+            return $subject->title();
+        }
         $page = $this->getOwner();
         return trim((string) ($page->MetaTitle ?: $page->Title));
     }
@@ -309,6 +335,9 @@ class SeoSiteTreeExtension extends Extension
      */
     public function SeoDescription(): string
     {
+        if ($subject = $this->SeoSubjectMetadata()) {
+            return $subject->description();
+        }
         $typed = trim((string) $this->getOwner()->MetaDescription);
         return $typed !== '' ? $typed : $this->descriptionFallback();
     }
@@ -328,10 +357,14 @@ class SeoSiteTreeExtension extends Extension
     public function SeoRobotsDirectives(): array
     {
         $page = $this->getOwner();
-        $directives = [];
-        foreach ((array) $page->config()->get('seo_robots_directives') as $field => $directive) {
-            if ($directive && $page->getField($field)) {
-                $directives[] = $directive;
+        # A shown record with robots settings of its own decides; one without them follows the page
+        $directives = $this->SeoSubjectMetadata()?->robotsDirectives();
+        if ($directives === null) {
+            $directives = [];
+            foreach ((array) $page->config()->get('seo_robots_directives') as $field => $directive) {
+                if ($directive && $page->getField($field)) {
+                    $directives[] = $directive;
+                }
             }
         }
         $page->extend('updateSeoRobotsDirectives', $directives);
@@ -344,7 +377,8 @@ class SeoSiteTreeExtension extends Extension
      *
      * Without an override this is the page's own URL, without its query string except for the parameters in
      * `seo_canonical_query_params`. An action URL (`/page/action/id`) is its own canonical rather than pointing
-     * at the page, since it shows different content.
+     * at the page, since it shows different content. A shown record (SEO subject) gives its own link; a virtual
+     * page points at the page it copies, since it is a duplicate of that page by definition.
      *
      * @param HTTPRequest|null $request The request being answered; looked up from the current controller when
      *                                  omitted (template use).
@@ -358,8 +392,14 @@ class SeoSiteTreeExtension extends Extension
         $request ??= $this->currentRequest();
 
         $override = trim((string) $page->CanonicalURL);
-        if ($override !== '' && static::isValidCanonicalInput($override)) {
+        $source = $page instanceof VirtualPage ? $page->ContentSource() : null;
+        if ($subject = $this->SeoSubjectMetadata()) {
+            $url = $subject->canonicalURL();
+        } elseif ($override !== '' && static::isValidCanonicalInput($override)) {
+            # A virtual page copies the override from its source, so this branch also covers that case
             $url = Director::absoluteURL($override) ?: null;
+        } elseif ($source instanceof SiteTree && $source->isInDB() && $source->ID !== $page->ID) {
+            $url = strtok((string) $source->AbsoluteLink(), '?') ?: null;
         } else {
             # In draft the page link carries ?stage=Stage; the canonical is always the clean public URL
             $url = strtok((string) $page->AbsoluteLink(), '?') ?: null;
@@ -387,6 +427,9 @@ class SeoSiteTreeExtension extends Extension
      */
     public function SeoOGDescription(): string
     {
+        if ($subject = $this->SeoSubjectMetadata()) {
+            return $subject->sharingDescription();
+        }
         $own = trim((string) $this->getOwner()->SEOFBdescription);
         return $own !== '' ? $own : $this->SeoDescription();
     }
@@ -398,10 +441,15 @@ class SeoSiteTreeExtension extends Extension
 
     /**
      * The sharing image: the page's own, then whatever the `updateSeoImageFallback` hook provides (a project's
-     * hero image, say), then the site default from SiteConfig. Null when there is none at all.
+     * hero image, say), then the site default from SiteConfig. Null when there is none at all. A shown record's
+     * own image comes first of all.
      */
     public function SeoImage(): ?Image
     {
+        $subjectImage = $this->SeoSubjectMetadata()?->image();
+        if (static::isUsableImage($subjectImage)) {
+            return $subjectImage;
+        }
         $page = $this->getOwner();
         $image = $page->OGImage();
         if (static::isUsableImage($image)) {
@@ -524,17 +572,36 @@ class SeoSiteTreeExtension extends Extension
     }
 
     /**
+     * The record the current controller declared as the subject of this page view, wrapped for reading; null on
+     * the page itself.
+     */
+    public function SeoSubjectMetadata(): ?SubjectMetadata
+    {
+        $controller = $this->currentController();
+        $record = $controller && $controller->hasMethod('getSeoSubject') ? $controller->getSeoSubject() : null;
+        return $record instanceof DataObject ? SubjectMetadata::create($record, $this->getOwner()) : null;
+    }
+
+    /**
+     * The controller currently rendering this very page, if any.
+     */
+    protected function currentController(): ?ContentController
+    {
+        # SS6: curr() returns null when no controller is on the stack (SS5's has_curr() is gone)
+        $controller = Controller::curr();
+        if ($controller instanceof ContentController && (int) $controller->data()?->ID === (int) $this->getOwner()->ID) {
+            return $controller;
+        }
+        return null;
+    }
+
+    /**
      * The request of the controller currently rendering this very page, if any. Used when a template calls
      * $SeoCanonicalURL without arguments, so action URLs still get their own canonical.
      */
     protected function currentRequest(): ?HTTPRequest
     {
-        # SS6: curr() returns null when no controller is on the stack (SS5's has_curr() is gone)
-        $controller = Controller::curr();
-        if ($controller instanceof ContentController && (int) $controller->data()?->ID === (int) $this->getOwner()->ID) {
-            return $controller->getRequest();
-        }
-        return null;
+        return $this->currentController()?->getRequest();
     }
 
     protected static function isUsableImage(mixed $image): bool
