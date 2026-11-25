@@ -235,6 +235,18 @@ class SchemaSourceTest extends SapphireTest
         $this->assertSame('Amersfoort', $node['location'][1]['address']['addressLocality']);
     }
 
+    public function testAPathThroughTwoListsGivesOneFlatList(): void
+    {
+        $first = $this->event();
+        $first->Places()->add($this->place('Hall A', 'Utrecht'));
+        $second = $this->event(['Title' => 'Second day']);
+        $second->Places()->add($this->place('Hall B', 'Utrecht'));
+        $second->Places()->add($this->place('Hall C', 'Utrecht'));
+
+        # has_many Events, then many_many Places: one list of names, not a list per event
+        $this->assertSame(['Hall A', 'Hall B', 'Hall C'], $this->mapper()->resolve($this->holder, 'Events.Places.Title'));
+    }
+
     public function testHasManyThroughANestedMapGivesAList(): void
     {
         $event = $this->event();
