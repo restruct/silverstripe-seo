@@ -77,7 +77,7 @@ class SeoContentControllerExtension extends Extension
         # Only on a normal answer: a redirect or an error page has no canonical of its own
         $canonical = $page->SeoCanonicalURL($request);
         $link = '';
-        if ($canonical && $status < 300) {
+        if ($canonical && $status < 300 && $page->config()->get('seo_output_canonical')) {
             # A URL can contain neither < nor > unescaped, but an override is editor input: encode to be sure
             $link = '<' . str_replace(['<', '>'], ['%3C', '%3E'], $canonical) . '>; rel="canonical"';
         }

@@ -188,6 +188,18 @@ class SeoSiteTreeExtension extends Extension
     ];
 
     /**
+     * Print `<link rel="canonical">` and send the `Link: <...>; rel="canonical"` header. Switch off when the theme
+     * already prints a canonical, so there are never two. `$SeoCanonicalURL` stays available to templates.
+     */
+    private static bool $seo_output_canonical = true;
+
+    /**
+     * Print the Open Graph tags (og:*, og:url included) and `twitter:card`. Switch off when the theme already
+     * prints its own sharing tags.
+     */
+    private static bool $seo_output_open_graph = true;
+
+    /**
      * twitter:card value when there is an image; without one it is always `summary`. Set to an empty string to
      * leave the tag out (X falls back to the Open Graph tags).
      */
@@ -537,12 +549,14 @@ class SeoSiteTreeExtension extends Extension
         # An error status set by the action (a 410 for an expired offer, say) means this URL has no canonical
         $status = $this->currentController()?->getResponse()->getStatusCode() ?? 200;
         $canonical = $status < 400 ? $this->SeoCanonicalURL() : null;
-        if ($canonical) {
+        if ($canonical && $page->config()->get('seo_output_canonical')) {
             $tags['canonical'] = ['tag' => 'link', 'attributes' => ['rel' => 'canonical', 'href' => $canonical]];
         }
 
-        foreach ($this->openGraphTags($canonical) as $key => $tag) {
-            $tags[$key] = $tag;
+        if ($page->config()->get('seo_output_open_graph')) {
+            foreach ($this->openGraphTags($canonical) as $key => $tag) {
+                $tags[$key] = $tag;
+            }
         }
 
         $page->extend('updateSeoMetaComponents', $tags);
