@@ -1,4 +1,6 @@
 en:
+  Restruct\Silverstripe\SEO\Checks\AbstractCheck:
+    AndMore: 'and {count} more'
   Restruct\Silverstripe\SEO\Checks\CheckRunner:
     RenderFailed: 'The page did not render (status {status}). The checks that read the rendered page were skipped.'
     RenderHowToFix: 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.'
@@ -9,6 +11,8 @@ en:
   Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck:
     Anchor: 'the anchor is not on the target page'
     Deleted: 'the linked page or file no longer exists'
+    Detail: '{url}: {reason}'
+    DetailLabelled: '"{label}" {url}: {reason}'
     DraftFile: 'the file is not published'
     DraftPage: 'the page is not published'
     EmptyHref: '(empty link)'
@@ -56,6 +60,7 @@ en:
     Duplicate: 'same alt text as {src}'
     FileName: 'looks like a file name'
     HowToFix: 'Describe what the image shows, in a short sentence, and say what matters about it on this page. No file names, no "image of", no lists of keywords; two different images need two different descriptions.'
+    Issue: '{src}: "{alt}" ({reason})'
     Long: 'longer than {max} characters'
     Message: 'The alt text of {count} image(s) could describe the image better.'
     Prefix: 'starts with "{prefix}"'
@@ -66,6 +71,7 @@ en:
     HowToFix: 'Link to the final page rather than to a redirecting one, and use https:// for sites that support it.'
     Insecure: '{href}: http:// on an https site'
     Message: '{count} link(s) go through a redirect.'
+    OldUrl: '{href}: an old address of {target}, which redirects'
     Redirector: '{href}: redirects to {target}'
     Title: 'Links go straight to their target'
   Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck:
@@ -86,6 +92,7 @@ en:
     Message: 'No other page links to this page, and it is not in the menu.'
     Title: 'Other pages link to this page'
   Restruct\Silverstripe\SEO\Checks\Rules\PlaceholderTextCheck:
+    Found: '{where}: "{match}" in "{context}"'
     HowToFix: 'Replace the placeholder with the real text, or remove it, before the page goes live.'
     InContent: content
     InDescription: description

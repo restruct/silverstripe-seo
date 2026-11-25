@@ -1,4 +1,6 @@
 nl:
+  Restruct\Silverstripe\SEO\Checks\AbstractCheck:
+    AndMore: 'en nog {count}'
   Restruct\Silverstripe\SEO\Checks\CheckRunner:
     RenderFailed: 'De pagina kon niet worden opgebouwd (status {status}). De controles die de opgebouwde pagina lezen, zijn overgeslagen.'
     RenderHowToFix: 'Bekijk het concept in de preview. Toont die een fout of stuurt die door naar een andere pagina, los dat dan eerst op en controleer opnieuw.'
@@ -7,6 +9,8 @@ nl:
     SkippedError: 'Niet gecontroleerd: de controle is mislukt ({message}).'
     SkippedNoRender: 'Niet gecontroleerd: de pagina kon niet worden opgebouwd.'
   Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck:
+    Detail: '{url}: {reason}'
+    DetailLabelled: '"{label}" {url}: {reason}'
     Anchor: 'het anker staat niet op de doelpagina'
     Deleted: 'de gelinkte pagina of het bestand bestaat niet meer'
     DraftFile: 'het bestand is niet gepubliceerd'
@@ -53,6 +57,7 @@ nl:
     Message: '{count} afbeelding(en) hebben geen alt-tekst.'
     Title: 'Afbeeldingen hebben een alt-tekst'
   Restruct\Silverstripe\SEO\Checks\Rules\ImageAltQualityCheck:
+    Issue: '{src}: "{alt}" ({reason})'
     Duplicate: 'dezelfde alt-tekst als {src}'
     FileName: 'lijkt op een bestandsnaam'
     HowToFix: 'Beschrijf in een korte zin wat de afbeelding laat zien en wat er op deze pagina toe doet. Geen bestandsnamen, geen "afbeelding van", geen rijtjes trefwoorden; twee verschillende afbeeldingen krijgen twee verschillende beschrijvingen.'
@@ -63,6 +68,7 @@ nl:
     Stuffing: 'herhaalt "{word}"'
     Title: 'Alt-tekst beschrijft de afbeelding'
   Restruct\Silverstripe\SEO\Checks\Rules\LinkRedirectsCheck:
+    OldUrl: '{href}: een oud adres van {target}, dat doorverwijst'
     HowToFix: 'Link naar de uiteindelijke pagina in plaats van naar een doorverwijzing, en gebruik https:// voor sites die dat ondersteunen.'
     Insecure: '{href}: http:// op een https-site'
     Message: '{count} link(s) lopen via een doorverwijzing.'
@@ -86,6 +92,7 @@ nl:
     Message: 'Geen andere pagina linkt naar deze pagina, en ze staat niet in het menu.'
     Title: 'Andere pagina''s linken naar deze pagina'
   Restruct\Silverstripe\SEO\Checks\Rules\PlaceholderTextCheck:
+    Found: '{where}: "{match}" in "{context}"'
     HowToFix: 'Vervang de opvultekst door de echte tekst, of haal hem weg, voordat de pagina live gaat.'
     InContent: 'inhoud'
     InDescription: 'beschrijving'
