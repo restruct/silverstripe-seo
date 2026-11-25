@@ -7,6 +7,7 @@ use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
 use SilverStripe\Assets\Image;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
+use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\ORM\DataObject;
 
@@ -22,9 +23,9 @@ use SilverStripe\ORM\DataObject;
  * - nodes of the page view: `<URL of the view>#webpage`, `#breadcrumb`, `#itemlist` ({@see pageId()}), where the
  *   URL of the view is its canonical URL (see pageURL()): the shown record's canonical when the page shows a
  *   record, else the page's canonical, with an action path and kept parameters;
- * - records: `<record link>#<type in lowercase>-<ID>`, or the page's link when the record has no link of its own
- *   ({@see recordId()}). Links are used without their query string, so a draft link (`?stage=Stage`) and a
- *   tracking parameter give the same id.
+ * - records: `<record link>#<type in lowercase>-<ID>`; a record without a link of its own:
+ *   `<page link>#<type>-<class short name>-<ID>` ({@see recordId()}), all lowercase. Links are used without
+ *   their query string, so a draft link (`?stage=Stage`) and a tracking parameter give the same id.
  */
 class SchemaContext
 {
@@ -99,6 +100,30 @@ class SchemaContext
      */
     public function recordURL(DataObject $record): string
     {
+        return $this->ownURL($record) ?? static::withoutQuery((string) $this->page->AbsoluteLink());
+    }
+
+    /**
+     * The `@id` of a record's node: `https://example.com/events/event/12#event-12`. A record without a link of
+     * its own is identified on the page's link and gets its class in the fragment as well
+     * (`https://example.com/events#place-venue-12`): a page can show records of several classes mapped to the
+     * same type, and their IDs come from separate tables.
+     */
+    public function recordId(DataObject $record, string $type): string
+    {
+        $slug = static::slug($type) ?: 'thing';
+        $own = $this->ownURL($record);
+        if ($own !== null) {
+            return $own . '#' . $slug . '-' . $record->ID;
+        }
+        return $this->recordURL($record) . '#' . $slug . '-' . static::slug(ClassInfo::shortName($record)) . '-' . $record->ID;
+    }
+
+    /**
+     * The record's own absolute link without query string; null when it has none.
+     */
+    protected function ownURL(DataObject $record): ?string
+    {
         $url = null;
         if ($record->hasMethod('AbsoluteLink')) {
             $url = $record->AbsoluteLink();
@@ -106,19 +131,12 @@ class SchemaContext
             $link = $record->Link();
             $url = $link ? Director::absoluteURL((string) $link) : null;
         }
-        if (!is_string($url) || $url === '') {
-            $url = (string) $this->page->AbsoluteLink();
-        }
-        return static::withoutQuery($url);
+        return is_string($url) && $url !== '' ? static::withoutQuery($url) : null;
     }
 
-    /**
-     * The `@id` of a record's node: `https://example.com/events/event/12#event-12`.
-     */
-    public function recordId(DataObject $record, string $type): string
+    protected static function slug(string $value): string
     {
-        $slug = preg_replace('/[^a-z0-9]+/', '', strtolower($type)) ?: 'thing';
-        return $this->recordURL($record) . '#' . $slug . '-' . $record->ID;
+        return (string) preg_replace('/[^a-z0-9]+/', '', strtolower($value));
     }
 
     /**
