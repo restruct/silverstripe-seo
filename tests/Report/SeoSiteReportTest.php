@@ -126,13 +126,13 @@ class SeoSiteReportTest extends SapphireTest
         $report = SeoSiteReport::singleton();
         $this->assertFalse($report->canView(false), 'not without a member');
 
-        $reportsOnly = $this->logInWithPermission('CMS_ACCESS_ReportAdmin');
+        $reportsOnly = $this->member('CMS_ACCESS_ReportAdmin');
         $this->assertFalse($report->canView($reportsOnly), 'the Reports section alone is not enough');
 
-        $reader = $this->logInWithPermission(self::READER);
+        $reader = $this->member(self::READER);
         $this->assertTrue($report->canView($reader));
 
-        $admin = $this->logInWithPermission('ADMIN');
+        $admin = $this->member('ADMIN');
         $this->assertTrue($report->canView($admin));
 
         $codes = array_keys(SeoSiteReport::singleton()->providePermissions());
@@ -221,7 +221,7 @@ class SeoSiteReportTest extends SapphireTest
         $private->publishSingle();
         $this->storeResult($private, ['title-missing' => Check::PROBLEM]);
 
-        $reader = $this->logInWithPermission(self::READER);
+        $reader = $this->member(self::READER);
         $rows = $this->rows([], $reader);
         $this->assertArrayNotHasKey('Private page', $rows);
         $this->assertArrayHasKey('Broken page', $rows);
@@ -229,14 +229,14 @@ class SeoSiteReportTest extends SapphireTest
         $counts = array_column(SiteReportData::create($reader)->summary()['topChecks'], 'count', 'id');
         $this->assertSame(1, $counts['title-missing'] ?? null, 'title-missing on one visible page');
 
-        $admin = $this->logInWithPermission('ADMIN');
+        $admin = $this->member('ADMIN');
         $this->assertArrayHasKey('Private page', $this->rows([], $admin));
     }
 
     public function testDetailsOnlyForPagesTheViewerMayEdit(): void
     {
         $this->site();
-        $reader = $this->logInWithPermission(self::READER);
+        $reader = $this->member(self::READER);
         $rows = $this->rows([], $reader);
         # A reader without edit rights sees the counts, not which checks fail, and gets no edit link
         $this->assertSame(1, $rows['Broken page']['Problems']);
@@ -324,6 +324,14 @@ class SeoSiteReportTest extends SapphireTest
         }
         $this->assertNotNull($broken);
         $this->assertSame('1', $broken[array_search('Problems', $header)]);
+    }
+
+    /**
+     * Log in a member with the codes and return the member (logInWithPermission() returns the ID).
+     */
+    protected function member(string|array $codes): Member
+    {
+        return Member::get()->byID($this->logInWithPermission($codes));
     }
 
     /**
