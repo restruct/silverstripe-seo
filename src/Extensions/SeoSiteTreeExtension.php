@@ -20,6 +20,7 @@ use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HeaderField;
+use SilverStripe\Forms\ReadonlyTransformation;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\DataObject;
@@ -63,6 +64,20 @@ use SilverStripe\SiteConfig\SiteConfig;
  */
 class SeoSiteTreeExtension extends Extension
 {
+    /**
+     * The form fields this extension adds to a page, by field name.
+     */
+    protected const EDITABLE_FIELDS = [
+        'MetaTitle',
+        'MetaRobotsNoIndex',
+        'MetaRobotsNoFollow',
+        'MetaRobotsNoSnippet',
+        'MetaRobotsNoCache',
+        'CanonicalURL',
+        'SEOFBdescription',
+        'OGImage',
+    ];
+
     private static array $db = [
         'MetaTitle' => 'Varchar(255)',
         'MetaRobotsNoIndex' => 'Boolean',
@@ -249,6 +264,34 @@ class SeoSiteTreeExtension extends Extension
         foreach ($extraFields as $field) {
             # Before core's free-form ExtraMeta, which stays last as the advanced option
             $metadata->insertBefore('ExtraMeta', $field);
+        }
+
+        if ($page instanceof VirtualPage) {
+            $this->makeVirtualFieldsReadonly($page, $fields);
+        }
+    }
+
+    /**
+     * A virtual page copies these columns from its source on every write (VirtualPage::getVirtualFields() and
+     * refreshFromCopied()), so an editable field would lose its input on save. Core makes its own copied fields
+     * read-only in a beforeUpdateCMSFields callback, which runs before this extension added its fields; the same
+     * transformation is applied here to ours.
+     */
+    protected function makeVirtualFieldsReadonly(VirtualPage $page, FieldList $fields): void
+    {
+        $virtual = $page->getVirtualFields();
+        if (!$virtual) {
+            # No source page chosen yet: nothing is copied, so nothing is overwritten
+            return;
+        }
+        $transformation = ReadonlyTransformation::create();
+        foreach (static::EDITABLE_FIELDS as $name) {
+            # A has_one's column is OGImageID, its field OGImage
+            $column = $name === 'OGImage' ? 'OGImageID' : $name;
+            $field = $fields->dataFieldByName($name);
+            if ($field && in_array($column, $virtual, true) && !$field->isReadonly()) {
+                $fields->replaceField($name, $field->transform($transformation));
+            }
         }
     }
 
