@@ -350,6 +350,31 @@ class SeoSiteTreeExtensionTest extends SapphireTest
         $this->assertSame($default->ID, $page->SeoImage()?->ID);
     }
 
+    public function testImagesThatAreNotPublicAreSkipped(): void
+    {
+        # A crawler fetching og:image is anonymous: a draft-only image, or one only logged-in members may view,
+        # sits in the protected store and would answer it with a 403 or 404
+        $draft = $this->createTestImage('draft.png');
+        $draft->doUnpublish();
+        $restricted = $this->createTestImage('restricted.png');
+        $restricted->CanViewType = 'LoggedInUsers';
+        $restricted->write();
+        $restricted->publishSingle();
+        $default = $this->createTestImage('default.png');
+        $this->setDefaultImage($default);
+
+        $this->assertSame($default->ID, $this->page(['OGImageID' => $draft->ID])->SeoImage()?->ID, 'draft-only page image');
+        $this->assertSame($default->ID, $this->page(['OGImageID' => $restricted->ID])->SeoImage()?->ID, 'restricted page image');
+
+        SeoFallbackTestExtension::$image = $restricted;
+        $this->assertSame($default->ID, $this->page()->SeoImage()?->ID, 'restricted hook image');
+
+        # A site default that is not public either leaves no image at all
+        SeoFallbackTestExtension::$image = null;
+        $this->setDefaultImage($restricted);
+        $this->assertNull($this->page()->SeoImage(), 'restricted default image');
+    }
+
     public function testNoImageAtAllGivesNull(): void
     {
         $this->assertNull($this->page()->SeoImage());
