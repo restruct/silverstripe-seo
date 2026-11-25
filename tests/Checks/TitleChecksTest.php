@@ -40,9 +40,31 @@ class TitleChecksTest extends ChecksTestCase
 
     public function testBoilerplateFailsWhenTheSiteNameIsRepeated(): void
     {
-        # A separator the suffix logic does not recognise as one, so the site name ends up in it twice
-        $page = $this->page(['MetaTitle' => 'Example Site courses']);
+        # Twice in the page's own title (decided on review: once there plus the suffix is fine, see below)
+        $page = $this->page(['MetaTitle' => 'Example Site - courses - Example Site']);
         $this->assertCheckFails($page, 'title-boilerplate', 'Example Site');
+    }
+
+    public function testBoilerplatePassesForTheSiteNameOnceInTheTitleAndOnceAsSuffix(): void
+    {
+        $this->setSiteName('Acme');
+        $this->assertCheckPasses($this->page(['MetaTitle' => 'About Acme']), 'title-boilerplate');
+    }
+
+    public function testBoilerplateCountsWholeWordsOnly(): void
+    {
+        # "Shop" inside "Workshop" is not the site name
+        $this->setSiteName('Shop');
+        $this->assertCheckPasses($this->page(['MetaTitle' => 'Workshop for the Workshop crew']), 'title-boilerplate');
+        $this->setSiteName('Café');
+        $this->assertCheckFails($this->page(['MetaTitle' => 'Café menu at Café']), 'title-boilerplate');
+    }
+
+    private function setSiteName(string $name): void
+    {
+        $config = \SilverStripe\SiteConfig\SiteConfig::current_site_config();
+        $config->Title = $name;
+        $config->write();
     }
 
     public function testBoilerplateFailsForAPlaceholderTitle(): void
