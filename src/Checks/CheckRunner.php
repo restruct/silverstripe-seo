@@ -8,6 +8,7 @@ use Restruct\Silverstripe\PageRender\PageRenderer;
 use Restruct\Silverstripe\PageRender\RenderResult;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
@@ -50,6 +51,12 @@ class CheckRunner
      * The id of the entry that reports a page that could not be rendered.
      */
     public const RENDER_ENTRY = 'render';
+
+    /**
+     * The version of the check logic, part of {@see configHash()}: raise it when a release changes what a check
+     * finds, so every stored result is checked again.
+     */
+    public const CHECKS_VERSION = 1;
 
     /**
      * id => [class, enabled]. Set in the module's YAML; a project adds or disables entries in its own.
@@ -262,9 +269,40 @@ class CheckRunner
             # Only advice specific to this result is stored; the check's general advice is added when shown
             'howToFix' => $result->isFail() ? $result->getHowToFix() : '',
             'docs' => $this->docsFor($check, $id),
+            # Depends on other pages too: the stored result goes stale when any page changes
+            'crossPage' => $this->isCrossPage($check),
             'ignored' => false,
             'ignoredBy' => null,
         ];
+    }
+
+    protected function isCrossPage(Check $check): bool
+    {
+        return method_exists($check, 'isCrossPage') && $check->isCrossPage();
+    }
+
+    /**
+     * A fingerprint of what the checks are: the enabled check ids, their classes and each class's config
+     * (thresholds, severity, priority), the stored format and {@see CHECKS_VERSION}. Stored with every result; a
+     * result checked under another fingerprint is stale. Read from config each time (not from the instances
+     * kept by getChecks()), so a change made in this process counts too.
+     */
+    public function configHash(): string
+    {
+        $parts = ['version' => static::CHECKS_VERSION, 'format' => SeoCheckResult::FORMAT, 'checks' => []];
+        foreach ((array) static::config()->get('checks') as $id => $definition) {
+            $definition = is_array($definition) ? $definition : ['class' => $definition];
+            if (array_key_exists('enabled', $definition) && !$definition['enabled']) {
+                continue;
+            }
+            $class = (string) ($definition['class'] ?? '');
+            $parts['checks'][(string) $id] = [
+                'class' => $class,
+                'config' => $class !== '' && class_exists($class) ? Config::inst()->get($class) : null,
+            ];
+        }
+        ksort($parts['checks']);
+        return sha1((string) json_encode($parts, JSON_PARTIAL_OUTPUT_ON_ERROR));
     }
 
     protected function renderEntry(RenderResult $render): array
@@ -284,6 +322,7 @@ class CheckRunner
             'details' => array_values(array_filter([(string) $render->getError()])),
             'howToFix' => CheckMessage::_t(__CLASS__ . '.RenderHowToFix', 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.'),
             'docs' => '',
+            'crossPage' => false,
             'ignored' => false,
             'ignoredBy' => null,
         ];

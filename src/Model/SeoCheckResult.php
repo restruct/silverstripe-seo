@@ -4,6 +4,7 @@ namespace Restruct\Silverstripe\SEO\Model;
 
 use Restruct\Silverstripe\SEO\Checks\Check;
 use Restruct\Silverstripe\SEO\Checks\CheckResult;
+use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\ORM\DataObject;
@@ -27,6 +28,8 @@ use SilverStripe\Versioned\Versioned;
  * @property int $Tips
  * @property bool $Stale
  * @property int $Format
+ * @property string $ConfigHash
+ * @property bool $CrossPage
  * @method SiteTree Page()
  */
 class SeoCheckResult extends DataObject
@@ -52,6 +55,10 @@ class SeoCheckResult extends DataObject
         'Stale' => 'Boolean',
         # The shape of Results: 0 for rows of the first version (finished text), FORMAT for message keys
         'Format' => 'Int',
+        # The check configuration it was checked under (CheckRunner::configHash()); another one makes it stale
+        'ConfigHash' => 'Varchar(40)',
+        # Holds a check that reads other pages: stale when any page changed after it was checked
+        'CrossPage' => 'Boolean',
     ];
 
     private static array $has_one = [
@@ -107,6 +114,7 @@ class SeoCheckResult extends DataObject
         $result->CheckedAt = $checkedAt;
         $result->Stale = $stale;
         $result->Format = static::FORMAT;
+        $result->ConfigHash = CheckRunner::singleton()->configHash();
         $result->setEntries($entries);
     }
 
@@ -122,41 +130,50 @@ class SeoCheckResult extends DataObject
     }
 
     /**
-     * Out of date: flagged on a save of the page or one of its blocks, or older than the last change of the page
-     * or of a block in its Elemental areas (for writes that bypassed the hooks, a query or an import). At most
-     * two small queries.
+     * Out of date when any of these holds:
+     * - flagged on a save of the page or one of its blocks, or a row of an earlier format;
+     * - checked under another check configuration (ids, thresholds, CheckRunner::CHECKS_VERSION);
+     * - older than the last change of the page or of a block in its Elemental areas (for writes that bypassed
+     *   the hooks, a query or an import);
+     * - it holds a check that reads other pages (duplicates, links, inbound links) and any page changed since.
+     *
+     * Pass a {@see StaleContext} to decide many results with a fixed number of queries; without one, this
+     * builds its own (a few small queries).
      */
-    public function isStale(): bool
+    public function isStale(?StaleContext $context = null): bool
+    {
+        return static::isStaleRow($this->toMap(), $context);
+    }
+
+    /**
+     * {@see isStale()} on the raw columns of a row (PageID, Stage, CheckedAt, Stale, Format, ConfigHash,
+     * CrossPage), so a report can decide without loading the results JSON.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function isStaleRow(array $row, ?StaleContext $context = null): bool
     {
         # A row of an earlier format holds finished text in the language of whoever ran it
-        if ($this->Stale || (int) $this->Format < static::FORMAT) {
+        if (!empty($row['Stale']) || (int) ($row['Format'] ?? 0) < static::FORMAT) {
             return true;
         }
-        $checkedAt = (string) $this->CheckedAt;
-        $page = Versioned::get_by_stage(SiteTree::class, $this->Stage ?: Versioned::DRAFT)->byID((int) $this->PageID);
-        if (!$page) {
+        $stage = (string) ($row['Stage'] ?? '') ?: Versioned::DRAFT;
+        if (!$context || $context->getStage() !== $stage) {
+            $context = StaleContext::create($stage);
+        }
+        if ((string) ($row['ConfigHash'] ?? '') !== $context->configHash()) {
             return true;
         }
-        if ((string) $page->LastEdited > $checkedAt) {
+        $checkedAt = (string) ($row['CheckedAt'] ?? '');
+        if (!empty($row['CrossPage']) && $context->siteEdited() > $checkedAt) {
             return true;
         }
-        $element = 'DNADesign\\Elemental\\Models\\BaseElement';
-        if (class_exists($element) && $page->hasMethod('getElementalRelations')) {
-            $areaIDs = array_values(array_filter(array_map(
-                fn ($relation) => (int) $page->getField($relation . 'ID'),
-                (array) $page->getElementalRelations()
-            )));
-            if ($areaIDs) {
-                $latest = Versioned::withVersionedMode(function () use ($element, $areaIDs) {
-                    Versioned::set_stage($this->Stage ?: Versioned::DRAFT);
-                    return $element::get()->filter('ParentID', $areaIDs)->max('LastEdited');
-                });
-                if ($latest && (string) $latest > $checkedAt) {
-                    return true;
-                }
-            }
+        $pageID = (int) ($row['PageID'] ?? 0);
+        $edited = $context->pageEdited($pageID);
+        if ($edited === null || $edited > $checkedAt) {
+            return true;
         }
-        return false;
+        return $context->blocksEdited($pageID) > $checkedAt;
     }
 
     /**
@@ -202,6 +219,7 @@ class SeoCheckResult extends DataObject
         $this->Problems = $counts[Check::PROBLEM];
         $this->Warnings = $counts[Check::WARNING];
         $this->Tips = $counts[Check::TIP];
+        $this->CrossPage = (bool) array_filter($entries, fn ($entry) => !empty($entry['crossPage']));
         return $this;
     }
 

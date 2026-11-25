@@ -2,6 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Checks;
 
+use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
 
@@ -35,6 +36,12 @@ abstract class AbstractCheck implements Check
     private static bool $runs_on_noindex = false;
 
     /**
+     * Whether the outcome also depends on other pages (duplicates, link targets, inbound links): a stored result
+     * holding such a check goes out of date when any page changes, not only its own ({@see SeoCheckResult::isStale()}).
+     */
+    private static bool $cross_page = false;
+
+    /**
      * At most this many details are listed for a result, then "and N more". Set it per check class to differ.
      *
      * @config
@@ -64,6 +71,15 @@ abstract class AbstractCheck implements Check
     public function needsRender(): bool
     {
         return (bool) static::config()->get('needs_render');
+    }
+
+    /**
+     * Whether the outcome depends on other pages too; see `cross_page`. Not part of the {@see Check} interface,
+     * so a project's own check that implements Check directly counts as reading its own page only.
+     */
+    public function isCrossPage(): bool
+    {
+        return (bool) static::config()->get('cross_page');
     }
 
     protected function pass(): CheckResult

@@ -18,6 +18,9 @@ class UnpublishedLinksCheck extends BrokenLinksCheck
 
     private static string $priority = self::MEDIUM;
 
+    # Reads other pages (their titles, descriptions, links or link targets): stale when any page changes
+    private static bool $cross_page = true;
+
     public function title(): string
     {
         return _t(__CLASS__ . '.Title', 'Link targets are published');

@@ -19,6 +19,9 @@ class DescriptionDuplicateCheck extends AbstractCheck
 
     private static string $priority = self::MEDIUM;
 
+    # Reads other pages (their titles, descriptions, links or link targets): stale when any page changes
+    private static bool $cross_page = true;
+
 
     public function title(): string
     {

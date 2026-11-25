@@ -30,6 +30,9 @@ class BrokenLinksCheck extends AbstractCheck
 
     private static string $priority = self::HIGH;
 
+    # Reads other pages (their titles, descriptions, links or link targets): stale when any page changes
+    private static bool $cross_page = true;
+
     private static bool $needs_render = true;
 
 

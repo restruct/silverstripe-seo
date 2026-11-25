@@ -29,6 +29,9 @@ class OrphanPageCheck extends AbstractCheck
 
     private static string $priority = self::MEDIUM;
 
+    # Reads other pages (their titles, descriptions, links or link targets): stale when any page changes
+    private static bool $cross_page = true;
+
     /**
      * Page classes whose template lists their children (a blog holder, a news archive, an overview page): a
      * child of such a parent is linked from it, as long as the parent itself is reachable (in the menu, or
