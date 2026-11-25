@@ -25,6 +25,24 @@ All notable changes to this module are documented here. The format follows
 - SiteConfig: a logo and a list of profiles on other sites, for the Organization node.
 - A read-only preview of the page's structured data, with warnings, in the page editor.
 - `seo_output_structured_data` (default true) to switch the output off.
+- `{ html: Field }` map values (simple markup only), either-or requirements in the type registry (a remote
+  JobPosting, an online Event), `schema_includes_limit` (default 50) with eager loading of what an included
+  record's map reads, `schema_allowed_methods`, `schema_check_can_view`, the `updateSeoSchemaLocale` hook, and
+  `type-not-registered` and `method-not-allowed` warnings.
+
+### Fixed (phase 3 review, before release)
+
+- Map values are read through `obj()`: overriding getters and `casting` apply, so a method cast as HTMLText is
+  plain text.
+- A map can no longer call arbitrary methods (`delete`); only fields, relations, getters, cast methods and
+  `schema_allowed_methods`.
+- The WebPage `url` and `@id` follow the canonical (action paths, `seo_canonical_query_params`).
+- Datetime values are read as server time and expressed in `seo_schema_timezone`.
+- A throwing source or a value JSON cannot encode no longer breaks the page or empties the graph.
+- Records without a link of their own carry their class in the `@id`, so two classes no longer merge.
+- Paths through two lists give one flat list; plain text keeps a line per block.
+- Records an anonymous visitor may not see are left out; the CMS preview uses the site locale; `mainEntity` is
+  chosen after incomplete nodes are left out.
 
 ## [0.1.0] - 2026-11-25
 

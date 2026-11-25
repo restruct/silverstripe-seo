@@ -191,24 +191,41 @@ What a page outputs:
 |---|---|---|
 | WebSite | `https://example.com/#website` | always (needs a site title) |
 | Organization | `https://example.com/#organization` | when SiteConfig gives it a name |
-| WebPage (or a subtype) | `<page URL>#webpage` | always |
-| BreadcrumbList | `<page URL>#breadcrumb` | when the trail (home page in front) has two or more entries |
-| the page's own node | `<page URL>#<type>-<ID>` | when the page class is a source (below) |
-| the shown record's node | `<record URL>#<type>-<ID>` | when the controller declared a record with `setSeoSubject()` |
-| included records | their own ids | for the relations and methods in `schema_includes` |
-| ItemList | `<page URL>#itemlist` | for the relation or method in `schema_item_list`, on the page itself |
+| WebPage (or a subtype) | `<canonical URL>#webpage` | always |
+| BreadcrumbList | `<canonical URL>#breadcrumb` | when the trail (home page in front) has two or more entries |
+| the page's own node | `<page link>#<type>-<ID>` | when the page class is a source (below) |
+| the shown record's node | `<record link>#<type>-<ID>` | when the controller declared a record with `setSeoSubject()` |
+| included records | their own ids | for the relations and methods in `schema_includes`, at most `schema_includes_limit` (50) |
+| ItemList | `<canonical URL>#itemlist` | for the relation or method in `schema_item_list` (at most `schema_item_list_limit`, 100), on the page itself |
 
-The **`@id` rule**: site nodes are `<base URL>/#<name>`; nodes of a page view are `<URL of the view>#<name>`, the
-URL of the view being the page's link, or the shown record's canonical URL; records are
-`<record link>#<type in lowercase>-<ID>`, using the page's link when the record has no `Link()`. Links are taken
-without their query string, so ids are the same in draft and live and with tracking parameters.
+The **`@id` rule**:
+- site nodes are `<base URL>/#<name>`;
+- nodes of a page view are `<canonical URL>#<name>`: the page's canonical, so an action URL (`/about/detail`)
+  and a parameter kept by `seo_canonical_query_params` (`?page=2`) have a WebPage of their own, or the shown
+  record's canonical when the page shows a record;
+- records are `<record link>#<type in lowercase>-<ID>`; a record without a `Link()` is identified on the page's
+  link with its class added (`/events#place-venue-12`), since a page can show records of several classes mapped
+  to one type. Record links are taken without their query string, so ids are the same in draft and live.
 
-The WebPage's `mainEntity` is the shown record, else the page's own node, else the ItemList. On a page that
-shows a record, the record takes the page's place as the content source: its node, its `schema_includes`, and
-it ends the breadcrumb; the page's own node and ItemList are left out there.
+The WebPage's `mainEntity` is chosen after incomplete nodes were left out (see below): the shown record, else
+the page's own node, else the ItemList. On a page that shows a record, the record takes the page's place as the
+content source: its node, its `schema_includes`, and it ends the breadcrumb; the page's own node and ItemList are
+left out there. The ItemList holds the URLs of the records; full nodes per entry may become an option later.
 
 No structured data is printed on an error page or an error status. Switch it off entirely with
-`seo_output_structured_data: false`.
+`seo_output_structured_data: false`. When building it fails (a `provideSchemaData()` that throws), the error is
+logged at warning level and the page is served without it; a value JSON cannot hold (NAN, INF) is left out with a
+warning, the rest is printed.
+
+**Who sees what.** Records reached through a relation, `schema_includes` or `schema_item_list` are output only
+when an *anonymous* visitor may see them (`canView()`): the head is cached by proxies and static caches, so it
+must never depend on who is logged in. This is checked for pages always, and for other classes when they define
+`canView()` themselves (DataObject's own `canView()` admits administrators only, which would hide every plain
+record); `schema_check_can_view: true` or `false` on a class decides explicitly.
+
+**Cost.** The graph is built on every page view; nothing is cached yet. Included records are capped and the
+relations their map reads are eager-loaded, but a listing with many records still costs queries; keep
+`schema_includes` for pages that list a modest number of records.
 
 ### Records as sources
 
@@ -224,8 +241,8 @@ App\Model\Event:
   schema_type: EducationEvent
   schema_map:
     name: Title
-    description: Content                         # HTML becomes plain text
-    url: AbsoluteLink                            # a method
+    description: Content                         # HTML becomes plain text, one line per paragraph
+    url: AbsoluteLink                            # a method, allowed below
     startDate: { date: StartDate, time: StartTime }
     endDate: { date: EndDate, time: EndTime }
     eventStatus: { literal: 'https://schema.org/EventScheduled' }
@@ -239,6 +256,9 @@ App\Model\Event:
       name: Title
       price: Price
       priceCurrency: { literal: EUR }
+  # A map calls only fields, relations, getters and methods in `casting`; other methods are listed here
+  schema_allowed_methods:
+    - AbsoluteLink
 
 App\Model\Venue:
   extensions:
@@ -272,7 +292,7 @@ App\Page\VacancyPage:
   schema_type: JobPosting
   schema_map:
     title: Title
-    description: Content
+    description: { html: Content }               # Google shows paragraphs and lists here
     datePosted: DatePosted                       # a Date field: 2027-01-05
     validThrough: ClosingDate                    # a Datetime field, with the site timezone's offset
     employmentType: EmploymentType
@@ -285,20 +305,29 @@ App\Page\VacancyPage:
         addressCountry: { literal: NL }
 ```
 
+A fully remote job has no `jobLocation`; map `applicantLocationRequirements` (a Country or State) and
+`jobLocationType: { literal: TELECOMMUTE }` instead, which the registry accepts in its place.
+
 The value of a map entry is one of:
 
-- `FieldName`, `MethodName`, or a dotted path through relations (`Venue.City`); a has_many or many_many on the
-  way gives a list;
+- `FieldName`, `MethodName`, or a dotted path through relations (`Venue.City`), read as a template reads it
+  (an overriding getter wins, `casting` applies); a has_many or many_many on the way gives a list, and a path
+  through two lists (`Events.Venues.City`) one flat list. Only database fields, relations, `get<Name>()`
+  getters, methods in `casting` and methods in `schema_allowed_methods` are read: anything else (`delete`, a
+  typo) is not called and shows up as a warning;
 - `{ literal: value }`: the value as written;
 - `{ ref: organization }`: a reference to a site node (`organization`, `website`) or to a node of the page view
   (`webpage`, `breadcrumb`, `itemlist`); a full URL is used as it is;
 - `{ date: DateField, time: TimeField }`: one ISO 8601 value with the offset of `seo_schema_timezone` on that
   date (so daylight saving time is right); without a time, just the date;
+- `{ html: Field }`: the field's HTML reduced to `p`, `br`, `ul`, `ol`, `li`, `strong`, `em` and `h2` to `h4`,
+  without attributes (for a JobPosting description);
 - a nested map, with its own `@type` and optionally `from: Relation` to read from another record (a list gives
   a list of nodes);
 - a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
 
-Values are converted for JSON: Date fields as `2027-01-05`, Datetime fields with the offset, HTML as plain text,
+Values are converted for JSON: Date fields as `2027-01-05`; Datetime fields, which Silverstripe stores in PHP's
+default timezone, as that moment in `seo_schema_timezone`; HTML as plain text,
 images as an ImageObject (only public, published images, as for the sharing image), a related record that is a
 source itself as its own node. Empty values are left out. In YAML a project can drop an inherited property by
 setting it to `null`.
@@ -372,13 +401,17 @@ NewsArticle, BlogPosting), Place, PostalAddress, GeoCoordinates and ImageObject.
 
 A node that lacks a required property is **not output**, and references to it are removed; that can make
 another node incomplete in turn (a JobPosting whose organisation was not output), which is then left out too.
-Each skipped node is logged at debug level. `$page->getSchemaWarnings()` lists every missing required and
-recommended property, and the page editor shows them, with the JSON the page would output, under
+Each skipped node is logged at debug level. A requirement can name alternatives: `jobLocation |
+applicantLocationRequirements & jobLocationType` is met by a location, or by both properties of a remote job.
+
+`$page->getSchemaWarnings()` lists, per finding, a `code`: `missing-required` (the node was left out),
+`missing-recommended`, `method-not-allowed` (a map names something it may not call) and `type-not-registered`.
+The page editor shows them, with the JSON the page would output (in the site's locale), under
 **Search engines and sharing > Structured data**.
 
-A type the registry does not know requires nothing, so its nodes are always output. When you use a more
-specific type (a LocalBusiness subtype such as `Store`, say), register it with its `parent` so the parent's
-requirements apply. Projects add types or properties:
+A type the registry does not know requires nothing, so its nodes are output, with a `type-not-registered`
+warning. When you use a more specific type (a LocalBusiness subtype such as `Store`, say), register it with its
+`parent` so the parent's requirements apply. Projects add types or properties:
 
 ```yml
 Restruct\Silverstripe\SEO\Schema\SchemaTypeRegistry:
@@ -405,6 +438,7 @@ Called on the page (implement them in an `Extension` applied to `SiteTree` or a 
 | `updateSeoImageFallback(?Image &$image)` | supply a sharing image when the page has none (a hero image, say) |
 | `updateSeoMetaComponents(array &$tags)` | change any head tag this module produced, just before output (structured data is `structured-data`) |
 | `updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)` | add or change structured-data nodes, before incomplete ones are left out |
+| `updateSeoSchemaLocale(string &$locale)` | set the content locale of the structured data (`inLanguage`), for a translation module |
 
 Called on a structured-data source record: `updateSchemaData(array &$node, SchemaContext $ctx)`, once per node.
 

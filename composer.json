@@ -1,6 +1,6 @@
 {
     "name": "restruct/silverstripe-seo",
-    "description": "SEO essentials for Silverstripe CMS 6: meta title, description fallback, robots (meta + X-Robots-Tag), canonical (tag + Link header), Open Graph with fallbacks, and a sitemap bridge.",
+    "description": "SEO essentials for Silverstripe CMS 6: meta title, description fallback, robots (meta + X-Robots-Tag), canonical (tag + Link header), Open Graph with fallbacks, a sitemap bridge, and structured data (JSON-LD).",
     "type": "silverstripe-vendormodule",
     "license": "MIT",
     "keywords": [
