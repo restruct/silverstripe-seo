@@ -9,6 +9,7 @@ use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Security;
+use SilverStripe\Versioned\Versioned;
 
 /**
  * A save that only changed blocks does not write the page, so the page's own onAfterWrite never marks the
@@ -30,6 +31,13 @@ class BlockSaveStaleTest extends ChecksTestCase
             static::markTestSkipped('dnadesign/silverstripe-elemental is not installed');
         }
         parent::setUpBeforeClass();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        # Elemental creates a page's area only when the page is written in the draft stage, as the CMS does
+        Versioned::set_stage(Versioned::DRAFT);
     }
 
     protected function tearDown(): void
