@@ -303,6 +303,19 @@ class StructuredDataOutputTest extends FunctionalTest
         $this->assertFalse($required[0]['emitted']);
     }
 
+    public function testTheItemListBecomesTheMainEntityWhenThePageNodeIsLeftOut(): void
+    {
+        Config::modify()->set(SchemaTestJobPage::class, 'schema_item_list', 'Children');
+        # No datePosted: the page's own JobPosting is left out
+        $job = $this->publish(SchemaTestJobPage::create(['Title' => 'Welder', 'URLSegment' => 'welder', 'Content' => '<p>Join us.</p>']));
+        $this->publish(SeoTestPage::create(['Title' => 'Shifts', 'URLSegment' => 'shifts', 'ParentID' => $job->ID]));
+
+        $url = Director::absoluteURL('/welder');
+        $graph = $this->graph('welder');
+        $this->assertSame([], $this->nodesOfType($graph, 'JobPosting'));
+        $this->assertSame(['@id' => $url . '#itemlist'], $graph[$url . '#webpage']['mainEntity'] ?? null);
+    }
+
     public function testWithoutAnOrganizationAJobPostingIsIncompleteToo(): void
     {
         $config = SiteConfig::current_site_config();
