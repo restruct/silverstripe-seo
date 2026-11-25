@@ -181,6 +181,29 @@ class SeoHeadOutputTest extends FunctionalTest
         $this->assertSame('<' . $canonical . '>; rel="canonical"', $response->getHeader('Link'));
     }
 
+    public function testCanonicalKeepsEverySegmentOfAUrlHandler(): void
+    {
+        # archive/$Year!/$Month/$Day: four segments, one more than Action/ID/OtherID can hold
+        $this->publishedPage();
+        $response = $this->get('about-us/archive/2024/05/12?utm_source=mail');
+        $head = $this->head($response);
+
+        $canonical = Director::absoluteURL('/about-us/archive/2024/05/12');
+        $this->assertStringContainsString('<link rel="canonical" href="' . $canonical . '">', $head);
+        $this->assertSame('<' . $canonical . '>; rel="canonical"', $response->getHeader('Link'));
+    }
+
+    public function testCanonicalLowercasesTheActionSegment(): void
+    {
+        # Actions match case-insensitively, so /about-us/DETAIL renders the same page as /about-us/detail
+        $this->publishedPage();
+        $head = $this->head($this->get('about-us/DETAIL'));
+        $this->assertStringContainsString(
+            '<link rel="canonical" href="' . Director::absoluteURL('/about-us/detail') . '">',
+            $head
+        );
+    }
+
     public function testHomepageActionCanonicalKeepsTheHomeSegment(): void
     {
         # The homepage's own link is the site root, but an action on it lives at /home/<action>; core's

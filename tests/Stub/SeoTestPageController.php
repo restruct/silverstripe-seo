@@ -18,6 +18,16 @@ class SeoTestPageController extends ContentController implements TestOnly
         'download',
         'item',
         'subjectitem',
+        'archive',
+    ];
+
+    /**
+     * A url_handler with more segments than core's \$Action/\$ID/\$OtherID, as a blog archive has: the canonical
+     * must keep all of them. The default handler still applies to the other actions (url_handlers are read per
+     * class, this one first).
+     */
+    private static array $url_handlers = [
+        'archive/$Year!/$Month/$Day' => 'archive',
     ];
 
     /**
@@ -37,6 +47,14 @@ class SeoTestPageController extends ContentController implements TestOnly
         $response = HTTPResponse::create('file body', 200);
         $response->addHeader('Content-Type', 'text/plain');
         return $response;
+    }
+
+    /**
+     * The action behind the archive url_handler, rendered with the page template.
+     */
+    public function archive()
+    {
+        return $this;
     }
 
     /**
