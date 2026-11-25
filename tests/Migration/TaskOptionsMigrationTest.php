@@ -22,8 +22,8 @@ class TaskOptionsMigrationTest extends SeoMigrationTestCase
             new InputDefinition($task->getOptions())
         );
         $buffer = new BufferedOutput();
-        # The browser run of a task (dev/tasks) writes HTML
-        $output = new PolyOutput(PolyOutput::FORMAT_HTML, wrappedOutput: $buffer);
+        # The browser run of a task writes decorated HTML, as TaskRunner and PolyCommandController construct it
+        $output = new PolyOutput(PolyOutput::FORMAT_HTML, decorated: true, wrappedOutput: $buffer);
 
         $this->assertSame(Command::INVALID, $task->run($input, $output));
         $html = $buffer->fetch();
