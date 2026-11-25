@@ -47,6 +47,14 @@ class SchemaTypeRegistry
                 'url', 'logo', 'description', 'address', 'telephone', 'email', 'sameAs', 'legalName', 'contactPoint',
             ],
         ],
+        # schema.org subtypes, so the organisation's name stays required when a site picks a more specific type
+        'Corporation' => ['parent' => 'Organization'],
+        'EducationalOrganization' => ['parent' => 'Organization'],
+        'CollegeOrUniversity' => ['parent' => 'EducationalOrganization'],
+        'School' => ['parent' => 'EducationalOrganization'],
+        'GovernmentOrganization' => ['parent' => 'Organization'],
+        'NGO' => ['parent' => 'Organization'],
+        'OnlineBusiness' => ['parent' => 'Organization'],
         # local-business
         'LocalBusiness' => [
             'parent' => 'Organization',
