@@ -18,6 +18,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Throwable;
 
 /**
  * Copies another SEO module's data into this module's columns: `sake tasks:seo-migrate --source=<name>`.
@@ -96,8 +97,17 @@ class MigrateFromSeoModuleTask extends BuildTask
         $output->writeln('');
 
         if ($apply) {
-            # All or nothing: an error halfway rolls back what was written before it
-            DB::get_conn()->withTransaction(fn () => $mapper->migrate($run));
+            # All or nothing: an error halfway rolls back what was written before it. Not withTransaction(),
+            # which catches only Exception: an Error (a TypeError in a mapper) would leave the transaction open
+            $db = DB::get_conn();
+            $db->transactionStart();
+            try {
+                $mapper->migrate($run);
+            } catch (Throwable $error) {
+                $db->transactionRollback();
+                throw $error;
+            }
+            $db->transactionEnd();
         } else {
             $mapper->migrate($run);
         }
