@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-25
+
 ### Added
 
 - Meta title (`MetaTitle`, shared with kinglozzer/metatitle and the older liveseo module) with a configurable
