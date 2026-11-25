@@ -6,6 +6,8 @@ use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use Restruct\Silverstripe\SEO\Tasks\SeoCheckSiteTask;
 use Restruct\Silverstripe\SEO\Tests\Checks\ChecksTestCase;
+use Restruct\Silverstripe\SEO\Tests\Stub\Report\SeoThrowingTestCheckRunner;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Security\Security;
@@ -79,6 +81,46 @@ class SiteCheckTaskTest extends ChecksTestCase
         # Without --only-stale a fresh result is checked again
         $this->runTask([]);
         $this->assertSame('2026-11-25 12:00:00', SeoCheckResult::forPage($fresh)->CheckedAt);
+    }
+
+    public function testTheTaskDoesNotRunInTheBrowser(): void
+    {
+        # It renders every page in one request: the CLI only
+        $this->assertFalse(SeoCheckSiteTask::canRunInBrowser());
+    }
+
+    public function testFailedPagesDoNotCountTowardsTheLimit(): void
+    {
+        $this->page();
+        $this->page();
+        $this->page();
+        Injector::inst()->registerService(new SeoThrowingTestCheckRunner(), CheckRunner::class);
+        try {
+            $output = $this->runTask(['--limit' => '1'], Command::FAILURE);
+        } finally {
+            Injector::inst()->unregisterNamedObject(CheckRunner::class);
+        }
+        $this->assertStringContainsString('3 failed', $output);
+        $this->assertStringNotContainsString('left', $output);
+    }
+
+    public function testFromIdStartsAtThatPage(): void
+    {
+        $first = $this->page();
+        $second = $this->page();
+        $third = $this->page();
+        $output = $this->runTask(['--from-id' => (string) $second->ID]);
+        $this->assertNull(SeoCheckResult::forPage($first));
+        $this->assertNotNull(SeoCheckResult::forPage($second));
+        $this->assertNotNull(SeoCheckResult::forPage($third));
+        $this->assertStringContainsString('2 checked', $output);
+    }
+
+    public function testAnInvalidFromIdIsRefused(): void
+    {
+        $this->page();
+        $output = $this->runTask(['--from-id' => 'x'], Command::INVALID);
+        $this->assertStringContainsString('--from-id', $output);
     }
 
     public function testAnInvalidLimitIsRefused(): void
