@@ -63,12 +63,13 @@ class SeoChecksField extends FormField
     }
 
     /**
-     * Whether the browser should ask for a fresh check: there is none yet, or the page was saved since.
+     * Whether the browser should ask for a fresh check: there is none yet, or it is out of date
+     * ({@see SeoCheckResult::isStale()}).
      */
     public function getStale(): bool
     {
         $result = $this->getResult();
-        return !$result || $result->Stale;
+        return !$result || $result->isStale();
     }
 
     public function getHasResult(): bool

@@ -90,6 +90,43 @@ class SeoCheckResult extends DataObject
     }
 
     /**
+     * Out of date: flagged on a save of the page or one of its blocks, or older than the last change of the page
+     * or of a block in its Elemental areas (for writes that bypassed the hooks, a query or an import). At most
+     * two small queries.
+     */
+    public function isStale(): bool
+    {
+        if ($this->Stale) {
+            return true;
+        }
+        $checkedAt = (string) $this->CheckedAt;
+        $page = Versioned::get_by_stage(SiteTree::class, $this->Stage ?: Versioned::DRAFT)->byID((int) $this->PageID);
+        if (!$page) {
+            return true;
+        }
+        if ((string) $page->LastEdited > $checkedAt) {
+            return true;
+        }
+        $element = 'DNADesign\\Elemental\\Models\\BaseElement';
+        if (class_exists($element) && $page->hasMethod('getElementalRelations')) {
+            $areaIDs = array_values(array_filter(array_map(
+                fn ($relation) => (int) $page->getField($relation . 'ID'),
+                (array) $page->getElementalRelations()
+            )));
+            if ($areaIDs) {
+                $latest = Versioned::withVersionedMode(function () use ($element, $areaIDs) {
+                    Versioned::set_stage($this->Stage ?: Versioned::DRAFT);
+                    return $element::get()->filter('ParentID', $areaIDs)->max('LastEdited');
+                });
+                if ($latest && (string) $latest > $checkedAt) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Mark the entries the editors ignored for this page, with who did it and when.
      *
      * @param array<string, array> $entries

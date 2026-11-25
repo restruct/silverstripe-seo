@@ -8,6 +8,23 @@ SilverStripe\CMS\Model\SiteTree:
   extensions:
     seo-checks: Restruct\Silverstripe\SEO\Extensions\SeoChecksExtension
 
+---
+Name: restruct-seo-checks-elemental
+After:
+  - '#restruct-seo-checks'
+Only:
+  moduleexists: dnadesign/silverstripe-elemental
+---
+# A save that only changed blocks does not write the page: blocks mark the page's results stale themselves
+DNADesign\Elemental\Models\BaseElement:
+  extensions:
+    seo-checks-stale: Restruct\Silverstripe\SEO\Extensions\SeoElementStaleExtension
+
+---
+Name: restruct-seo-checks-catalogue
+After:
+  - '#restruct-seo-checks'
+---
 # The catalogue, keyed by id (the id is also the name of the spec in docs/checks/<id>.md). A project disables a
 # check with `<id>: { enabled: false }`, or adds its own with `<id>: { class: App\Seo\MyCheck }`. Thresholds are
 # config of each check class. Check 22 of the design (focus keyword) was dropped; see docs/dropped-checks.md
