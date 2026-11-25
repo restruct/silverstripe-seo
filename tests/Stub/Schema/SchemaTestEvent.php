@@ -58,6 +58,11 @@ class SchemaTestEvent extends DataObject implements TestOnly
 
     private static string $schema_type = 'Event';
 
+    # A map may call only fields, relations, getters, cast methods and the methods listed here
+    private static array $schema_allowed_methods = [
+        'AbsoluteLink',
+    ];
+
     private static array $schema_map = [
         'name' => 'Title',
         'description' => 'Description',

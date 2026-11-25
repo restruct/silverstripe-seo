@@ -2,6 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Tests\Schema;
 
+use Restruct\Silverstripe\SEO\Schema\PageSchema;
 use Restruct\Silverstripe\SEO\Schema\SchemaContext;
 use Restruct\Silverstripe\SEO\Schema\SchemaMapper;
 use Restruct\Silverstripe\SEO\Tests\SeoTestImages;
@@ -19,6 +20,7 @@ use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\Assets\Dev\TestAssetStore;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
+use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\SapphireTest;
 
 /**
@@ -147,6 +149,42 @@ class SchemaSourceTest extends SapphireTest
         $this->assertSame('Hello there', $mapper->resolve($item, 'Tagline'));
         # A method cast as HTMLText is HTML, so it becomes plain text with its entities decoded
         $this->assertSame('Fish & chips', $mapper->resolve($item, 'Teaser'));
+    }
+
+    public function testOnlyFieldsRelationsGettersAndDeclaredMethodsAreCalled(): void
+    {
+        $event = $this->event();
+        $mapper = $this->mapper();
+
+        # A YAML typo or a hostile map must not run arbitrary methods
+        $this->assertNull($mapper->resolve($event, 'delete'));
+        $this->assertNotNull(SchemaTestEvent::get()->byID($event->ID), 'delete() was not called');
+        $this->assertNull($mapper->resolve($event, 'Holder.delete'));
+        $this->assertNotNull(SiteTree::get()->byID($this->holder->ID), 'not on a related record either');
+
+        $notices = $mapper->getNotices();
+        $this->assertSame(['delete', 'delete'], array_column($notices, 'property'));
+        $this->assertSame('method-not-allowed', $notices[0]['code']);
+
+        # What is allowed: a method listed in schema_allowed_methods, a cast method, a getter, a relation
+        $this->assertSame(Director::absoluteURL('/events/event/' . $event->ID), $mapper->resolve($event, 'AbsoluteLink'));
+        $item = SchemaTestGetterItem::create(['Title' => 'Plain']);
+        $item->write();
+        $this->assertSame('Fish & chips', $mapper->resolve($item, 'Teaser'));
+        $this->assertSame('Hello there', $mapper->resolve($item, 'Tagline'));
+        $this->assertSame('Events', $mapper->resolve($event, 'Holder.Title'));
+    }
+
+    public function testAMethodThatIsNotAllowedIsAWarning(): void
+    {
+        $event = $this->event();
+        Config::modify()->merge(SchemaTestEvent::class, 'schema_map', ['keywords' => 'delete']);
+        $warnings = PageSchema::create($this->holder, $event)->getWarnings();
+
+        $notices = array_values(array_filter($warnings, fn ($w) => ($w['code'] ?? null) === 'method-not-allowed'));
+        $this->assertCount(1, $notices);
+        $this->assertSame('delete', $notices[0]['property']);
+        $this->assertNotNull(SchemaTestEvent::get()->byID($event->ID));
     }
 
     public function testEmptyValuesAreLeftOut(): void
