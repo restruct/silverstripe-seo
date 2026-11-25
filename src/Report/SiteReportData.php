@@ -22,10 +22,10 @@ use SilverStripe\Versioned\Versioned;
  * rendered here; {@see SiteCheck} and the page editor's panel fill the results).
  *
  * Listed: the draft pages {@see PageEligibility} allows for 'seo' that the viewer may view (the draft, or the
- * published version when the viewer may not view drafts). Which checks fail on a page, and the link to edit it,
- * only for pages the viewer may edit; a viewer who may only view a page sees its counts. Counts never include
- * an ignored check. No score: counts per severity, and in the summary the share of indexable pages without
- * problems.
+ * published version, with its published title, when the viewer may not view drafts). Which checks fail on a
+ * page, and the link to edit it, only for pages the viewer may edit; a viewer who may only view a page sees its
+ * counts. Counts never include an ignored check. No score: counts per severity, and in the summary the share of
+ * indexable pages without problems.
  */
 class SiteReportData
 {
@@ -188,7 +188,11 @@ class SiteReportData
             Versioned::set_stage(Versioned::DRAFT);
             $site = SiteData::create();
             foreach (SiteTree::get()->sort('ID') as $page) {
-                if (!$eligibility->isEligible($page, 'seo') || !$this->canView($page)) {
+                if (!$eligibility->isEligible($page, 'seo')) {
+                    continue;
+                }
+                $title = $this->visibleTitle($page);
+                if ($title === null) {
                     continue;
                 }
                 $details = (bool) $page->canEdit($this->viewer);
@@ -201,7 +205,7 @@ class SiteReportData
                     'details' => $details,
                     'row' => [
                         'ID' => (int) $page->ID,
-                        'Title' => (string) $page->Title,
+                        'Title' => $title,
                         'ClassName' => get_class($page),
                         'PageType' => (string) $page->i18n_singular_name(),
                         'Indexable' => $indexable,
@@ -224,15 +228,20 @@ class SiteReportData
     }
 
     /**
-     * Whether the viewer may see the page: its draft, else its published version (a viewer without draft rights
-     * still sees published pages that have unpublished changes).
+     * The title the viewer may see, or null when the viewer may not see the page: the draft's title when the
+     * viewer may view the draft, else the published title (a viewer without draft rights still sees published
+     * pages that have unpublished changes, but not their unpublished title).
      */
-    protected function canView(SiteTree $draft): bool
+    protected function visibleTitle(SiteTree $draft): ?string
     {
         if ($draft->canView($this->viewer)) {
-            return true;
+            return (string) $draft->Title;
         }
-        return $draft->isPublished() && $draft->canViewStage(Versioned::LIVE, $this->viewer);
+        if (!$draft->isPublished()) {
+            return null;
+        }
+        $live = Versioned::get_by_stage(SiteTree::class, Versioned::LIVE)->byID((int) $draft->ID);
+        return $live && $live->canView($this->viewer) ? (string) $live->Title : null;
     }
 
     /**
