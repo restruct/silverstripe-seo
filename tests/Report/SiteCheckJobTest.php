@@ -8,6 +8,9 @@ use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use Restruct\Silverstripe\SEO\Report\SiteCheck;
 use Restruct\Silverstripe\SEO\Tests\Checks\ChecksTestCase;
 use Restruct\Silverstripe\SEO\Tests\Stub\Report\SeoRenderSpyTestCheck;
+use Restruct\Silverstripe\SEO\Tests\Stub\Report\SeoThrowingTestCheckRunner;
+use ReflectionProperty;
+use SilverStripe\Core\Injector\Injector;
 use RuntimeException;
 use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\ORM\FieldType\DBDatetime;
@@ -146,6 +149,49 @@ class SiteCheckJobTest extends ChecksTestCase
         # Everything is put back afterwards
         $this->assertTrue(Versioned::get_draft_site_secured(), 'drafts are secured again');
         $this->assertSame($admin->ID, Security::getCurrentUser()?->ID);
+    }
+
+    /**
+     * Versioned's raw draft-security static: null means "from config", which get_draft_site_secured() hides.
+     */
+    protected function draftSecuredStatic(): ReflectionProperty
+    {
+        return new ReflectionProperty(Versioned::class, 'is_draft_site_secured');
+    }
+
+    public function testTheRawDraftSecuritySettingIsPutBack(): void
+    {
+        $page = $this->page();
+        $static = $this->draftSecuredStatic();
+        $before = $static->getValue();
+        try {
+            $static->setValue(null, null);
+            $this->assertSame(SiteCheck::CHECKED, SiteCheck::singleton()->checkPage($page->ID, false, null));
+            $this->assertNull($static->getValue(), 'still "from config", not pinned to the resolved value');
+
+            $static->setValue(null, false);
+            SiteCheck::singleton()->checkPage($page->ID, false, null);
+            $this->assertFalse($static->getValue());
+        } finally {
+            $static->setValue(null, $before);
+        }
+    }
+
+    public function testTheDraftSecuritySettingIsPutBackWhenTheCheckThrows(): void
+    {
+        $page = $this->page();
+        $static = $this->draftSecuredStatic();
+        $before = $static->getValue();
+        Injector::inst()->registerService(new SeoThrowingTestCheckRunner(), CheckRunner::class);
+        try {
+            $static->setValue(null, null);
+            $this->assertSame(SiteCheck::FAILED, SiteCheck::singleton()->checkPage($page->ID, false, null));
+            $this->assertNull($static->getValue());
+            $this->assertTrue(Versioned::get_draft_site_secured());
+        } finally {
+            Injector::inst()->unregisterNamedObject(CheckRunner::class);
+            $static->setValue(null, $before);
+        }
     }
 
     public function testAPageVisitorsMayNotSeeIsNotStored(): void
