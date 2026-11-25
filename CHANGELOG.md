@@ -6,6 +6,17 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `MigrateFromSeoModuleTask` (`sake tasks:seo-migrate --source=<name>`): copies data from another SEO module,
+  with one mapper per source behind `SeoMigrationMapper`: `liveseo` (the older liveseo module, including its
+  StructuredData organisation logo and profiles), `hubertusanton`, `plasticstudio` (and the forks sharing its
+  schema), `simpleseo` (with kinglozzer/metatitle; canonical links resolved per stage) and `jellygnite`.
+  A dry run unless `--apply`; filled-in values are kept unless `--overwrite`; a report line per column and
+  stage. Draft and live tables are written separately, nothing is published, old columns are never changed,
+  and columns in an `_obsolete_` table are found too. A project registers its own mapper in
+  `MigrateFromSeoModuleTask.mappers`.
+
 ## [0.2.0] - 2026-11-25
 
 ### Added

@@ -445,31 +445,134 @@ Called on a structured-data source record: `updateSchemaData(array &$node, Schem
 The module itself uses core's `updateMetaComponents` hook. On SS6 the old `MetaTags` / `MetaComponents` extension
 method names are no longer called, so a module still using them outputs nothing, silently.
 
-## Migrating from other SEO modules
+## Migrating from another SEO module
 
 Columns were named to coincide with what other modules store, so the most common data is picked up by
-`db:build` without any copying:
+`db:build` without any copying (`MetaTitle` is shared by kinglozzer/metatitle and the older liveseo module).
+The rest is copied by a task, with one mapper per source module:
 
-| Source module | Column | Here |
-|---|---|---|
-| kinglozzer/metatitle (also used by bigfork/silverstripe-simpleseo) | `MetaTitle` | `MetaTitle` (same column) |
-| silverstripe-liveseo (older restruct module) | `MetaTitle` | `MetaTitle` (same column) |
-| silverstripe-liveseo | `MetaRobotsNoIndex`, `MetaRobotsNoFollow`, `MetaRobotsNoSnippet` | same columns |
-| silverstripe-liveseo | `MetaRobotsNoCache` | same column, output as `noarchive` |
-| silverstripe-liveseo | `SEOFBdescription` | same column, the sharing description |
-| hubertusanton/silverstripe-seo | `SEOSocialImageID` (has_one `SEOSocialImage`) | `OGImageID`: needs a copy, by the migration task (planned) |
+```bash
+vendor/bin/sake tasks:seo-migrate --source=hubertusanton            # dry run: reports, writes nothing
+vendor/bin/sake tasks:seo-migrate --source=hubertusanton --apply    # writes
+```
+
+Sources: `liveseo`, `hubertusanton`, `plasticstudio`, `simpleseo`, `jellygnite`. Options:
+
+- `--apply` writes, in one transaction; without it the task is a dry run (`--dry-run` says so explicitly).
+- `--overwrite` replaces values already filled in here. Without it, a filled-in value is never changed: it is
+  counted as a conflict and kept.
+
+The report has one line per column and stage: rows read, copied, already the same, conflicts, and invalid
+(a value that cannot be used here, such as an image that no longer exists or a malformed URL). Columns without
+a home here are listed with the number of rows that have a value and, where there is one, what to do instead.
+Old columns that are not in the database are skipped with a notice.
+
+How it writes:
+
+- **Per stage.** Pages are versioned. The draft table gets the old draft value and the `_Live` table the old
+  live value, with plain SQL. Nothing is published and no new version is written, so a page with unpublished
+  changes keeps them unpublished, and a published page does not show up as modified. The page history is not
+  changed: rolling a page back to a version from before the migration gives that version's empty column.
+- **Idempotent.** A target that already holds the same value counts as "already same", so a second run copies
+  nothing.
+- **Old data is left alone.** Old columns and tables are read, never changed or dropped. When `db:build` has
+  renamed an old table to `_obsolete_<table>` (it does so once no class gives the table a field any more, e.g.
+  `Page` after removing a module that extended `Page`), the task reads from that table instead.
+- Writing with plain SQL bypasses caches: flush, and regenerate a static cache, after applying.
+
+### Recommended order
+
+1. `composer require restruct/silverstripe-seo` with the old module still installed, then
+   `vendor/bin/sake db:build --flush`.
+2. Dry run: `vendor/bin/sake tasks:seo-migrate --source=<name>`. Read the report: conflicts, invalid values,
+   and the columns without a home.
+3. Apply: the same with `--apply`. A second run should copy nothing.
+4. Check some pages: the head output, and the fields under **Search engines and sharing**.
+5. `composer remove` the old module, then `vendor/bin/sake db:build --flush`. Its columns stay in the database;
+   drop them by hand once you no longer need them.
+
+### Per source module
+
+**The older liveseo module** (`--source=liveseo`):
+
+| Old column | Here |
+|---|---|
+| `MetaTitle`, `MetaRobotsNoIndex`, `MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `SEOFBdescription` | same columns, nothing to copy |
+| `MetaRobotsNoCache` | same column, output as `noarchive` |
+| `MetaKeywords`, `SEOPageSubject`, `SEOPageScore` | dropped |
+| `SEOFBPublisherlink`, `SEOFBAuthorlink`, `SEOGplusAuthorlink`, `SEOGplusPublisherlink` | dropped |
+| SiteConfig `SEOTitleTemplate` | dropped: the title is the meta title, the separator and `SeoTitleSuffix` or the site name |
+| StructuredData tables | reported: rows per type and the number of pages they are attached to |
+| the site organisation's first `logo` | SiteConfig `SeoLogoID` |
+| the site organisation's `sameAs` (MultiValueField, serialised PHP or JSON) | SiteConfig `SeoSameAs`, one URL per line |
+| the organisation's `name` | reported next to SiteConfig `Title`, which the Organization node uses |
+| `telephone`, `faxNumber`, `email`, `address`, `contactPoint`, `department`, `location` | reported: no fields here; add your own and map them in SiteConfig's `schema_map` |
+| `Rating`, `AggregateRating` | dropped |
+
+The site organisation is the one Organization or LocalBusiness that is not a department or location of another.
+With more than one, or with more than one SiteConfig row (subsites), nothing is copied and the task says so.
+**Check the page source first:** a site's live Organization JSON-LD may come from a hard-coded template rather
+than from these tables.
+
+**hubertusanton/silverstripe-seo** (`--source=hubertusanton`, columns on `Page`):
+
+| Old column | Here |
+|---|---|
+| `SEOSocialImageID` (has_one `SEOSocialImage`) | `OGImageID` |
+| `SEOHideSocialData` | reported: no per-page switch; `seo_output_open_graph: false` turns Open Graph off site-wide |
+| `SEOPageSubject`, `SEOSocialType` | dropped |
+| SiteConfig `GoogleWebmasterMetaTag` | reported: put the verification tag in the template, or verify through DNS |
+
+**plasticstudio/silverstripe-seo** (`--source=plasticstudio`, columns on `Page`; also for
+cyber-duck/silverstripe-seo and its forks, which share the schema):
+
+| Old column | Here |
+|---|---|
+| `MetaTitle` | `MetaTitle` (a value over 255 characters is reported as invalid) |
+| `Canonical` | `CanonicalURL` |
+| `Robots` (`noindex,nofollow`, `none`, ...) | `MetaRobotsNoIndex`, `MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache` (`noarchive`); a flag is only ever set, never cleared |
+| `SocialImageID` | `OGImageID` |
+| `Priority`, `ChangeFrequency` | reported: wilr/silverstripe-googlesitemaps has its own |
+| `SitemapHide`, `XMLSitemapHide`, `HideSocial`, `OGtype`, `TwitterCard`, `ManualSchema`, `SeoHeadTag` rows | reported, with what to use instead |
+| `OGlocale`, `MetaTitleLastEdited`, `MetaDescriptionLastEdited` | dropped |
+| SiteConfig `DefaultSocialImageID` | `SeoDefaultImageID` |
+| SiteConfig `SchemaOrganisationImageID` | `SeoLogoID` |
+| SiteConfig `SchemaOrganisationName`, address fields, `Phone` | reported |
+| SiteConfig `OGSiteName`, `TwitterHandle`, `CreatorTwitterHandle`, `FacebookAppID`, `UseTitleAsMetaTitle` | dropped |
+
+It has no Open Graph or Twitter text columns, so the sharing description falls back to the meta description.
+
+**bigfork/silverstripe-simpleseo** with kinglozzer/metatitle (`--source=simpleseo`):
+
+| Old column | Here |
+|---|---|
+| `MetaTitle` | same column, nothing to copy |
+| `CanonicalLinkID` (a silverstripe/linkfield Link) | `CanonicalURL`, resolved per stage: a page link root-relative (with its query string and anchor), a file's URL, an external URL as entered; a link to the page itself is the default already; email and phone links are invalid |
+| `ExtraMeta` | core's own field, nothing to do |
+
+Page and file links are stored root-relative on purpose, so they do not carry the host name of wherever the task
+ran; the module makes them absolute on output. The Link tables must still exist (silverstripe/linkfield
+installed, or its tables left in place).
+
+**jellygnite/silverstripe-seo** (`--source=jellygnite`, a Silverstripe 5 module, columns on `Page`):
+
+| Old column | Here |
+|---|---|
+| `MetaTitle`, `CanonicalURL` | the same names on `SiteTree` |
+| `FacebookPageDescription`, else `TwitterPageDescription` | `SEOFBdescription` |
+| `FacebookPageImageID`, else `TwitterPageImageID` | `OGImageID` |
+| `FacebookPageTitle`, `TwitterPageTitle`, `FacebookPageType` | reported: og:title is the meta title here |
+| `FocusKeyword`, `CreatorID` | dropped |
+| SiteConfig tracking fields, `TwitterAccountName` | reported or dropped |
+
+A project can add a mapper for another module: implement `SeoMigrationMapper` and register it under a source
+name in `Restruct\Silverstripe\SEO\Tasks\MigrateFromSeoModuleTask.mappers`.
 
 **kinglozzer/metatitle** can stay installed while migrating: it adds a `MetaTitle` field of its own on the same
 column, and this module then adds none (see `seo_meta_title_field_providers`, which lists that module's
 extension by default). Its own `updateMetaTags` rewrites `<title>` from its `title_format` setting, though, so
 with it installed `$MetaTags` prints that format rather than `$SeoTitle`. Use `$MetaTags(false)` with
 `<title>$SeoTitle</title>`, or remove the module once the column is in use here.
-
-Columns without a new home (meta keywords, page subject and score, Google+ and Facebook author or publisher links,
-title templates) are left untouched in the database. A migration task with one mapper per source module, dry-run
-by default, is planned; until then, copy columns by hand where needed.
-
-<!-- Placeholder: per-module migration instructions follow with the migration task. -->
 
 ## Development
 
