@@ -22,6 +22,7 @@ use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HeaderField;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyTransformation;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
@@ -340,9 +341,59 @@ class SeoSiteTreeExtension extends Extension
             $metadata->insertBefore('ExtraMeta', $field);
         }
 
+        # Read-only, after everything editable: what the page would output as structured data. Not before the
+        # first save, when the page has no URL to build ids on
+        if ($page->isInDB() && $page->config()->get('seo_output_structured_data')) {
+            $metadata->push(HeaderField::create(
+                'SeoSchemaHeader',
+                _t(__CLASS__ . '.SchemaHeader', 'Structured data'),
+                4
+            ));
+            $metadata->push(LiteralField::create('SeoSchemaPreview', $this->schemaPreviewHtml()));
+        }
+
         if ($page instanceof VirtualPage) {
             $this->makeVirtualFieldsReadonly($page, $fields);
         }
+    }
+
+    /**
+     * The graph as pretty-printed JSON and the registry's warnings, all escaped. A failure while building it
+     * (a project's provideSchemaData throwing, say) is shown instead of breaking the edit form.
+     */
+    protected function schemaPreviewHtml(): string
+    {
+        try {
+            $schema = PageSchema::create($this->getOwner());
+            $json = $schema->getGraph()->toJson(JSON_PRETTY_PRINT);
+            $warnings = $schema->getWarnings();
+        } catch (\Throwable $e) {
+            return '<p class="alert alert-danger">' . Convert::raw2xml(_t(
+                __CLASS__ . '.SchemaPreviewFailed',
+                'The structured data could not be built: {message}',
+                ['message' => $e->getMessage()]
+            )) . '</p>';
+        }
+
+        $html = '<p class="form__field-description">' . Convert::raw2xml(_t(
+            __CLASS__ . '.SchemaPreviewHelp',
+            'What search engines get from this page as structured data, after the last save. Built from the page and the records it shows; nodes that miss required information are left out.'
+        )) . '</p>';
+
+        $required = array_filter($warnings, fn (array $w) => $w['severity'] === 'required');
+        $recommended = array_filter($warnings, fn (array $w) => $w['severity'] !== 'required');
+        foreach ([[$required, 'alert-warning'], [$recommended, 'alert-info']] as [$list, $class]) {
+            if ($list) {
+                $html .= '<ul class="alert ' . $class . '">';
+                foreach ($list as $warning) {
+                    $html .= '<li>' . Convert::raw2xml($warning['message']) . '</li>';
+                }
+                $html .= '</ul>';
+            }
+        }
+
+        return $html . '<pre class="seo-schema-preview" style="max-height:30em;overflow:auto;white-space:pre-wrap">'
+            . Convert::raw2xml($json) . '</pre>';
     }
 
     /**
