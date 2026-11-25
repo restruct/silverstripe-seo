@@ -8,6 +8,7 @@ use Restruct\Silverstripe\SEO\Tasks\SeoCheckSiteTask;
 use Restruct\Silverstripe\SEO\Tests\Checks\ChecksTestCase;
 use Restruct\Silverstripe\SEO\Tests\Stub\Report\SeoThrowingTestCheckRunner;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Core\Kernel;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Security\Security;
@@ -85,8 +86,17 @@ class SiteCheckTaskTest extends ChecksTestCase
 
     public function testTheTaskDoesNotRunInTheBrowser(): void
     {
-        # It renders every page in one request: the CLI only
-        $this->assertFalse(SeoCheckSiteTask::canRunInBrowser());
+        # It renders every page in one request: the CLI only. In dev mode core lets every task run in the
+        # browser, so the check is made as on a live site
+        $this->assertFalse(SeoCheckSiteTask::config()->get('can_run_in_browser'));
+        $kernel = Injector::inst()->get(Kernel::class);
+        $environment = $kernel->getEnvironment();
+        $kernel->setEnvironment(Kernel::LIVE);
+        try {
+            $this->assertFalse(SeoCheckSiteTask::canRunInBrowser());
+        } finally {
+            $kernel->setEnvironment($environment);
+        }
     }
 
     public function testFailedPagesDoNotCountTowardsTheLimit(): void
