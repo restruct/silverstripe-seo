@@ -6,6 +6,7 @@ use Restruct\Silverstripe\SEO\Tests\SeoTestImages;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestCategory;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestCoursePage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestEvent;
+use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestFaultyPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestHolderPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestJobPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestPlace;
@@ -42,6 +43,7 @@ class StructuredDataOutputTest extends FunctionalTest
         SchemaTestCategory::class,
         SchemaTestJobPage::class,
         SchemaTestCoursePage::class,
+        SchemaTestFaultyPage::class,
     ];
 
     protected function setUp(): void
@@ -50,6 +52,7 @@ class StructuredDataOutputTest extends FunctionalTest
         TestAssetStore::activate('StructuredDataOutputTest');
         SSViewer::set_themes(['restruct/silverstripe-seo:/tests/themes/seotest', '$default']);
         SiteTree::config()->set('seo_schema_timezone', 'Europe/Amsterdam');
+        SchemaTestFaultyPage::$mode = 'none';
 
         $config = SiteConfig::current_site_config();
         $config->Title = 'Example Site';
@@ -404,6 +407,18 @@ class StructuredDataOutputTest extends FunctionalTest
         # And the value arrives intact
         $graph = $this->graph('fish');
         $this->assertSame($title, $graph[Director::absoluteURL('/fish') . '#webpage']['name']);
+    }
+
+    public function testAFailingSourceCostsTheStructuredDataNotThePage(): void
+    {
+        SchemaTestFaultyPage::$mode = 'throw';
+        $this->publish(SchemaTestFaultyPage::create(['Title' => 'Measurements', 'URLSegment' => 'measurements']));
+        $response = $this->get('measurements');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringNotContainsString('application/ld+json', (string) $response->getBody());
+        # The rest of the head is still there
+        $this->assertStringContainsString('<link rel="canonical"', (string) $response->getBody());
     }
 
     public function testOutputCanBeSwitchedOff(): void
