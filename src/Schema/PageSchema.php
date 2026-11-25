@@ -43,10 +43,26 @@ class PageSchema
 
     protected array $warnings = [];
 
+    /**
+     * The content locale (`en_US`); null for the current i18n locale, which is the content's on the front end.
+     */
+    protected ?string $locale = null;
+
     public function __construct(
         protected SiteTree $page,
         protected ?DataObject $subject = null
     ) {
+    }
+
+    /**
+     * Builds for another locale than the current one: the CMS runs in the editor's own language, while the
+     * structured data describes the content.
+     */
+    public function setLocale(?string $locale): static
+    {
+        $this->locale = $locale;
+        $this->graph = null;
+        return $this;
     }
 
     public function getGraph(): SchemaGraph
@@ -336,10 +352,13 @@ class PageSchema
     }
 
     /**
-     * The content language as a BCP 47 tag (`en-US`).
+     * The content language as a BCP 47 tag (`en-US`). A translation module sets the page's own locale through
+     * the page's `updateSeoSchemaLocale(string &$locale)` hook.
      */
     protected function language(): string
     {
-        return str_replace('_', '-', (string) i18n::get_locale());
+        $locale = (string) ($this->locale ?? i18n::get_locale());
+        $this->page->extend('updateSeoSchemaLocale', $locale);
+        return str_replace('_', '-', $locale);
     }
 }

@@ -28,6 +28,7 @@ use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyTransformation;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
+use SilverStripe\i18n\i18n;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -384,7 +385,9 @@ class SeoSiteTreeExtension extends Extension
     protected function schemaPreviewHtml(): string
     {
         try {
-            $schema = PageSchema::create($this->getOwner());
+            # The CMS runs in the editor's language; the structured data is in the site's
+            $schema = PageSchema::create($this->getOwner())
+                ->setLocale((string) i18n::config()->get('default_locale'));
             $json = $schema->getGraph()->toJson(JSON_PRETTY_PRINT);
             $warnings = $schema->getWarnings();
         } catch (Throwable $e) {
