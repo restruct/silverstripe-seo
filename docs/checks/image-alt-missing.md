@@ -5,11 +5,11 @@ Class: `Restruct\Silverstripe\SEO\Checks\Rules\ImageAltMissingCheck`.
 
 ## What it checks
 
-Images in the content area (blocks and template images included) without an `alt` attribute, or with an empty one. An image marked decorative (`alt=""` with `role="presentation"`/`"none"` or `aria-hidden="true"`) passes.
+Images in the content area (blocks and template images included) without an `alt` attribute. An empty alt (`alt=""`) passes: HTML defines it as the mark of a decorative image, with or without `role="presentation"` or `aria-hidden="true"`.
 
 ## Why
 
-Google uses alt text to understand images, and it is what screen readers read out. An empty alt without a marker is reported because editors leave the field empty by accident far more often than on purpose.
+Google uses alt text to understand images, and it is what screen readers read out. Decided on review (2026-11-25): a bare empty alt is accepted as decorative, as the HTML spec has it, although editors sometimes leave the field empty by accident; whether an image really is decorative cannot be told from the markup.
 
 ## Thresholds
 

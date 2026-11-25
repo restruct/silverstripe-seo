@@ -478,9 +478,10 @@ the edit form's own) and answers with the results and the panel's markup, never 
 | `description-length` | a description under 70 or over 160 characters | tip / low |
 | `h1-missing` | no H1 in the rendered page | warning / medium |
 | `heading-structure` | more than one H1, or skipped heading levels in the content | tip / low |
-| `image-alt-missing` | images without alt text (decorative images marked as such pass) | warning / high |
+| `image-alt-missing` | images without an alt attribute (`alt=""` counts as decorative) | warning / high |
 | `image-alt-quality` | alt text that is a file name, "image of...", too short or long, duplicated, or stuffed | tip / medium |
-| `broken-links` | links and images to missing or unpublished pages and files (database only, no HTTP) | problem / high |
+| `broken-links` | links and images to pages and files that do not exist (database only, no HTTP) | problem / high |
+| `unpublished-links` | links and images to pages and files that exist only as a draft | warning / medium |
 | `link-text` | links without text, or "click here" / "lees meer" | tip / medium |
 | `link-redirects` | links to redirector pages, http:// links on an https site | tip / low |
 | `orphan-page` | not in the menus and no inbound links from other pages or blocks | warning / medium |

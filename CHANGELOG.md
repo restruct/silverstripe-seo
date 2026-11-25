@@ -10,7 +10,8 @@ All notable changes to this module are documented here. The format follows
 
 - SEO checks on the rendered draft (Elemental blocks and template text included), rendered in-process as the
   CMS user by restruct/silverstripe-page-render: checks 1-21 and 23 of the catalogue (the focus keyword check
-  was dropped), each a class behind the `Check` interface, registered in `CheckRunner.checks` and configurable
+  was dropped), with links to draft-only targets as a warning of their own (`unpublished-links`) next to
+  `broken-links`; an empty alt counts as decorative, each a class behind the `Check` interface, registered in `CheckRunner.checks` and configurable
   per class (thresholds, severity, priority). A noindex page gets only the noindex check.
 - A spec per check in `docs/checks/<id>.md` (what, why, thresholds, source, last reviewed) and
   `docs/dropped-checks.md`.

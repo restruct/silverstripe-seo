@@ -9,8 +9,9 @@ use Restruct\Silverstripe\SEO\Checks\LinkResolver;
 use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
 
 /**
- * Check 13: links and images in the content that point at a page or file that does not exist, or exists only as
- * a draft (it breaks for visitors once this page is published).
+ * Check 13: links and images in the content that point at a page or file that does not exist. A target that
+ * exists only as a draft is not broken (it may go live together with this page); {@see UnpublishedLinksCheck}
+ * reports those, as a warning.
  *
  * Two sources, both without any HTTP request:
  * - core's link tracking marks a link shortcode to a deleted page or file, and a link to an anchor that is not
@@ -48,6 +49,24 @@ class BrokenLinksCheck extends AbstractCheck
 
     public function run(PageAnalysis $analysis): CheckResult
     {
+        $broken = $this->collect($analysis, false);
+        if (!$broken) {
+            return $this->pass();
+        }
+        return $this->fail(
+            _t(__CLASS__ . '.Message', '{count} link(s) or image(s) do not work.', ['count' => count($broken)]),
+            array_slice($broken, 0, (int) static::config()->get('max_listed'))
+        );
+    }
+
+    /**
+     * The links and images of the content that are broken, or (with $unpublished) that point at a draft-only
+     * page or file, described for the details.
+     *
+     * @return string[]
+     */
+    protected function collect(PageAnalysis $analysis, bool $unpublished): array
+    {
         $broken = [];
         $resolver = $analysis->links();
 
@@ -57,24 +76,21 @@ class BrokenLinksCheck extends AbstractCheck
             $tracked = in_array('ss-broken', preg_split('/\s+/', (string) $element->getAttribute('class')) ?: [], true);
             $type = $resolver->resolve($url)['type'];
 
-            if ($tracked && str_contains($url, '#')) {
+            $draft = in_array($type, [LinkResolver::DRAFT_PAGE, LinkResolver::DRAFT_FILE], true);
+            if ($unpublished) {
+                if (!$tracked && $draft) {
+                    $broken[] = $this->describe($url, $label, $this->reason($type));
+                }
+            } elseif ($tracked && str_contains($url, '#')) {
                 # Link tracking also checks that the anchor of a link exists on the target page
                 $broken[] = $this->describe($url, $label, _t(__CLASS__ . '.Anchor', 'the anchor is not on the target page'));
             } elseif ($tracked || ($element->nodeName === 'a' && $type === LinkResolver::EMPTY)) {
                 $broken[] = $this->describe($url, $label, _t(__CLASS__ . '.Deleted', 'the linked page or file no longer exists'));
-            } elseif (LinkResolver::isBroken($type)) {
+            } elseif (LinkResolver::isBroken($type) && !$draft) {
                 $broken[] = $this->describe($url, $label, $this->reason($type));
             }
         }
-
-        $broken = array_values(array_unique($broken));
-        if (!$broken) {
-            return $this->pass();
-        }
-        return $this->fail(
-            _t(__CLASS__ . '.Message', '{count} link(s) or image(s) do not work.', ['count' => count($broken)]),
-            array_slice($broken, 0, (int) static::config()->get('max_listed'))
-        );
+        return array_values(array_unique($broken));
     }
 
     protected function urlOf(DOMElement $element): string

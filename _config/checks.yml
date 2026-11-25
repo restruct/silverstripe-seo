@@ -39,6 +39,9 @@ Restruct\Silverstripe\SEO\Checks\CheckRunner:
       class: Restruct\Silverstripe\SEO\Checks\Rules\ImageAltQualityCheck
     broken-links:
       class: Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck
+    # 13b: draft-only link targets, split off from broken-links as a warning
+    unpublished-links:
+      class: Restruct\Silverstripe\SEO\Checks\Rules\UnpublishedLinksCheck
     link-text:
       class: Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck
     link-redirects:
