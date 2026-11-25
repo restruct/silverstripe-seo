@@ -317,11 +317,9 @@ class SeoSiteTreeExtension extends Extension
         if ($suffix !== '' && $page->config()->get('seo_title_append_site_name')) {
             # Never "Site | Site" or "Courses | Site | Site": a repeated site name is one of the reasons Google
             # gives for rewriting a title
-            $lowerTitle = mb_strtolower($title);
-            $lowerSuffix = mb_strtolower($suffix);
             if ($title === '') {
                 $title = $suffix;
-            } elseif ($lowerTitle !== $lowerSuffix && !str_ends_with($lowerTitle, $lowerSuffix)) {
+            } elseif (!static::endsWithSiteName($title, $suffix)) {
                 $title .= $page->config()->get('seo_title_separator') . $suffix;
             }
         }
@@ -564,6 +562,20 @@ class SeoSiteTreeExtension extends Extension
         );
         $page->extend('updateSeoDescriptionFallback', $description);
         return trim((string) $description);
+    }
+
+    /**
+     * Whether the title is the site name, or already ends with it after a separator ("Courses | Site",
+     * "Courses - Site"). The site name merely ending a word ("Workshop" on a site called "Shop") does not count.
+     */
+    protected static function endsWithSiteName(string $title, string $suffix): bool
+    {
+        if (mb_strtolower($title) === mb_strtolower($suffix)) {
+            return true;
+        }
+        # A separator is anything that is neither a letter, a digit nor a space (|, -, :, a dash or a bullet),
+        # with optional spaces around it
+        return (bool) preg_match('/[^\p{L}\p{N}\s]\s*' . preg_quote($suffix, '/') . '$/iu', $title);
     }
 
     /**
