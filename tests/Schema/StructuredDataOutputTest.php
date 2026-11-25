@@ -383,6 +383,21 @@ class StructuredDataOutputTest extends FunctionalTest
         $this->assertCount(1, $this->nodesOfType($graph, 'Organization'));
     }
 
+    public function testIncludedRecordsAreLimited(): void
+    {
+        $this->assertSame(50, SchemaTestHolderPage::config()->get('schema_includes_limit'), 'a default limit');
+        Config::modify()->set(SchemaTestHolderPage::class, 'schema_includes', ['Events']);
+        Config::modify()->set(SchemaTestHolderPage::class, 'schema_includes_limit', 2);
+        [$holder] = $this->holderWithEvent();
+        foreach (['Second', 'Third'] as $title) {
+            $event = SchemaTestEvent::create(['Title' => $title, 'StartDate' => '2027-07-04', 'HolderID' => $holder->ID]);
+            $event->write();
+            $event->Places()->add(SchemaTestPlace::get()->first());
+        }
+
+        $this->assertCount(2, $this->nodesOfType($this->graph('events'), 'Event'));
+    }
+
     public function testNodesFromAMethodReachTheHead(): void
     {
         $this->publish(SchemaTestCoursePage::create([
