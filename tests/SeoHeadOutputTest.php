@@ -139,6 +139,16 @@ class SeoHeadOutputTest extends FunctionalTest
         $this->assertSame('noindex, noarchive', $response->getHeader('X-Robots-Tag'));
     }
 
+    public function testNonLiveNoindexReachesMetaAndHeader(): void
+    {
+        SiteTree::config()->set('seo_noindex_non_live', true);
+        $this->publishedPage();
+        $response = $this->get('about-us');
+
+        $this->assertStringContainsString('<meta name="robots" content="noindex, nofollow">', $this->head($response));
+        $this->assertSame('noindex, nofollow', $response->getHeader('X-Robots-Tag'));
+    }
+
     public function testIndexablePageHasNoRobotsTagOrHeader(): void
     {
         $this->publishedPage();

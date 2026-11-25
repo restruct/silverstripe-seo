@@ -8,6 +8,8 @@ use SilverStripe\Assets\Dev\TestAssetStore;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Core\Kernel;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\SiteConfig\SiteConfig;
 use SilverStripe\Versioned\Versioned;
@@ -214,6 +216,31 @@ class SeoSiteTreeExtensionTest extends SapphireTest
     public function testSingleRobotsFlag(): void
     {
         $this->assertSame('nosnippet', $this->page(['MetaRobotsNoSnippet' => true])->SeoRobots());
+    }
+
+    public function testNonLiveEnvironmentCanBeNoindexed(): void
+    {
+        # Off by default: a test or dev site behind its own protection does not need it
+        $this->assertSame('', $this->page()->SeoRobots());
+
+        SiteTree::config()->set('seo_noindex_non_live', true);
+        $this->assertFalse(Director::isLive(), 'the suite runs in a dev or test environment');
+        $this->assertSame('noindex, nofollow', $this->page()->SeoRobots());
+        # Combined with the page's own flags without repeating any
+        $this->assertSame(
+            'noindex, nofollow, nosnippet',
+            $this->page(['MetaRobotsNoIndex' => true, 'MetaRobotsNoSnippet' => true])->SeoRobots()
+        );
+
+        # On live the setting does nothing
+        $kernel = Injector::inst()->get(Kernel::class);
+        $environment = $kernel->getEnvironment();
+        try {
+            $kernel->setEnvironment(Kernel::LIVE);
+            $this->assertSame('', $this->page()->SeoRobots());
+        } finally {
+            $kernel->setEnvironment($environment);
+        }
     }
 
     # --- Canonical ---------------------------------------------------------------------------------------------
