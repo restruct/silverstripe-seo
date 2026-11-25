@@ -577,9 +577,13 @@ stored results; the report itself renders nothing.
 
 **Who sees what.** The report needs the permission **View the SEO status report** (`VIEW_SEO_REPORT`, group
 settings, category SEO) plus access to the Reports section (`CMS_ACCESS_ReportAdmin`); administrators have both.
-It lists only pages the reader may view (the draft, or the published version for a reader without draft
-access). Which checks fail, the check filter, and the link to edit the page are only there for pages the reader
+It lists only pages the reader may view (the draft, or the published version with its published title for a
+reader without draft access). Which checks fail, the check filter, and the link to edit the page are only there for pages the reader
 may edit; for other pages the reader sees the counts.
+
+**Cost.** Every view of the report reads all eligible pages and their stored results, and checks view and edit
+rights and staleness per page (up to two small queries each). That is fine for hundreds of pages; on a site with
+many thousands it gets slow.
 
 It is a report rather than a CMS section of its own because silverstripe/reports comes with silverstripe/cms and
 already brings the filter form, the sortable and paginated list, print and export.
