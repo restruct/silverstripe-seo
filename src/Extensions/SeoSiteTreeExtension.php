@@ -507,19 +507,25 @@ class SeoSiteTreeExtension extends Extension
 
     /**
      * The sharing image: the page's own, then whatever the `updateSeoImageFallback` hook provides (a project's
-     * hero image, say), then the site default from SiteConfig. Null when there is none at all. A shown record's
-     * own image comes first of all.
+     * hero image, say), then the site default from SiteConfig. Null when there is none at all. For a shown record
+     * the record's own image takes the page image's place: a record without one goes to the hook and the site
+     * default, not to the image of the page that lists it.
      */
     public function SeoImage(): ?Image
     {
-        $subjectImage = $this->SeoSubjectMetadata()?->image();
-        if (static::isUsableImage($subjectImage)) {
-            return $subjectImage;
-        }
         $page = $this->getOwner();
-        $image = $page->OGImage();
-        if (static::isUsableImage($image)) {
-            return $image;
+        $subject = $this->SeoSubjectMetadata();
+        if ($subject) {
+            $subjectImage = $subject->image();
+            if (static::isUsableImage($subjectImage)) {
+                return $subjectImage;
+            }
+            # The holder page's own image illustrates the listing, not this record: skip it, go to the hook
+        } else {
+            $image = $page->OGImage();
+            if (static::isUsableImage($image)) {
+                return $image;
+            }
         }
 
         $image = null;

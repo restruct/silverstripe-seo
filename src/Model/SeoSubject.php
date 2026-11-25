@@ -30,7 +30,8 @@ interface SeoSubject
     public function getSeoCanonicalURL(): ?string;
 
     /**
-     * The sharing image, or null to fall back to the page's image chain (page image, hook, site default).
+     * The sharing image, or null to fall back to the `updateSeoImageFallback` hook and then the site default
+     * (not to the image of the page showing the record).
      */
     public function getSeoImage(): ?Image;
 
