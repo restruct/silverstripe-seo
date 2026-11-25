@@ -218,11 +218,19 @@ class SchemaSourceTest extends SapphireTest
             'City' => 'Utrecht',
         ]);
         $job->write();
-        $node = $this->mapper($job)->nodesFor($job)[0];
+        # A Datetime column holds PHP's default timezone (see SchemaDatesTest); pinned to UTC here, so the stored
+        # 17:00 is 18:00 in the site timezone
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('UTC');
+        try {
+            $node = $this->mapper($job)->nodesFor($job)[0];
+        } finally {
+            date_default_timezone_set($previous);
+        }
 
         $this->assertSame('JobPosting', $node['@type']);
         $this->assertSame('2027-01-05', $node['datePosted']);
-        $this->assertSame('2027-02-01T17:00:00+01:00', $node['validThrough']);
+        $this->assertSame('2027-02-01T18:00:00+01:00', $node['validThrough']);
         $this->assertSame(['@id' => $this->base() . '/#organization'], $node['hiringOrganization']);
         $this->assertSame(
             ['@type' => 'Place', 'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Utrecht', 'addressCountry' => 'NL']],
