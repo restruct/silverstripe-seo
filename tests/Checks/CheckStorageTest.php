@@ -5,6 +5,8 @@ namespace Restruct\Silverstripe\SEO\Tests\Checks;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Model\SeoCheckIgnore;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
+use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoEditDuringRenderTestCheck;
+use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoRaceTestExtension;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Security;
 use SilverStripe\Versioned\Versioned;
@@ -14,6 +16,54 @@ use SilverStripe\Versioned\Versioned;
  */
 class CheckStorageTest extends ChecksTestCase
 {
+    protected static $required_extensions = [
+        SeoCheckResult::class => [SeoRaceTestExtension::class],
+    ];
+
+    protected function tearDown(): void
+    {
+        SeoRaceTestExtension::$armed = false;
+        DBDatetime::clear_mock_now();
+        parent::tearDown();
+    }
+
+    public function testStorageKeepsTheStagesApart(): void
+    {
+        $page = $this->page();
+        $draft = SeoCheckResult::store($page, Versioned::DRAFT, []);
+        $live = SeoCheckResult::store($page, Versioned::LIVE, []);
+        $this->assertNotSame($draft->ID, $live->ID);
+        $this->assertSame($draft->ID, SeoCheckResult::forPage($page, Versioned::DRAFT)->ID);
+        $this->assertSame($live->ID, SeoCheckResult::forPage($page, Versioned::LIVE)->ID);
+        $this->assertSame($draft->ID, SeoCheckResult::forPage($page)->ID, 'draft by default');
+
+        SeoCheckResult::store($page, Versioned::LIVE, []);
+        $this->assertSame(2, SeoCheckResult::get()->filter('PageID', $page->ID)->count(), 'updated, not added');
+
+        SeoCheckResult::markStale($page);
+        $this->assertTrue((bool) SeoCheckResult::forPage($page, Versioned::DRAFT)->Stale);
+        $this->assertTrue((bool) SeoCheckResult::forPage($page, Versioned::LIVE)->Stale);
+    }
+
+    public function testARowStoredMeanwhileByAnotherRequestIsUpdated(): void
+    {
+        $page = $this->page();
+        SeoRaceTestExtension::$armed = true;
+        $result = SeoCheckResult::store($page, Versioned::DRAFT, []);
+        $this->assertSame(1, SeoCheckResult::get()->filter('PageID', $page->ID)->count());
+        $this->assertSame($result->ID, SeoCheckResult::forPage($page)->ID);
+        $this->assertFalse((bool) SeoCheckResult::forPage($page)->Stale);
+    }
+
+    public function testAResultIsStoredStaleWhenThePageChangedDuringTheCheck(): void
+    {
+        DBDatetime::set_mock_now('2026-11-25 10:00:00');
+        $page = $this->page();
+        CheckRunner::config()->merge('checks', ['edit-during-render' => ['class' => SeoEditDuringRenderTestCheck::class]]);
+        $result = CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
+        $this->assertTrue((bool) $result->Stale);
+    }
+
     public function testCheckingStoresOneRowPerPageAndStage(): void
     {
         DBDatetime::set_mock_now('2026-11-25 10:00:00');
