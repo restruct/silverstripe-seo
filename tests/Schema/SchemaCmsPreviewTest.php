@@ -6,6 +6,7 @@ use Restruct\Silverstripe\SEO\Tests\Stub\Schema\SchemaTestJobPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\LiteralField;
+use SilverStripe\i18n\i18n;
 use SilverStripe\SiteConfig\SiteConfig;
 
 /**
@@ -27,6 +28,12 @@ class SchemaCmsPreviewTest extends SapphireTest
         $config = SiteConfig::current_site_config();
         $config->Title = 'Example Site';
         $config->write();
+    }
+
+    protected function tearDown(): void
+    {
+        i18n::set_locale(i18n::config()->get('default_locale'));
+        parent::tearDown();
     }
 
     private function preview(SeoTestPage $page): ?string
@@ -61,6 +68,19 @@ class SchemaCmsPreviewTest extends SapphireTest
 
         $this->assertStringContainsString('JobPosting lacks datePosted, which is required: it is not output.', $html);
         $this->assertStringContainsString('JobPosting', $html);
+    }
+
+    public function testPreviewUsesTheSiteLocaleNotTheEditors(): void
+    {
+        i18n::config()->set('default_locale', 'en_US');
+        $page = SeoTestPage::create(['Title' => 'About us', 'URLSegment' => 'about-us']);
+        $page->write();
+        # The CMS switches i18n to the editor's own locale
+        i18n::set_locale('nl_NL');
+
+        $html = $this->preview($page);
+        $this->assertStringContainsString('&quot;inLanguage&quot;: &quot;en-US&quot;', $html);
+        $this->assertStringNotContainsString('nl-NL', $html);
     }
 
     public function testNoPreviewBeforeTheFirstSave(): void
