@@ -134,6 +134,15 @@ class SeoSiteTreeExtension extends Extension
     private static bool $seo_title_append_site_name = true;
 
     /**
+     * Extensions of other modules that already put a MetaTitle field on pages, on the same column (the
+     * `MetaTitle` column is shared). When the page has one of them, this module adds no MetaTitle field of its
+     * own; the title output still reads the column. A list, so a project's YAML adds to it.
+     */
+    private static array $seo_meta_title_field_providers = [
+        'Kinglozzer\\SilverStripeMetaTitle\\MetaTitleExtension',
+    ];
+
+    /**
      * Derive a description from the page when the editor typed none.
      */
     private static bool $seo_description_fallback = true;
@@ -234,15 +243,19 @@ class SeoSiteTreeExtension extends Extension
         }
         $metadata->setTitle(_t(__CLASS__ . '.ToggleTitle', 'Search engines and sharing'));
 
-        $metadata->insertBefore(
-            'MetaDescription',
-            TextField::create('MetaTitle', $page->fieldLabel('MetaTitle'))
-                ->setAttribute('placeholder', $page->Title)
-                ->setDescription(_t(
-                    __CLASS__ . '.MetaTitleHelp',
-                    'Shown as the link text in search results. Leave empty to use the page title. The site name is added automatically.'
-                ))
-        );
+        # Another module (kinglozzer/metatitle) may already add a field for the same column. SS6's insertBefore()
+        # would replace that field with this one, or this one with that, depending on the extension order
+        if (!$this->metaTitleFieldProvidedElsewhere()) {
+            $metadata->insertBefore(
+                'MetaDescription',
+                TextField::create('MetaTitle', $page->fieldLabel('MetaTitle'))
+                    ->setAttribute('placeholder', $page->Title)
+                    ->setDescription(_t(
+                        __CLASS__ . '.MetaTitleHelp',
+                        'Shown as the link text in search results. Leave empty to use the page title. The site name is added automatically.'
+                    ))
+            );
+        }
 
         # Show editors the description search engines get when they leave the field empty
         $description = $metadata->getChildren()->dataFieldByName('MetaDescription');
@@ -291,6 +304,21 @@ class SeoSiteTreeExtension extends Extension
         if ($page instanceof VirtualPage) {
             $this->makeVirtualFieldsReadonly($page, $fields);
         }
+    }
+
+    /**
+     * Whether an extension listed in `seo_meta_title_field_providers` is applied to this page. Checked by class
+     * name, with class_exists first, so listing a module that is not installed costs nothing.
+     */
+    protected function metaTitleFieldProvidedElsewhere(): bool
+    {
+        $page = $this->getOwner();
+        foreach ((array) $page->config()->get('seo_meta_title_field_providers') as $class) {
+            if ($class && class_exists($class) && $page->hasExtension($class)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
