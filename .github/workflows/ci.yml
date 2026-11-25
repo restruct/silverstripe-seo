@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         # SS6 only (composer.json: framework ^6, php ^8.3). The oldest and newest PHP with the optional
-        # wilr/silverstripe-googlesitemaps installed, plus one leg without it, so the bridge's
-        # `Only: moduleexists` config and the test's skip path are exercised as well.
+        # wilr/silverstripe-googlesitemaps and symbiote/silverstripe-queuedjobs installed, plus one leg without
+        # them, so the `Only: moduleexists` config and the tests' skip paths are exercised as well.
         include:
           - php: '8.3'
             sitemaps: 'yes'
@@ -92,6 +92,8 @@ jobs:
           JSON
           if [ "${{ matrix.sitemaps }}" = "yes" ]; then
             composer require --no-update --no-interaction "wilr/silverstripe-googlesitemaps:^4"
+            # The site check job (SeoSiteCheckJob) extends a queuedjobs class; its tests skip without it
+            composer require --no-update --no-interaction "symbiote/silverstripe-queuedjobs:^6"
           fi
           composer update --no-interaction --no-progress
 
