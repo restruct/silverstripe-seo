@@ -1,0 +1,12 @@
+---
+Name: restruct-seo-googlesitemaps
+After:
+  - '#googlesitemaps'
+Only:
+  moduleexists: wilr/silverstripe-googlesitemaps
+---
+# Bridge to wilr/silverstripe-googlesitemaps (a suggestion, not a requirement): a page set to noindex is left out
+# of sitemap.xml, so the sitemap never asks a search engine to crawl a page that then tells it not to index.
+SilverStripe\CMS\Model\SiteTree:
+  extensions:
+    seo-googlesitemaps: Restruct\Silverstripe\SEO\Bridges\GoogleSitemapBridge

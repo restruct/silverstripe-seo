@@ -1,0 +1,20 @@
+---
+Name: restruct-seo
+After:
+  - '#cmsextensions'
+---
+# Page fields and head output (meta title, description fallback, robots, canonical, Open Graph).
+SilverStripe\CMS\Model\SiteTree:
+  extensions:
+    seo: Restruct\Silverstripe\SEO\Extensions\SeoSiteTreeExtension
+
+# Response headers (X-Robots-Tag, Link rel=canonical) are set on the controller's response object, so they also
+# reach code that renders a page in-process and reads the headers back (the page checks of a later version).
+SilverStripe\CMS\Controllers\ContentController:
+  extensions:
+    seo: Restruct\Silverstripe\SEO\Extensions\SeoContentControllerExtension
+
+# Site-wide defaults: fallback sharing image and the title suffix.
+SilverStripe\SiteConfig\SiteConfig:
+  extensions:
+    seo: Restruct\Silverstripe\SEO\Extensions\SeoSiteConfigExtension
