@@ -6,6 +6,15 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Requires restruct/silverstripe-page-render for rendering a page in-process and narrowing it to its content.
+
+### Removed
+
+- The `Restruct\Silverstripe\SEO\Rendering\PageRenderer` interface (never implemented): the shared
+  `Restruct\Silverstripe\PageRender\PageRenderer` service takes its place, without a fallback copy.
+
 ## [0.3.0] - 2026-11-25
 
 ### Added

@@ -22,7 +22,8 @@
         "silverstripe/framework": "^6",
         "silverstripe/cms": "^6",
         "silverstripe/siteconfig": "^6",
-        "silverstripe/asset-admin": "^3"
+        "silverstripe/asset-admin": "^3",
+        "restruct/silverstripe-page-render": "^0.1 || dev-main"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.3",
@@ -30,7 +31,7 @@
     },
     "suggest": {
         "wilr/silverstripe-googlesitemaps": "sitemap.xml; pages set to noindex are left out of it automatically",
-        "dnadesign/silverstripe-elemental": "content blocks; later versions of this module check the rendered page, blocks included",
+        "dnadesign/silverstripe-elemental": "content blocks; the page checks read the rendered page, blocks included",
         "restruct/silverstripe-ai": "optional AI suggestions in a later version"
     },
     "autoload": {
