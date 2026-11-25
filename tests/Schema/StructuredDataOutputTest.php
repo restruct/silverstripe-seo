@@ -436,6 +436,17 @@ class StructuredDataOutputTest extends FunctionalTest
         $this->assertStringContainsString('<link rel="canonical"', (string) $response->getBody());
     }
 
+    public function testAnUnencodableValueCostsOnlyThatValue(): void
+    {
+        SchemaTestFaultyPage::$mode = 'nan';
+        $this->publish(SchemaTestFaultyPage::create(['Title' => 'Measurements', 'URLSegment' => 'measurements']));
+        $graph = $this->graph('measurements');
+
+        $thing = $graph[Director::absoluteURL('/measurements') . '#thing'];
+        $this->assertSame('Measured', $thing['name']);
+        $this->assertArrayNotHasKey('value', $thing);
+    }
+
     public function testOutputCanBeSwitchedOff(): void
     {
         SiteTree::config()->set('seo_output_structured_data', false);

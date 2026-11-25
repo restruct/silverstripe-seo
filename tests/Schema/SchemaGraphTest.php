@@ -75,6 +75,22 @@ class SchemaGraphTest extends SapphireTest
         $this->assertSame('Thing', json_decode($json, true)['@graph'][0]['@type']);
     }
 
+    public function testAValueJsonCannotEncodeIsDroppedNotTheGraph(): void
+    {
+        $json = SchemaGraph::create()->add([
+            '@type' => 'Thing',
+            'name' => 'Measured',
+            'value' => NAN,
+            'nested' => ['@type' => 'QuantitativeValue', 'value' => INF, 'unitText' => 'm'],
+        ])->toJson();
+
+        $this->assertNotSame('', $json);
+        $node = json_decode($json, true)['@graph'][0];
+        $this->assertSame('Measured', $node['name']);
+        $this->assertArrayNotHasKey('value', $node);
+        $this->assertSame(['@type' => 'QuantitativeValue', 'unitText' => 'm'], $node['nested']);
+    }
+
     public function testDanglingReferencesUnderThePrefixArePruned(): void
     {
         $graph = SchemaGraph::create()
