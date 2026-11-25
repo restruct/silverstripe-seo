@@ -52,7 +52,7 @@ class MigrationRun
     private array $columns = [];
 
     /**
-     * @var array<int, bool>
+     * @var array<string, array<int, bool>> Per File table, per ID.
      */
     private array $files = [];
 
@@ -158,14 +158,17 @@ class MigrationRun
 
     /**
      * Whether a File row (an image too) with this ID exists, so a copied has_one does not point at nothing.
+     *
+     * @param string|null $stage {@see STAGE_LIVE} checks the published file (File_Live)
      */
-    public function fileExists(int $id): bool
+    public function fileExists(int $id, ?string $stage = null): bool
     {
         if ($id <= 0) {
             return false;
         }
-        return $this->files[$id] ??= (bool) DB::prepared_query(
-            'SELECT COUNT(*) FROM "File" WHERE "ID" = ?',
+        $table = $stage === self::STAGE_LIVE ? 'File_Live' : 'File';
+        return $this->files[$table][$id] ??= (bool) DB::prepared_query(
+            sprintf('SELECT COUNT(*) FROM "%s" WHERE "ID" = ?', $table),
             [$id]
         )->value();
     }
@@ -187,11 +190,21 @@ class MigrationRun
     # --- Transforms ----------------------------------------------------------------------------------------------
 
     /**
-     * For an image has_one: the ID when the file exists, otherwise invalid.
+     * For an image has_one: the ID when the file exists, otherwise invalid. For the live stage the file must be
+     * published too: the live page is not pointed at an unpublished file ({@see MigrationSkip::Unpublished}).
      */
     public function imageTransform(): callable
     {
-        return fn (mixed $value): ?int => $this->fileExists((int) $value) ? (int) $value : null;
+        return function (mixed $value, ?string $stage = null): int|MigrationSkip|null {
+            $id = (int) $value;
+            if (!$this->fileExists($id)) {
+                return null;
+            }
+            if ($stage === self::STAGE_LIVE && !$this->fileExists($id, self::STAGE_LIVE)) {
+                return MigrationSkip::Unpublished;
+            }
+            return $id;
+        };
     }
 
     /**
@@ -227,7 +240,8 @@ class MigrationRun
      * @param string[] $sourceTables candidate base tables of the old column, e.g. ['Page', 'SiteTree']
      * @param string|string[] $sourceColumns
      * @param callable|null $transform fn(mixed $value, ?string $stage, int $id): mixed, returning the value to
-     *        write, null when the old value is unusable (counted as invalid), or {@see NOTHING}
+     *        write, null when the old value is unusable (counted as invalid), a {@see MigrationSkip} reason
+     *        (counted as such), or {@see NOTHING}
      * @param bool $numeric the target is an ID or a flag, so 0 counts as empty
      */
     public function copyColumn(
@@ -298,6 +312,7 @@ class MigrationRun
                 $value = null;
                 $found = false;
                 $unusable = false;
+                $skip = null;
                 for ($i = 0; $i < $index; $i++) {
                     # The target's type does not tell the source's: a robots string feeds a flag
                     if ($this->isEmptySource($row["v{$i}"])) {
@@ -309,8 +324,9 @@ class MigrationRun
                     if ($candidate === self::NOTHING) {
                         continue;
                     }
-                    if ($candidate === null) {
+                    if ($candidate === null || $candidate instanceof MigrationSkip) {
                         $unusable = true;
+                        $skip ??= $candidate instanceof MigrationSkip ? $candidate : null;
                         continue;
                     }
                     $value = $candidate;
@@ -322,7 +338,11 @@ class MigrationRun
                 }
                 $result->read++;
                 if (!$found) {
-                    $result->invalid++;
+                    if ($skip === MigrationSkip::Unpublished) {
+                        $result->unpublished++;
+                    } else {
+                        $result->invalid++;
+                    }
                     continue;
                 }
                 $this->offer($result, $table, $targetColumn, (int) $row['ID'], $value, $row['current'], $numeric);

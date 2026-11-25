@@ -37,6 +37,9 @@ class MigrationResult
     /** Rows whose old value cannot be used (a missing file, a malformed URL, an unknown link type) */
     public int $invalid = 0;
 
+    /** Rows whose value points at an unpublished file: not written to the live stage */
+    public int $unpublished = 0;
+
     /**
      * @param string|null $stage 'draft', 'live', or null for a table that is not versioned
      */
@@ -68,7 +71,7 @@ class MigrationResult
             $kept = 'kept';
         }
         return sprintf(
-            '%s read %d, %s %d, already same %d, conflicts %d (%s), invalid %d%s',
+            '%s read %d, %s %d, already same %d, conflicts %d (%s), invalid %d%s%s',
             $label,
             $this->read,
             $apply ? 'copied' : 'would copy',
@@ -77,6 +80,8 @@ class MigrationResult
             $this->conflicts,
             $kept,
             $this->invalid,
+            # Only when it happens: a file of the old page that was never published
+            $this->unpublished ? sprintf(', unpublished %d (file not published, live left as it is)', $this->unpublished) : '',
             $hint
         );
     }

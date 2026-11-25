@@ -151,6 +151,7 @@ class MigrateFromSeoModuleTask extends BuildTask
         $copied = 0;
         $conflicts = 0;
         $invalid = 0;
+        $unpublished = 0;
         foreach ($run->getEntries() as [$type, $entry]) {
             if ($entry instanceof MigrationResult) {
                 $this->line($output, $entry->format($run->isApply(), $run->isOverwrite()));
@@ -158,6 +159,7 @@ class MigrateFromSeoModuleTask extends BuildTask
                     $copied += $entry->copied;
                     $conflicts += $entry->conflicts;
                     $invalid += $entry->invalid;
+                    $unpublished += $entry->unpublished;
                 }
                 continue;
             }
@@ -166,12 +168,13 @@ class MigrateFromSeoModuleTask extends BuildTask
         }
         $output->writeln('');
         $output->writeln(sprintf(
-            '%s %d values; %d conflicts (%s); %d invalid. Old columns are left in place.',
+            '%s %d values; %d conflicts (%s); %d invalid; %d unpublished files. Old columns are left in place.',
             $run->isApply() ? 'Copied' : 'Would copy',
             $copied,
             $conflicts,
             $run->isOverwrite() ? 'replaced' : 'kept, --overwrite replaces them',
-            $invalid
+            $invalid,
+            $unpublished
         ));
     }
 
