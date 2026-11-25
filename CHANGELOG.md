@@ -27,6 +27,16 @@ All notable changes to this module are documented here. The format follows
 - `client/dist` is exposed (`extra.expose`), so the panel's script and styles are served.
 - `SeoDescriptionFallback()` on pages: the description derived when none is typed.
 - English and Dutch strings for the checks, the panel and the preview (lang/en.yml, lang/nl.yml).
+- The site report (**Reports > SEO status**, `SeoSiteReport`): per page the counts per severity, last checked,
+  status (up to date, out of date, not checked), indexable and failing checks; filters on severity, failing
+  check, page type and status; sorting; a summary ("pages without problems: N of M indexable pages", unchecked
+  and out-of-date counts, the checks failing on most pages); no score. Needs the new `VIEW_SEO_REPORT`
+  permission plus Reports access; lists only pages the reader may view, details only for pages they may edit.
+- CSV export of the report with every formula-like cell (`= + - @`, tab, carriage return) prefixed with `'`.
+- `SeoSiteCheckJob` (with symbiote/silverstripe-queuedjobs, now a suggest): checks every eligible page in
+  batches, resumable, skipping fresh results; and `sake tasks:seo-check-site` (`--only-stale`, `--limit=N`) for
+  sites without queuedjobs. Both render as a visitor with the draft readable, or as `SiteCheck.run_as`, never as
+  the member who started them.
 
 ### Changed
 

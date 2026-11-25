@@ -19,10 +19,14 @@ Search and sharing metadata for Silverstripe CMS 6 pages, with sensible fallback
 - **SEO checks** on the page as the site renders it (Elemental blocks and template text included): headings, alt
   text, links, duplicates, canonical, structured data and more, as a panel in the page editor with counts per
   severity (no score), how to fix each finding, and a search result preview that updates while you type.
+- **Site report** in Reports: every page with its counts per severity, last checked, out-of-date marker,
+  filters and a CSV export, and a summary ("pages without problems: N of M indexable pages"). A queued job
+  (with [symbiote/silverstripe-queuedjobs](https://github.com/symbiote/silverstripe-queuedjobs)) or a sake task
+  checks the whole site.
 - **Sitemap bridge**: with [wilr/silverstripe-googlesitemaps](https://github.com/wilr/silverstripe-googlesitemaps)
   installed, noindex pages are left out of `sitemap.xml`.
 
-Planned for later versions: a site-wide report and optional AI suggestions.
+Planned for later versions: optional AI suggestions.
 
 ## Requirements
 
@@ -554,6 +558,65 @@ The inbound-link graph comes from core's link tracking (`SiteTreeLink`, which El
 is cached site-wide (`Psr\SimpleCache\CacheInterface.SeoLinkGraph`), cleared when a page is written, published,
 unpublished or archived. Links printed by templates (a footer) are not in it; ignore the orphan check for pages
 that are linked that way.
+
+## Site report
+
+**Reports > SEO status** lists every page the checks cover (the same eligibility as the panel), read from the
+stored results; the report itself renders nothing.
+
+- Per page: problems, warnings and tips (ignored checks not counted), when it was last checked, the status (up to
+  date, out of date, not checked), whether it is indexable, and which checks fail.
+- **Summary** at the top: "Pages without problems: N of M indexable pages" (a noindex page is not indexable; a
+  page not checked yet counts towards M, not N), how many pages are not checked or out of date, and the checks
+  that fail on most pages. There is no score.
+- **Filters**: severity (with problems / warnings / tips, or checked without problems), a failing check, page
+  type, status. The list sorts on every column.
+- **CSV export** of the filtered list (every page, not one page of the list), with the edit link. Every cell
+  that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'`, so a spreadsheet does not
+  run a page title as a formula. Print works as for any report.
+
+**Who sees what.** The report needs the permission **View the SEO status report** (`VIEW_SEO_REPORT`, group
+settings, category SEO) plus access to the Reports section (`CMS_ACCESS_ReportAdmin`); administrators have both.
+It lists only pages the reader may view (the draft, or the published version for a reader without draft
+access). Which checks fail, the check filter, and the link to edit the page are only there for pages the reader
+may edit; for other pages the reader sees the counts.
+
+It is a report rather than a CMS section of its own because silverstripe/reports comes with silverstripe/cms and
+already brings the filter form, the sortable and paginated list, print and export.
+
+### Checking the whole site
+
+The panel checks a page when an editor opens it. To fill and refresh the report for every page:
+
+- **With queuedjobs**: queue `Restruct\Silverstripe\SEO\Jobs\SeoSiteCheckJob` (in the Jobs admin, or from code
+  with `QueuedJobService::singleton()->queueJob(new SeoSiteCheckJob())`). It checks a batch of pages per step
+  (`SeoSiteCheckJob.batch_size`, 10), keeps the pages still to do in its job data so a paused or restarted job
+  carries on, and skips pages whose result is up to date (`new SeoSiteCheckJob(false)` checks every page). It
+  runs on the large queue (`SeoSiteCheckJob.queue`), so that queue needs its runner. To check nightly, add it to
+  `QueuedJobService.defaultJobs` (an Injector property) or queue it from a cron.
+- **Without queuedjobs**: `vendor/bin/sake tasks:seo-check-site`, with `--only-stale` to skip up-to-date
+  results and `--limit=N` to stop after rendering N pages (skipped pages do not count), so a cron can work through
+  a large site a slice at a time.
+
+**Who the site check renders as.** Not as the member who queued the job or ran the task (the queue runs a job as
+whoever queued it). By default it renders as a **visitor**, with the draft readable for the duration of each
+check: a render as an editor would store what that editor sees (content for their groups, CMS-only markup) in a
+result every other editor reads. The result is the draft as the public site will show it once published. A page
+visitors may not see (only logged-in users, or groups) is therefore not checked by the site run, and is counted
+as "not visible"; the panel still checks it as its editor. A site whose pages are behind a login sets a
+dedicated member with view and draft rights:
+
+```yaml
+Restruct\Silverstripe\SEO\Report\SiteCheck:
+  run_as: 'seo-checks@example.com'
+```
+
+A `run_as` that names no member stops the run, rather than silently checking as a visitor.
+
+**A site run renders every page.** Each check runs the page's controller and templates in-process, so code with
+side effects (view counters, mail, calls to outside services, writes) runs once per page unless it tests
+`Restruct\Silverstripe\PageRender\PageRenderer::isRendering()`. One page that throws is logged and counted as
+failed; the run carries on.
 
 ## Extension hooks
 
