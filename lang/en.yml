@@ -220,6 +220,8 @@ en:
     DescriptionLength: 'Description length:'
     DescriptionRange: 'characters (about {min} to {max} reads well)'
     TitleWidth: 'Title width, approximately:'
+  Restruct\Silverstripe\SEO\Jobs\SeoSiteCheckJob:
+    Title: 'SEO checks of the whole site'
   Restruct\Silverstripe\SEO\Model\SeoCheckIgnore:
     PLURALNAME: 'SEO check ignores'
     PLURALS:
@@ -232,6 +234,46 @@ en:
       one: 'An SEO check result'
       other: '{count} SEO check results'
     SINGULARNAME: 'SEO check result'
+  Restruct\Silverstripe\SEO\Report\SeoSiteReport:
+    Any: Any
+    ColumnCheckedAt: 'Last checked'
+    ColumnEditLink: 'Edit link'
+    ColumnFailingChecks: 'Failing checks'
+    ColumnIndexable: Indexable
+    ColumnPageType: 'Page type'
+    ColumnProblems: Problems
+    ColumnStatus: Status
+    ColumnTips: Tips
+    ColumnTitle: Page
+    ColumnWarnings: Warnings
+    Description: 'Problems, warnings and tips per page, from the stored SEO checks. A page is checked again when an editor opens it after a change.'
+    FilterCheck: 'Failing check'
+    FilterPageType: 'Page type'
+    FilterSeverity: Severity
+    FilterStatus: Status
+    PermissionCategory: SEO
+    PermissionHelp: 'See the SEO check results of every page the member may view, in Reports. Which checks fail is shown only for pages the member may edit.'
+    PermissionName: 'View the SEO status report'
+    RefreshJob: 'The results of the whole site are refreshed by the queued job "SEO checks of the whole site".'
+    RefreshTask: 'The results of the whole site are refreshed by running sake tasks:seo-check-site.'
+    SeverityNone: 'Checked, without problems'
+    SeverityProblem: 'With problems'
+    SeverityTip: 'With tips'
+    SeverityWarning: 'With warnings'
+    SummaryStale: 'Out of date: {count}'
+    SummaryTopCheck: '{title}: {count} pages'
+    SummaryTopChecks: 'Failing on most pages:'
+    SummaryUnchecked: 'Not checked yet: {count}'
+    SummaryWithoutProblems: 'Pages without problems: {count} of {total} indexable pages'
+    Title: 'SEO status'
+  Restruct\Silverstripe\SEO\Report\SiteCheck:
+    Summary: '{checked} checked, {fresh} up to date, {hidden} not visible, {missing} gone, {failed} failed'
+  Restruct\Silverstripe\SEO\Report\SiteReportData:
+    IndexableNo: 'No (noindex)'
+    IndexableYes: 'Yes'
+    StatusFresh: 'Up to date'
+    StatusStale: 'Out of date'
+    StatusUnchecked: 'Not checked'
   Restruct\Silverstripe\SEO\Schema\PageSchema:
     MethodNotAllowed: 'The structured-data map of {class} names {property}, which is not a field, relation, getter or allowed method: it is not read. Add it to schema_allowed_methods if it is safe to call.'
     MissingRecommended: '{type} lacks {property}, which is recommended.'

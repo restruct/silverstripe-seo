@@ -220,6 +220,8 @@ nl:
     DescriptionLength: 'Lengte van de beschrijving:'
     DescriptionRange: 'tekens (ongeveer {min} tot {max} leest goed)'
     TitleWidth: 'Breedte van de titel, ongeveer:'
+  Restruct\Silverstripe\SEO\Jobs\SeoSiteCheckJob:
+    Title: 'SEO-controles van de hele site'
   Restruct\Silverstripe\SEO\Model\SeoCheckIgnore:
     PLURALNAME: 'Genegeerde SEO-controles'
     PLURALS:
@@ -232,6 +234,46 @@ nl:
       one: 'Een SEO-controleresultaat'
       other: '{count} SEO-controleresultaten'
     SINGULARNAME: 'SEO-controleresultaat'
+  Restruct\Silverstripe\SEO\Report\SeoSiteReport:
+    Any: Alle
+    ColumnCheckedAt: 'Laatst gecontroleerd'
+    ColumnEditLink: 'Link om te bewerken'
+    ColumnFailingChecks: 'Controles die niet slagen'
+    ColumnIndexable: Indexeerbaar
+    ColumnPageType: Paginatype
+    ColumnProblems: Problemen
+    ColumnStatus: Status
+    ColumnTips: Tips
+    ColumnTitle: Pagina
+    ColumnWarnings: Waarschuwingen
+    Description: 'Problemen, waarschuwingen en tips per pagina, uit de opgeslagen SEO-controles. Een pagina wordt opnieuw gecontroleerd als een redacteur hem na een wijziging opent.'
+    FilterCheck: 'Controle die niet slaagt'
+    FilterPageType: Paginatype
+    FilterSeverity: Ernst
+    FilterStatus: Status
+    PermissionCategory: SEO
+    PermissionHelp: 'De resultaten van de SEO-controles zien van elke pagina die het lid mag bekijken, onder Rapporten. Welke controles niet slagen, is alleen te zien bij pagina''s die het lid mag bewerken.'
+    PermissionName: 'Het SEO-statusrapport bekijken'
+    RefreshJob: 'De resultaten van de hele site worden bijgewerkt door de taak in de wachtrij "SEO-controles van de hele site".'
+    RefreshTask: 'De resultaten van de hele site worden bijgewerkt met sake tasks:seo-check-site.'
+    SeverityNone: 'Gecontroleerd, zonder problemen'
+    SeverityProblem: 'Met problemen'
+    SeverityTip: 'Met tips'
+    SeverityWarning: 'Met waarschuwingen'
+    SummaryStale: 'Verouderd: {count}'
+    SummaryTopCheck: '{title}: {count} pagina''s'
+    SummaryTopChecks: 'Slaagt op de meeste pagina''s niet:'
+    SummaryUnchecked: 'Nog niet gecontroleerd: {count}'
+    SummaryWithoutProblems: 'Pagina''s zonder problemen: {count} van {total} indexeerbare pagina''s'
+    Title: SEO-status
+  Restruct\Silverstripe\SEO\Report\SiteCheck:
+    Summary: '{checked} gecontroleerd, {fresh} actueel, {hidden} niet zichtbaar, {missing} verdwenen, {failed} mislukt'
+  Restruct\Silverstripe\SEO\Report\SiteReportData:
+    IndexableNo: 'Nee (noindex)'
+    IndexableYes: Ja
+    StatusFresh: Actueel
+    StatusStale: Verouderd
+    StatusUnchecked: 'Niet gecontroleerd'
   Restruct\Silverstripe\SEO\Schema\PageSchema:
     MethodNotAllowed: 'De map voor gestructureerde gegevens van {class} noemt {property}, dat geen veld, relatie, getter of toegestane methode is: het wordt niet gelezen. Voeg het toe aan schema_allowed_methods als het veilig is om aan te roepen.'
     MissingRecommended: '{type} mist {property}, dat wordt aanbevolen.'

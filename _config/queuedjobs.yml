@@ -1,0 +1,10 @@
+---
+Name: restruct-seo-queuedjobs
+Only:
+  moduleexists: symbiote/silverstripe-queuedjobs
+---
+# With queuedjobs installed, the site report points at the queued job for refreshing every page's results
+# (without it, at sake tasks:seo-check-site). The job class itself extends a queuedjobs class, so nothing
+# else in the module refers to it.
+Restruct\Silverstripe\SEO\Report\SeoSiteReport:
+  site_check_job: Restruct\Silverstripe\SEO\Jobs\SeoSiteCheckJob
