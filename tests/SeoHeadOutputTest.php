@@ -5,6 +5,7 @@ namespace Restruct\Silverstripe\SEO\Tests;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\Assets\Dev\TestAssetStore;
 use SilverStripe\CMS\Model\RedirectorPage;
+use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Dev\FunctionalTest;
@@ -166,6 +167,32 @@ class SeoHeadOutputTest extends FunctionalTest
 
         $this->assertStringContainsString('<link rel="canonical" href="https://other.example.org/original">', $head);
         $this->assertSame('<https://other.example.org/original>; rel="canonical"', $response->getHeader('Link'));
+    }
+
+    public function testCanonicalOutputCanBeSwitchedOff(): void
+    {
+        # For a theme that prints its own canonical: neither the tag nor the header, so there are never two
+        SiteTree::config()->set('seo_output_canonical', false);
+        $this->publishedPage();
+        $response = $this->get('about-us');
+        $head = $this->head($response);
+
+        $this->assertStringNotContainsString('rel="canonical"', $head);
+        $this->assertNull($response->getHeader('Link'));
+        # og:url belongs to the Open Graph set, which has its own switch
+        $this->assertStringContainsString('<meta property="og:url"', $head);
+    }
+
+    public function testOpenGraphOutputCanBeSwitchedOff(): void
+    {
+        # For a theme that prints its own sharing tags
+        SiteTree::config()->set('seo_output_open_graph', false);
+        $this->publishedPage();
+        $head = $this->head($this->get('about-us'));
+
+        $this->assertStringNotContainsString('og:', $head);
+        $this->assertStringNotContainsString('twitter:', $head);
+        $this->assertStringContainsString('<link rel="canonical"', $head);
     }
 
     public function testActionUrlGetsItsOwnCanonicalAndThemeTitleVariable(): void
