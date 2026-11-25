@@ -220,8 +220,9 @@ class MigrationRun
     /**
      * Copy an old column into one of this module's columns, per stage.
      *
-     * With several source columns, the first one holding a value is used (e.g. a Facebook description, else a
-     * Twitter one). When the old column turns out to be this module's own column, it is reported as such.
+     * With several source columns, the first one holding a usable value is used (e.g. a Facebook image, else a
+     * Twitter one): the transform runs per column, and a column it finds unusable gives way to the next. The row
+     * is invalid only when none of them is usable. When the old column turns out to be this module's own column, it is reported as such.
      *
      * @param string[] $sourceTables candidate base tables of the old column, e.g. ['Page', 'SiteTree']
      * @param string|string[] $sourceColumns
@@ -292,25 +293,35 @@ class MigrationRun
                 implode(' ', $joins)
             ));
             foreach ($rows as $row) {
+                # Each source column in turn: one without a value, or whose value the transform cannot use,
+                # gives way to the next
                 $value = null;
+                $found = false;
+                $unusable = false;
                 for ($i = 0; $i < $index; $i++) {
                     # The target's type does not tell the source's: a robots string feeds a flag
-                    if (!$this->isEmptySource($row["v{$i}"])) {
-                        $value = $row["v{$i}"];
-                        break;
-                    }
-                }
-                if ($value === null) {
-                    continue;
-                }
-                if ($transform) {
-                    $value = $transform($value, $stage, (int) $row['ID']);
-                    if ($value === self::NOTHING) {
+                    if ($this->isEmptySource($row["v{$i}"])) {
                         continue;
                     }
+                    $candidate = $transform
+                        ? $transform($row["v{$i}"], $stage, (int) $row['ID'])
+                        : $row["v{$i}"];
+                    if ($candidate === self::NOTHING) {
+                        continue;
+                    }
+                    if ($candidate === null) {
+                        $unusable = true;
+                        continue;
+                    }
+                    $value = $candidate;
+                    $found = true;
+                    break;
+                }
+                if (!$found && !$unusable) {
+                    continue;
                 }
                 $result->read++;
-                if ($value === null) {
+                if (!$found) {
                     $result->invalid++;
                     continue;
                 }
