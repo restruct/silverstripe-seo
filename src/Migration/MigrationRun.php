@@ -56,6 +56,11 @@ class MigrationRun
      */
     private array $files = [];
 
+    /**
+     * @var array<string, array{0: string, 1: int}|null> Per "table.column": [chars|bytes, limit], null for none.
+     */
+    private array $limits = [];
+
     public function __construct(
         private readonly bool $apply = false,
         private readonly bool $overwrite = false
@@ -157,8 +162,8 @@ class MigrationRun
     }
 
     /**
-     * For a text column that is shorter here than in the old module: a longer value is invalid rather than cut
-     * off (or refused by a strict database halfway through the run).
+     * A length limit of the mapper's own, stricter than the target column's: a longer value is invalid. (The
+     * target column's own limit is checked for every copy already, see {@see fitsColumn()}.)
      */
     public function maxLengthTransform(int $length): callable
     {
@@ -381,6 +386,11 @@ class MigrationRun
         mixed $current,
         bool $numeric
     ): void {
+        if (!$numeric && !$this->fitsColumn($table, $column, $value)) {
+            # Silverstripe's ANSI sql_mode is not strict: MySQL would cut the value off without a word
+            $result->invalid++;
+            return;
+        }
         if ($this->isEmpty($current, $numeric)) {
             $result->copied++;
             $this->write($table, $column, $id, $value);
@@ -395,6 +405,35 @@ class MigrationRun
         if ($this->overwrite) {
             $this->write($table, $column, $id, $value);
         }
+    }
+
+    /**
+     * Whether a text value fits the column: VARCHAR and CHAR limits count characters, TEXT types bytes.
+     */
+    protected function fitsColumn(string $table, string $column, mixed $value): bool
+    {
+        $key = $table . '.' . $column;
+        if (!array_key_exists($key, $this->limits)) {
+            $info = DB::prepared_query(
+                'SELECT "DATA_TYPE", "CHARACTER_MAXIMUM_LENGTH", "CHARACTER_OCTET_LENGTH" FROM information_schema."COLUMNS"'
+                . ' WHERE "TABLE_SCHEMA" = DATABASE() AND "TABLE_NAME" = ? AND "COLUMN_NAME" = ?',
+                [$table, $column]
+            )->record();
+            $type = strtolower((string) ($info['DATA_TYPE'] ?? ''));
+            if (in_array($type, ['varchar', 'char'], true)) {
+                $this->limits[$key] = ['chars', (int) $info['CHARACTER_MAXIMUM_LENGTH']];
+            } elseif (str_ends_with($type, 'text')) {
+                $this->limits[$key] = ['bytes', (int) $info['CHARACTER_OCTET_LENGTH']];
+            } else {
+                $this->limits[$key] = null;
+            }
+        }
+        $limit = $this->limits[$key];
+        if ($limit === null || $limit[1] <= 0) {
+            return true;
+        }
+        $length = $limit[0] === 'chars' ? mb_strlen((string) $value) : strlen((string) $value);
+        return $length <= $limit[1];
     }
 
     protected function write(string $table, string $column, int $id, mixed $value): void
