@@ -19,6 +19,7 @@ class SeoTestPageController extends ContentController implements TestOnly
         'item',
         'subjectitem',
         'archive',
+        'gone',
     ];
 
     /**
@@ -54,6 +55,16 @@ class SeoTestPageController extends ContentController implements TestOnly
      */
     public function archive()
     {
+        return $this;
+    }
+
+    /**
+     * An action that sets an error status on the response and still renders the page template, as a "this
+     * offer has expired" page might.
+     */
+    public function gone()
+    {
+        $this->getResponse()->setStatusCode(410);
         return $this;
     }
 
