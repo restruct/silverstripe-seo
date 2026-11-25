@@ -4,6 +4,8 @@ namespace Restruct\Silverstripe\SEO\Tests\Checks;
 
 use Restruct\Silverstripe\SEO\Checks\LinkGraph;
 use Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck;
+use Restruct\Silverstripe\SEO\Checks\Rules\OrphanPageCheck;
+use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
 use SilverStripe\Assets\Dev\TestAssetStore;
 use SilverStripe\Assets\File;
 use SilverStripe\CMS\Model\RedirectorPage;
@@ -128,6 +130,29 @@ class LinkChecksTest extends ChecksTestCase
             . '<a href="' . $href . '" aria-label="Open the timetable"></a>'
         ));
         $this->assertCheckPasses($page, 'link-text');
+    }
+
+    public function testAnAccessibleNameOverridesGenericText(): void
+    {
+        $target = $this->page([], [], true);
+        $href = $target->Link();
+        $page = $this->page($this->withLinks(
+            '<a href="' . $href . '" aria-label="Open the course timetable">click here</a> '
+            . '<span id="tt-label">Course timetable</span><a href="' . $href . '" aria-labelledby="tt-label">read more</a> '
+            . '<a href="' . $href . '" title="The course timetable">here</a>'
+        ));
+        $this->assertCheckPasses($page, 'link-text');
+    }
+
+    public function testOrphanPassesUnderAParentThatListsItsChildren(): void
+    {
+        # A holder (a blog, a news archive) lists its children in its template: that is an inbound link
+        $holder = $this->page(['ShowInMenus' => true]);
+        $child = $this->page(['ShowInMenus' => false, 'ParentID' => $holder->ID]);
+        $this->assertCheckFails($child, 'orphan-page');
+
+        OrphanPageCheck::config()->set('lists_children_classes', [SeoCheckTestPage::class]);
+        $this->assertCheckPasses($child, 'orphan-page');
     }
 
     public function testLinkTextListIsConfigurable(): void

@@ -44,6 +44,8 @@ class ImageChecksTest extends ChecksTestCase
     {
         $page = $this->page($this->withImages(
             '<img src="/assets/a.jpg" alt="Two students at a pottery wheel">'
+            # Starts like a camera name, but is a sentence
+            . '<img src="/assets/c.jpg" alt="Photo 2 of the new building">'
             . '<img src="/assets/b.jpg" alt="A finished bowl drying on a shelf">'
         ));
         $this->assertCheckPasses($page, 'image-alt-quality');
