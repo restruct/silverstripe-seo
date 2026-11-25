@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: SS6 / PHP ${{ matrix.php }} / sitemaps ${{ matrix.sitemaps }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # SS6 only (composer.json: framework ^6, php ^8.3). The oldest and newest PHP with the optional
+        # wilr/silverstripe-googlesitemaps installed, plus one leg without it, so the bridge's
+        # `Only: moduleexists` config and the test's skip path are exercised as well.
+        include:
+          - php: '8.3'
+            sitemaps: 'yes'
+          - php: '8.4'
+            sitemaps: 'yes'
+          - php: '8.3'
+            sitemaps: 'no'
+
+    services:
+      database:
+        # MariaDB, matching the local development machines and the production servers
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: ss_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    env:
+      SS_DATABASE_CLASS: MySQLDatabase
+      SS_DATABASE_SERVER: 127.0.0.1
+      SS_DATABASE_PORT: 3306
+      SS_DATABASE_USERNAME: root
+      SS_DATABASE_PASSWORD: root
+      SS_DATABASE_NAME: ss_ci
+      SS_ENVIRONMENT_TYPE: dev
+
+    steps:
+      - name: Check out the module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: module
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          # gd: the tests build real PNGs and image variants (the Open Graph crop)
+          extensions: mbstring, intl, pdo_mysql, mysqli, gd, zip, dom, xml, tokenizer, simplexml, ctype, session
+          tools: composer:v2
+          coverage: none
+
+      - name: Build a host project
+        # The module needs a booted Silverstripe app to be tested. It is required through a PATH repository,
+        # symlinked on purpose: /tests is export-ignore in .gitattributes, so a dist install has no tests.
+        # A path dependency's autoload-dev is not loaded, hence the test namespace in the host's autoload-dev.
+        run: |
+          mkdir -p app-host
+          cd app-host
+          cat > composer.json <<JSON
+          {
+            "name": "restruct/ci-host",
+            "require": {
+              "silverstripe/recipe-cms": "^6",
+              "silverstripe/recipe-testing": "^4",
+              "restruct/silverstripe-seo": "*"
+            },
+            "repositories": [
+              { "type": "path", "url": "../module", "options": { "symlink": true } }
+            ],
+            "autoload-dev": {
+              "psr-4": {
+                "Restruct\\\\Silverstripe\\\\SEO\\\\Tests\\\\": "vendor/restruct/silverstripe-seo/tests/"
+              }
+            },
+            "minimum-stability": "dev",
+            "prefer-stable": true,
+            "config": { "allow-plugins": true }
+          }
+          JSON
+          if [ "${{ matrix.sitemaps }}" = "yes" ]; then
+            composer require --no-update --no-interaction "wilr/silverstripe-googlesitemaps:^4"
+          fi
+          composer update --no-interaction --no-progress
+
+      - name: Configure the test suite
+        run: |
+          cd app-host
+          cat > phpunit.xml <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!-- failOnWarning: a warning fails the build. failOnEmptyTestSuite: a suite that finds no tests
+               (wrong path, broken autoload) fails instead of passing. -->
+          <phpunit bootstrap="vendor/silverstripe/framework/tests/bootstrap.php" colors="true"
+                   failOnWarning="true" failOnEmptyTestSuite="true">
+              <testsuites>
+                  <testsuite name="seo">
+                      <directory>vendor/restruct/silverstripe-seo/tests</directory>
+                  </testsuite>
+              </testsuites>
+          </phpunit>
+          XML
+
+      - name: Run tests
+        working-directory: app-host
+        env:
+          # PHPUnit 11 treats a bare flush=1 argument as a test path; SS_PHPUNIT_FLUSH flushes instead
+          SS_PHPUNIT_FLUSH: 1
+        run: vendor/bin/phpunit --fail-on-empty-test-suite --testsuite seo
+
+      - name: Boot the app and build the database
+        # The suite proves the classes behave; this proves the module does not break a real boot
+        working-directory: app-host
+        run: vendor/bin/sake db:build --flush
+
+  lint:
+    name: Lint PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax check every PHP file
+        run: find src tests -name '*.php' -print0 | xargs -0 -n1 php -l
