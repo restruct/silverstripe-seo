@@ -52,9 +52,24 @@ class SchemaDatesTest extends SapphireTest
 
     public function testDatetimeFieldGetsTheOffset(): void
     {
-        $value = DBField::create_field(DBDatetime::class, '2027-07-01 08:15:00');
-        $this->assertSame('2027-07-01T08:15:00+02:00', SchemaDates::format($value, 'Europe/Amsterdam'));
-        $this->assertSame('2027-07-01T08:15:00+00:00', SchemaDates::format($value, 'UTC'));
+        # A Datetime column holds PHP's default timezone, not the site timezone: DBDatetime::now() formats time()
+        # with date() and DatetimeField converts input to date_default_timezone_get(). So the stored value is
+        # read in that zone and then expressed in the site zone. Pinned here, so the test does not depend on
+        # the machine
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('UTC');
+        try {
+            $value = DBField::create_field(DBDatetime::class, '2027-07-01 08:15:00');
+            $this->assertSame('2027-07-01T10:15:00+02:00', SchemaDates::format($value, 'Europe/Amsterdam'));
+            $this->assertSame('2027-07-01T08:15:00+00:00', SchemaDates::format($value, 'UTC'));
+            # The same moment, whatever the site zone
+            $this->assertSame(
+                strtotime(SchemaDates::format($value, 'UTC')),
+                strtotime(SchemaDates::format($value, 'America/New_York'))
+            );
+        } finally {
+            date_default_timezone_set($previous);
+        }
     }
 
     public function testDateFieldStaysADate(): void
