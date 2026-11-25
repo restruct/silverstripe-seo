@@ -2,6 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Extensions;
 
+use Psr\Log\LoggerInterface;
 use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
 use Restruct\Silverstripe\SEO\Schema\PageSchema;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
@@ -17,6 +18,7 @@ use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Extension;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Core\Validation\ValidationResult;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\CompositeField;
@@ -30,6 +32,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
 use SilverStripe\Versioned\Versioned;
+use Throwable;
 
 /**
  * Search and sharing metadata for pages: meta title, a description fallback, robots directives, canonical URL and
@@ -367,7 +370,7 @@ class SeoSiteTreeExtension extends Extension
             $schema = PageSchema::create($this->getOwner());
             $json = $schema->getGraph()->toJson(JSON_PRETTY_PRINT);
             $warnings = $schema->getWarnings();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return '<p class="alert alert-danger">' . Convert::raw2xml(_t(
                 __CLASS__ . '.SchemaPreviewFailed',
                 'The structured data could not be built: {message}',
@@ -721,7 +724,18 @@ class SeoSiteTreeExtension extends Extension
         if ($status < 400 && $page->config()->get('seo_output_structured_data')
             && $page->isInDB() && !static::isErrorPage($page)
         ) {
-            $json = $this->SeoSchema()->getGraph()->toJson();
+            try {
+                $json = $this->SeoSchema()->getGraph()->toJson();
+            } catch (Throwable $e) {
+                # A source that throws (a corrupt API cache, a bug in a project's provideSchemaData) costs the
+                # structured data, never the page
+                $json = '';
+                static::logger()?->warning(sprintf(
+                    'Structured data left out of %s: %s',
+                    $page->Link(),
+                    $e->getMessage()
+                ), ['exception' => $e]);
+            }
             if ($json !== '') {
                 # HTML::createTag does not escape content; the JSON is made safe for a script element by
                 # SchemaGraph (JSON_HEX_TAG), so it goes in as it is
@@ -827,6 +841,18 @@ class SeoSiteTreeExtension extends Extension
         $controller = $this->currentController();
         $record = $controller && $controller->hasMethod('getSeoSubject') ? $controller->getSeoSubject() : null;
         return $record instanceof DataObject ? SubjectMetadata::create($record, $this->getOwner()) : null;
+    }
+
+    /**
+     * The PSR-3 logger, if the Injector has one.
+     */
+    protected static function logger(): ?LoggerInterface
+    {
+        try {
+            return Injector::inst()->get(LoggerInterface::class);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
