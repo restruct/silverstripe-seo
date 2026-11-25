@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-25
+
 ### Added
 
 - Structured data (JSON-LD): one `<script type="application/ld+json">` per page with a single `@graph`, nodes
