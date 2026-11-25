@@ -4,6 +4,7 @@ namespace Restruct\Silverstripe\SEO\Tests;
 
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\Assets\Dev\TestAssetStore;
+use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Dev\FunctionalTest;
@@ -215,6 +216,40 @@ class SeoHeadOutputTest extends FunctionalTest
         $canonical = Director::absoluteURL('/home/detail');
         $this->assertStringContainsString('<link rel="canonical" href="' . $canonical . '">', $head);
         $this->assertSame('<' . $canonical . '>; rel="canonical"', $response->getHeader('Link'));
+    }
+
+    public function testRedirectFromAnActionGetsNoRobotsOrCanonicalHeader(): void
+    {
+        # A redirect has no content to index or to canonicalise; the target answers for itself
+        $this->autoFollowRedirection = false;
+        $this->publishedPage(['MetaRobotsNoIndex' => true]);
+        $response = $this->get('about-us/moved');
+
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertNull($response->getHeader('X-Robots-Tag'));
+        $this->assertNull($response->getHeader('Link'));
+    }
+
+    public function testRedirectorPageGetsNoRobotsOrCanonicalHeader(): void
+    {
+        $this->autoFollowRedirection = false;
+        $target = $this->publishedPage();
+        # The flags are columns on every page; a redirector page shows no fields for them, but may hold a value
+        # from before it became a redirector
+        $redirector = RedirectorPage::create([
+            'Title' => 'Old about',
+            'URLSegment' => 'old-about',
+            'RedirectionType' => 'Internal',
+            'LinkToID' => $target->ID,
+            'MetaRobotsNoIndex' => true,
+        ]);
+        $redirector->write();
+        $redirector->publishRecursive();
+
+        $response = $this->get('old-about');
+        $this->assertSame(301, $response->getStatusCode());
+        $this->assertNull($response->getHeader('X-Robots-Tag'));
+        $this->assertNull($response->getHeader('Link'));
     }
 
     public function testActionReturningItsOwnResponseStillGetsTheRobotsHeader(): void

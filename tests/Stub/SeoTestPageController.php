@@ -20,6 +20,7 @@ class SeoTestPageController extends ContentController implements TestOnly
         'subjectitem',
         'archive',
         'gone',
+        'moved',
     ];
 
     /**
@@ -66,6 +67,14 @@ class SeoTestPageController extends ContentController implements TestOnly
     {
         $this->getResponse()->setStatusCode(410);
         return $this;
+    }
+
+    /**
+     * An action that redirects, as an old URL kept for its inbound links would.
+     */
+    public function moved(): HTTPResponse
+    {
+        return $this->redirect($this->Link('detail'), 302);
     }
 
     /**
