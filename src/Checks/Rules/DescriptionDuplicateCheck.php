@@ -19,7 +19,6 @@ class DescriptionDuplicateCheck extends AbstractCheck
 
     private static string $priority = self::MEDIUM;
 
-    private static int $max_listed = 5;
 
     public function title(): string
     {
@@ -46,9 +45,11 @@ class DescriptionDuplicateCheck extends AbstractCheck
             return $this->pass();
         }
         $details = [];
-        foreach ($others->limit((int) static::config()->get('max_listed')) as $other) {
+        foreach ($others->limit(static::maxListed()) as $other) {
             $details[] = sprintf('%s (%s)', $other->Title, $other->RelativeLink());
         }
+        # The list is limited in the query; count the rest from the total
+        $details = $this->listed($details, $count);
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', '{count} other page(s) have the same meta description.', ['count' => $count]),
             $details

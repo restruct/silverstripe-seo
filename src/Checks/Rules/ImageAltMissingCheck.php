@@ -23,7 +23,6 @@ class ImageAltMissingCheck extends AbstractCheck
 
     private static bool $needs_render = true;
 
-    private static int $max_listed = 10;
 
     public function title(): string
     {
@@ -49,7 +48,7 @@ class ImageAltMissingCheck extends AbstractCheck
         if (!$missing) {
             return $this->pass();
         }
-        $listed = array_slice(array_values(array_unique($missing)), 0, (int) static::config()->get('max_listed'));
+        $listed = static::unique($missing);
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', '{count} image(s) have no alt text.', ['count' => count($missing)]),
             $listed

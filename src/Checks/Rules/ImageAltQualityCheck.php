@@ -47,7 +47,6 @@ class ImageAltQualityCheck extends AbstractCheck
         'plaatje van',
     ];
 
-    private static int $max_listed = 10;
 
     public function title(): string
     {
@@ -94,7 +93,7 @@ class ImageAltQualityCheck extends AbstractCheck
         }
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', 'The alt text of {count} image(s) could describe the image better.', ['count' => count($issues)]),
-            array_slice($issues, 0, (int) static::config()->get('max_listed'))
+            $issues
         );
     }
 

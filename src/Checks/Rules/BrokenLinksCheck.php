@@ -32,7 +32,6 @@ class BrokenLinksCheck extends AbstractCheck
 
     private static bool $needs_render = true;
 
-    private static int $max_listed = 15;
 
     public function title(): string
     {
@@ -55,7 +54,7 @@ class BrokenLinksCheck extends AbstractCheck
         }
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', '{count} link(s) or image(s) do not work.', ['count' => count($broken)]),
-            array_slice($broken, 0, (int) static::config()->get('max_listed'))
+            $broken
         );
     }
 

@@ -25,7 +25,6 @@ class LinkRedirectsCheck extends AbstractCheck
 
     private static bool $needs_render = true;
 
-    private static int $max_listed = 10;
 
     public function title(): string
     {
@@ -71,7 +70,7 @@ class LinkRedirectsCheck extends AbstractCheck
         }
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', '{count} link(s) go through a redirect.', ['count' => count($issues)]),
-            array_slice($issues, 0, (int) static::config()->get('max_listed'))
+            $issues
         );
     }
 }

@@ -34,6 +34,13 @@ abstract class AbstractCheck implements Check
      */
     private static bool $runs_on_noindex = false;
 
+    /**
+     * At most this many details are listed for a result, then "and N more". Set it per check class to differ.
+     *
+     * @config
+     */
+    private static int $max_listed = 20;
+
     public function id(): string
     {
         return (string) static::config()->get('id');
@@ -70,7 +77,45 @@ abstract class AbstractCheck implements Check
      */
     protected function fail(string|array $message, array $details = [], string|array $howToFix = ''): CheckResult
     {
-        return CheckResult::fail($message, $details, $howToFix);
+        return CheckResult::fail($message, $this->listed($details), $howToFix);
+    }
+
+    /**
+     * A link to this check's documentation for the panel; '' for none. The module's own checks link to their
+     * spec in the module's docs ({@see CheckRunner::$docs_url}); a project's check can return its own page.
+     */
+    public function docsUrl(): string
+    {
+        return '';
+    }
+
+    public static function maxListed(): int
+    {
+        return max(1, (int) static::config()->get('max_listed'));
+    }
+
+    /**
+     * The details capped at max_listed, plus "and N more" for the rest. $total is the full number when the list
+     * was already limited (in a query); a list that already ends in "and N more" is left alone.
+     *
+     * @param array<int, string|array> $details
+     * @return array<int, string|array>
+     */
+    protected function listed(array $details, ?int $total = null): array
+    {
+        $details = array_values($details);
+        $last = end($details);
+        if (CheckMessage::isMessage($last) && $last['_t'] === AbstractCheck::class . '.AndMore') {
+            return $details;
+        }
+        $max = static::maxListed();
+        $total ??= count($details);
+        if ($total <= $max) {
+            return $details;
+        }
+        $details = array_slice($details, 0, $max);
+        $details[] = CheckMessage::_t(AbstractCheck::class . '.AndMore', 'and {count} more', ['count' => $total - $max]);
+        return $details;
     }
 
     /**

@@ -57,8 +57,9 @@ class CheckRunner
     private static array $checks = [];
 
     /**
-     * Where the spec of a check is published; `%s` is the check id. Linked from the panel, so an explanation can
-     * be improved without a release.
+     * Where the spec of a module check is published; `%s` is the check id. Linked from the panel, so an
+     * explanation can be improved without a release. Only for the module's own checks: a project's check links
+     * to what its docsUrl() returns, or to nothing.
      */
     private static string $docs_url = 'https://github.com/restruct/silverstripe-seo/blob/main/docs/checks/%s.md';
 
@@ -181,6 +182,21 @@ class CheckRunner
     }
 
     /**
+     * The docs link of a check: its own docsUrl() if it has one, else the module's spec for a module check.
+     */
+    protected function docsFor(Check $check, string $id): string
+    {
+        $own = method_exists($check, 'docsUrl') ? (string) $check->docsUrl() : '';
+        if ($own !== '') {
+            return $own;
+        }
+        $moduleNamespace = 'Restruct\\Silverstripe\\SEO\\Checks\\Rules\\';
+        return str_starts_with(get_class($check), $moduleNamespace)
+            ? sprintf((string) static::config()->get('docs_url'), rawurlencode($id))
+            : '';
+    }
+
+    /**
      * Stored entries in the current locale: message, details and how-to-fix translated; the title and general
      * advice of a registered check taken from the check itself. Entries of the earlier format (plain text) are
      * shown as they are.
@@ -245,7 +261,7 @@ class CheckRunner
             'details' => $result->getDetails(),
             # Only advice specific to this result is stored; the check's general advice is added when shown
             'howToFix' => $result->isFail() ? $result->getHowToFix() : '',
-            'docs' => sprintf((string) static::config()->get('docs_url'), rawurlencode($id)),
+            'docs' => $this->docsFor($check, $id),
             'ignored' => false,
             'ignoredBy' => null,
         ];

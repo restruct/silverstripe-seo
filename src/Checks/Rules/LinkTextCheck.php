@@ -42,7 +42,6 @@ class LinkTextCheck extends AbstractCheck
         ],
     ];
 
-    private static int $max_listed = 10;
 
     public function title(): string
     {
@@ -79,7 +78,7 @@ class LinkTextCheck extends AbstractCheck
         }
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', '{count} link(s) have no text, or text that does not say where they go.', ['count' => count($issues)]),
-            array_slice($issues, 0, (int) static::config()->get('max_listed'))
+            $issues
         );
     }
 

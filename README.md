@@ -532,6 +532,14 @@ A check gets a `PageAnalysis`: the draft record, the `RenderResult`, `content()`
 from the database) and `site()` (duplicate lookups, inbound links, menu placement). Set `needs_render: true` on a
 check that reads the render; it is then skipped, not failed, when the page does not render.
 
+Build messages with `$this->_t(key, default, params)` rather than the global `_t()`: they are stored as key and
+parameters and translated when shown. Details are capped at `max_listed` (default 20, config on
+`AbstractCheck` or per check class), followed by "and N more". "About this check" links to this module's docs
+only for the module's own checks; a project's check links to whatever its `docsUrl()` returns (nothing by
+default). `OrphanPageCheck.lists_children_classes` names holder classes whose template lists their children
+(empty by default; a blog or news holder, say); an `updateIsOrphan(bool &$orphan, PageAnalysis $analysis)`
+extension hook decides other cases.
+
 Internal links are resolved from the database and the public folder, without HTTP requests: pages (an action
 after the page's path is accepted), files under assets (variants and converted variants included, via core's
 file ID parsing), static files in the public folder (`_resources`, favicon.ico) and the old URLs of renamed

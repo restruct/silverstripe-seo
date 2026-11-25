@@ -74,7 +74,7 @@ class PlaceholderTextCheck extends AbstractCheck
         }
         return $this->fail(
             $this->_t(__CLASS__ . '.Message', 'The page still contains placeholder text.'),
-            array_slice(static::unique($found), 0, 10)
+            static::unique($found)
         );
     }
 
