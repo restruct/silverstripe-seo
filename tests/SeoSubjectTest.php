@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Tests;
 
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoFallbackTestExtension;
+use Restruct\Silverstripe\SEO\Tests\Stub\SeoGetterTestItem;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestItem;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestSubjectItem;
@@ -32,6 +33,7 @@ class SeoSubjectTest extends FunctionalTest
         SeoTestPage::class,
         SeoTestItem::class,
         SeoTestSubjectItem::class,
+        SeoGetterTestItem::class,
     ];
 
     protected static $required_extensions = [
@@ -215,6 +217,54 @@ class SeoSubjectTest extends FunctionalTest
         $response = $this->get('courses/item/' . $item->ID);
         $this->assertStringContainsString('<meta name="robots" content="noindex">', $this->head($response));
         $this->assertSame('noindex', $response->getHeader('X-Robots-Tag'));
+    }
+
+    private function getterItem(array $data = []): SeoGetterTestItem
+    {
+        $item = SeoGetterTestItem::create(array_merge([
+            'Title' => 'Welding run',
+            'Code' => 'W1',
+            'HolderID' => $this->holder->ID,
+        ], $data));
+        $item->write();
+        return $item;
+    }
+
+    public function testARecordsGetterTitleWins(): void
+    {
+        $item = $this->getterItem(['MetaTitle' => 'Stale typed title']);
+        $head = $this->head($this->get('courses/getteritem/' . $item->ID));
+
+        $this->assertStringContainsString('<title>Run W1 | Example Site</title>', $head);
+        $this->assertStringNotContainsString('Stale typed title', $head);
+    }
+
+    public function testARecordsGetterRobotsWinInMetaAndHeader(): void
+    {
+        # The column says noindex, the getter says indexable; a getter without a column adds nofollow
+        $item = $this->getterItem(['MetaRobotsNoIndex' => true, 'Archived' => false, 'Sponsored' => true]);
+        $response = $this->get('courses/getteritem/' . $item->ID);
+
+        $this->assertStringContainsString('<meta name="robots" content="nofollow">', $this->head($response));
+        $this->assertSame('nofollow', $response->getHeader('X-Robots-Tag'));
+
+        $item->update(['Archived' => true, 'Sponsored' => false])->write();
+        $response = $this->get('courses/getteritem/' . $item->ID);
+        $this->assertStringContainsString('<meta name="robots" content="noindex">', $this->head($response));
+        $this->assertSame('noindex', $response->getHeader('X-Robots-Tag'));
+    }
+
+    public function testARecordsGetterRobotsOverrideTheHolder(): void
+    {
+        # The holder is noindex; the record has robots settings of its own (here only getters) and is indexable
+        $this->holder->MetaRobotsNoIndex = true;
+        $this->holder->write();
+        $this->holder->publishRecursive();
+
+        $item = $this->getterItem(['Archived' => false]);
+        $response = $this->get('courses/getteritem/' . $item->ID);
+        $this->assertStringNotContainsString('name="robots"', $this->head($response));
+        $this->assertNull($response->getHeader('X-Robots-Tag'));
     }
 
     public function testHolderItselfIsUnaffected(): void

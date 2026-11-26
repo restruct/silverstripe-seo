@@ -18,6 +18,7 @@ class SeoTestPageController extends ContentController implements TestOnly
         'download',
         'item',
         'subjectitem',
+        'getteritem',
         'archive',
         'gone',
         'moved',
@@ -83,6 +84,19 @@ class SeoTestPageController extends ContentController implements TestOnly
     public function item(HTTPRequest $request)
     {
         $item = SeoTestItem::get()->byID((int) $request->param('ID'));
+        if (!$item) {
+            return $this->httpError(404);
+        }
+        $this->setSeoSubject($item);
+        return $this;
+    }
+
+    /**
+     * Same, for a record that decides its title and robots in getters.
+     */
+    public function getteritem(HTTPRequest $request)
+    {
+        $item = SeoGetterTestItem::get()->byID((int) $request->param('ID'));
         if (!$item) {
             return $this->httpError(404);
         }
