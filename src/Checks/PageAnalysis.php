@@ -70,7 +70,8 @@ class PageAnalysis
     }
 
     /**
-     * The content area of the rendered page (`<main>`, else `<body>`, with the ignored elements removed).
+     * The content area of the rendered page (the first match of ContentNarrower.content_selectors: by default the
+     * visible `<main>`, else `[role=main]`, else `<body>`; with the ignored elements removed).
      */
     public function content(): ?NarrowedContent
     {

@@ -438,8 +438,10 @@ Restruct\Silverstripe\SEO\Schema\SchemaTypeRegistry:
 The checks run on the **draft as the site renders it**: the page is rendered in-process through its own
 controller and templates (no HTTP request, so drafts, basic auth and test environments all work), as the CMS
 user who asks, by [restruct/silverstripe-rendered-content-extractor](https://github.com/restruct/silverstripe-rendered-content-extractor).
-The render is parsed once and shared by all checks; content checks read the content area (`<main>`, else `<body>`,
-minus what `ContentNarrower.ignore_selectors` and `data-content-ignore` mark), head checks read the full head.
+The render is parsed once and shared by all checks; content checks read the content area (by default the visible
+`<main>`, else `[role=main]`, else `<body>`; configurable per site and per page type with
+`ContentNarrower.content_selectors` and its `updateContentSelectors` hook), minus what
+`ContentNarrower.ignore_selectors` and `data-content-ignore` mark; head checks read the full head.
 
 In the page editor, under **Search engines and sharing**:
 
