@@ -14,6 +14,10 @@ use SilverStripe\Versioned\Versioned;
  * Site-level lookups the checks share: other indexable pages with the same title or description, inbound links
  * and menu placement. Read in the stage the checks run in (draft), so a page is compared with the site as the
  * editors currently have it.
+ *
+ * Computed titles and noindex verdicts of other pages are kept for the lifetime of the object, so one SiteData is
+ * shared by the pages of a run: CheckRunner::run() / collect() / checkPage() and SiteCheck::checkPage() take one,
+ * the site task creates one per run and the site job one per step.
  */
 class SiteData
 {
@@ -32,24 +36,29 @@ class SiteData
             '"SiteTree"."MetaTitle" = ?' => $title,
             '("SiteTree"."MetaTitle" IS NULL OR "SiteTree"."MetaTitle" = \'\') AND "SiteTree"."Title" = ?' => $title,
         ];
+        # As the database compares: case-insensitively
+        $wanted = mb_strtolower($title);
         # A page class with a getMetaTitle() override decides its title in code, so its column says nothing:
-        # its pages are all candidates, compared below on the title they really have
+        # its pages are found by their computed titles (computed once per SiteData), the others in SQL
         $getterClasses = $this->classesWithGetter('MetaTitle');
+        $computed = $this->computedTitles();
         if ($getterClasses) {
-            $placeholders = DB::placeholders($getterClasses);
-            $candidates = $this->otherPages($page)->whereAny([
-                '"SiteTree"."ClassName" IN (' . $placeholders . ')' => $getterClasses,
-                '"SiteTree"."ClassName" NOT IN (' . $placeholders . ') AND (' . implode(' OR ', array_keys($columnMatch)) . ')'
+            $conditions = [
+                '"SiteTree"."ClassName" NOT IN (' . DB::placeholders($getterClasses) . ') AND ('
+                    . implode(' OR ', array_keys($columnMatch)) . ')'
                     => array_merge($getterClasses, array_values($columnMatch)),
-            ]);
+            ];
+            $matched = array_keys(array_filter($computed, fn (string $computedTitle) => $computedTitle === $wanted));
+            if ($matched) {
+                $conditions['"SiteTree"."ID" IN (' . DB::placeholders($matched) . ')'] = $matched;
+            }
+            $candidates = $this->otherPages($page)->whereAny($conditions);
         } else {
             $candidates = $this->otherPages($page)->whereAny($columnMatch);
         }
-        $wanted = mb_strtolower($title);
         return $this->indexableAmong(
             $candidates,
-            # As the database compares: case-insensitively
-            fn (SiteTree $other) => mb_strtolower(trim((string) $other->SeoPageTitle())) === $wanted
+            fn (SiteTree $other) => ($computed[(int) $other->ID] ?? mb_strtolower(trim((string) $other->SeoPageTitle()))) === $wanted
         );
     }
 
@@ -133,13 +142,61 @@ class SiteData
         }
         $ids = [];
         foreach ($candidates as $other) {
-            if (($match === null || $match($other)) && !PageAnalysis::create($other, null, $this)->isNoindex()) {
+            if (($match === null || $match($other)) && !$this->isNoindex($other)) {
                 $ids[] = (int) $other->ID;
             }
         }
         # An empty IN () is no valid SQL; ID 0 matches nothing
         return SiteTree::get()->filter('ID', $ids ?: [0]);
     }
+
+    /**
+     * Whether another page asks not to be indexed, the way the head decides it; remembered per page for the
+     * lifetime of this object.
+     */
+    protected function isNoindex(SiteTree $other): bool
+    {
+        return $this->noindex[(int) $other->ID] ??= PageAnalysis::create($other, null, $this)->isNoindex();
+    }
+
+    /**
+     * The titles for search of the pages whose class has a getMetaTitle() override, lowercased, by page ID.
+     * Computed on first use and kept for the lifetime of this object, so a check run, a job step or a task run
+     * that shares one SiteData loads those pages once, however many pages it checks. Read in the stage of that
+     * first use (the checks read the draft); a page edited later in the same run keeps its earlier title here.
+     *
+     * @return array<int, string>
+     */
+    protected function computedTitles(): array
+    {
+        return $this->computedTitles ??= $this->loadComputedTitles();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function loadComputedTitles(): array
+    {
+        $classes = $this->classesWithGetter('MetaTitle');
+        if (!$classes) {
+            return [];
+        }
+        $titles = [];
+        foreach (SiteTree::get()->filter('ClassName', $classes) as $other) {
+            $titles[(int) $other->ID] = mb_strtolower(trim((string) $other->SeoPageTitle()));
+        }
+        return $titles;
+    }
+
+    /**
+     * @var array<int, string>|null
+     */
+    protected ?array $computedTitles = null;
+
+    /**
+     * @var array<int, bool>
+     */
+    protected array $noindex = [];
 
     /**
      * Page classes that read a field through a getter of their own (`getMetaTitle()`), from the class or an

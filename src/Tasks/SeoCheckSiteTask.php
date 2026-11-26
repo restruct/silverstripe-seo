@@ -2,6 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Tasks;
 
+use Restruct\Silverstripe\SEO\Checks\SiteData;
 use Restruct\Silverstripe\SEO\Model\StaleContext;
 use Restruct\Silverstripe\SEO\Report\SiteCheck;
 use RuntimeException;
@@ -73,13 +74,15 @@ class SeoCheckSiteTask extends BuildTask
         $counts = SiteCheck::emptyCounts();
         # One staleness context for the run: the site epoch and the config fingerprint are read once
         $context = $onlyStale ? StaleContext::create(Versioned::DRAFT) : null;
+        # And one SiteData for the run: other pages' generated titles are computed once, not once per page
+        $site = SiteData::create();
         $rendered = 0;
         $done = 0;
         foreach ($ids as $id) {
             if ($limit !== null && $rendered >= $limit) {
                 break;
             }
-            $outcome = $siteCheck->checkPage($id, $onlyStale, $member, $context);
+            $outcome = $siteCheck->checkPage($id, $onlyStale, $member, $context, $site);
             $counts[$outcome]++;
             $done++;
             # Only stored checks count: a page that fails is logged and does not use up the limit

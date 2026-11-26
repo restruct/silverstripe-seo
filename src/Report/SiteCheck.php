@@ -6,6 +6,7 @@ use Psr\Log\LoggerInterface;
 use ReflectionProperty;
 use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
+use Restruct\Silverstripe\SEO\Checks\SiteData;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use Restruct\Silverstripe\SEO\Model\StaleContext;
 use RuntimeException;
@@ -96,12 +97,19 @@ class SiteCheck
      *
      * @param StaleContext|null $context Shared by the pages of one run (the site epoch and the config
      *                                   fingerprint are read once); null builds one for this page
+     * @param SiteData|null $site Shared by the pages of one run (other pages' generated titles are computed
+     *                            once); null builds one for this page
      * @return string One of the outcome constants
      */
-    public function checkPage(int $pageID, bool $onlyStale, ?Member $member, ?StaleContext $context = null): string
-    {
+    public function checkPage(
+        int $pageID,
+        bool $onlyStale,
+        ?Member $member,
+        ?StaleContext $context = null,
+        ?SiteData $site = null
+    ): string {
         try {
-            return Member::actAs($member, fn () => $this->withDraftAccess($member, function () use ($pageID, $onlyStale, $member, $context) {
+            return Member::actAs($member, fn () => $this->withDraftAccess($member, function () use ($pageID, $onlyStale, $member, $context, $site) {
                 $page = Versioned::get_by_stage(SiteTree::class, Versioned::DRAFT)->byID($pageID);
                 if (!$page instanceof SiteTree) {
                     return self::MISSING;
@@ -119,7 +127,7 @@ class SiteCheck
                 if (!$visible) {
                     return self::NOT_VISIBLE;
                 }
-                CheckRunner::singleton()->checkPage($page, $member);
+                CheckRunner::singleton()->checkPage($page, $member, $site);
                 return self::CHECKED;
             }));
         } catch (Throwable $e) {

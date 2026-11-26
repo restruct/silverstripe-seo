@@ -2,6 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Jobs;
 
+use Restruct\Silverstripe\SEO\Checks\SiteData;
 use Restruct\Silverstripe\SEO\Model\StaleContext;
 use Restruct\Silverstripe\SEO\Report\SiteCheck;
 use SilverStripe\Core\Config\Configurable;
@@ -93,8 +94,10 @@ class SeoSiteCheckJob extends AbstractQueuedJob
         $failed = (array) $this->failedIDs;
         # One staleness context per step: the site epoch and the config fingerprint are read once
         $context = $onlyStale ? StaleContext::create(Versioned::DRAFT) : null;
+        # And one SiteData per step: other pages' generated titles are computed once, not once per page
+        $site = SiteData::create();
         foreach ($batch as $id) {
-            $outcome = $siteCheck->checkPage((int) $id, $onlyStale, $member, $context);
+            $outcome = $siteCheck->checkPage((int) $id, $onlyStale, $member, $context, $site);
             $counts[$outcome] = ($counts[$outcome] ?? 0) + 1;
             if ($outcome === SiteCheck::FAILED && count($failed) < static::FAILED_SHOWN) {
                 $failed[] = (int) $id;

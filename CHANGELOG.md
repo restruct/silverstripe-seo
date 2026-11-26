@@ -84,7 +84,9 @@ All notable changes to this module are documented here. The format follows
 - The duplicate title and description checks compared the MetaTitle and MetaRobotsNoIndex columns in SQL, so a
   page class that generates its title or noindex in a getter was compared on values it does not output. Candidates
   are now confirmed in PHP, and all pages of a class with a `getMetaTitle()` override are compared on their real
-  title.
+  title. Those titles, and the noindex verdicts of other pages, are computed once per `SiteData`; one `SiteData`
+  is shared by the pages of a task run or a job step (`CheckRunner::run()`, `collect()`, `checkPage()` and
+  `SiteCheck::checkPage()` take an optional `SiteData`).
 
 - An action that removed the module's `X-Robots-Tag` or `Link` header from the controller's response got it put
   back after the action. Headers the project sets (in `init()` or an action) were already never overwritten; both

@@ -211,7 +211,9 @@ class CoursePage extends Page
   The `updateSeoDescriptionFallback` hook runs after either, and `seo_description_fallback: false` switches both
   off. A typed meta description always wins.
 - The duplicate-title check loads every page of a class with a `getMetaTitle()` override to compare its title,
-  since that title exists only in PHP; a cheap getter keeps that fast.
+  since that title exists only in PHP. It does so once per check run of a page, and once per run of
+  `tasks:seo-check-site` or per step of `SeoSiteCheckJob` (all pages of that run share the computed titles), so
+  a getter that reads a relation costs its queries once per run, not once per page checked.
 - Hide or lock the field the getter makes meaningless with `seo_hidden_fields` / `seo_readonly_fields` (above);
   the search result preview then shows the title from PHP rather than from the form.
 

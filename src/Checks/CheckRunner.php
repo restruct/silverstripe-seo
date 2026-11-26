@@ -122,9 +122,9 @@ class CheckRunner
      * @param Member|null $member Who to render as; null renders as an anonymous visitor
      * @return array<string, array> See {@see entry()} for the shape, with every text a string
      */
-    public function run(SiteTree $page, ?Member $member): array
+    public function run(SiteTree $page, ?Member $member, ?SiteData $site = null): array
     {
-        return $this->renderEntries($this->collect($page, $member));
+        return $this->renderEntries($this->collect($page, $member, $site));
     }
 
     /**
@@ -133,7 +133,7 @@ class CheckRunner
      *
      * @return array<string, array>
      */
-    public function collect(SiteTree $page, ?Member $member): array
+    public function collect(SiteTree $page, ?Member $member, ?SiteData $site = null): array
     {
         if (!PageEligibility::singleton()->isEligible($page, 'seo')) {
             return [];
@@ -144,10 +144,11 @@ class CheckRunner
         }
 
         # Field values and site lookups are read in the draft stage, as the render is
-        $entries = Versioned::withVersionedMode(function () use ($draft, $member) {
+        $entries = Versioned::withVersionedMode(function () use ($draft, $member, $site) {
             Versioned::set_stage(Versioned::DRAFT);
 
-            $site = SiteData::create();
+            # Shared by the pages of a run when the caller passes one: what it computes about other pages is kept
+            $site ??= SiteData::create();
             $noindex = PageAnalysis::create($draft, null, $site)->isNoindex();
             $render = $noindex ? null : PageRenderer::singleton()->render($draft, Versioned::DRAFT, $member);
             $analysis = PageAnalysis::create($draft, $render, $site);
@@ -171,11 +172,11 @@ class CheckRunner
     /**
      * Run the checks and store the outcome as the page's draft result.
      */
-    public function checkPage(SiteTree $page, ?Member $member): SeoCheckResult
+    public function checkPage(SiteTree $page, ?Member $member, ?SiteData $site = null): SeoCheckResult
     {
         $startedAt = DBDatetime::now()->getValue();
         $before = $this->draftLastEdited($page);
-        $entries = $this->collect($page, $member);
+        $entries = $this->collect($page, $member, $site);
         # Saved while the check ran (another tab, a block): the result describes an older draft, so store it as
         # out of date and let the panel ask again
         $changed = $this->draftLastEdited($page) !== $before;
