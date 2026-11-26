@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-26
+
 ### Fixed
 
 - The site-check and migration tasks print in the site's locale: their titles, descriptions and option help, the
