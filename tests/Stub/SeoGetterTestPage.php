@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Tests\Stub;
 
 use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
+use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Dev\TestOnly;
 
 /**
@@ -27,11 +28,21 @@ class SeoGetterTestPage extends SeoCheckTestPage implements TestOnly
     ];
 
     /**
+     * When set, the generated title also names the parent page: a getter that reads a relation, as real ones
+     * do, so it costs a query per page object.
+     */
+    public static bool $titleWithParent = false;
+
+    /**
      * The title is generated from the course code; the MetaTitle column is ignored.
      */
     public function getMetaTitle(): string
     {
-        return 'Course ' . $this->CourseCode;
+        $title = 'Course ' . $this->CourseCode;
+        if (static::$titleWithParent && $this->ParentID) {
+            $title .= ' in ' . SiteTree::get()->byID($this->ParentID)?->Title;
+        }
+        return $title;
     }
 
     /**
