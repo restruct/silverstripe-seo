@@ -548,6 +548,7 @@ controller and templates (no HTTP request, so drafts, basic auth and test enviro
 user who asks, by [restruct/silverstripe-rendered-content-extractor](https://github.com/restruct/silverstripe-rendered-content-extractor).
 The render is parsed once and shared by all checks; content checks read the content area (by default the visible
 `<main>`, else `[role=main]`, else `<body>`; configurable per site and per page type with
+`ContentNarrower.custom_content_selectors` (tried first, the YAML way to name your own container),
 `ContentNarrower.content_selectors` and its `updateContentSelectors` hook), minus what
 `ContentNarrower.ignore_selectors` and `data-content-ignore` mark; head checks read the full head.
 

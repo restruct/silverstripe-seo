@@ -64,7 +64,8 @@ All notable changes to this module are documented here. The format follows
 
 - Requires restruct/silverstripe-rendered-content-extractor for rendering a page in-process and narrowing it to
   its content.
-- Content checks read the content area the render library's `ContentNarrower.content_selectors` finds (by
+- Content checks read the content area the render library's `ContentNarrower.custom_content_selectors` and
+  `ContentNarrower.content_selectors` find (by
   default the visible `<main>`, else `[role=main]`, else `<body>`), so a theme that marks its content with
   `role="main"` instead of `<main>`, or a page type with its own container, is checked on that container rather
   than the whole body.
