@@ -29,7 +29,7 @@ class LiveSeoMapper implements SeoMigrationMapper
 
     public function getTitle(): string
     {
-        return 'the older liveseo module';
+        return _t(__CLASS__ . '.Title', 'the older liveseo module');
     }
 
     public function migrate(MigrationRun $run): void
@@ -41,13 +41,16 @@ class LiveSeoMapper implements SeoMigrationMapper
             $run->reportColumn(self::PAGE, $column, MigrationResult::DROPPED);
         }
         foreach (['SEOFBPublisherlink', 'SEOFBAuthorlink', 'SEOGplusAuthorlink', 'SEOGplusPublisherlink'] as $column) {
-            $run->reportColumn(self::PAGE, $column, MigrationResult::DROPPED, 'no longer read by these sites');
+            $run->reportColumn(self::PAGE, $column, MigrationResult::DROPPED, _t(__CLASS__ . '.NoLongerRead', 'no longer read by these sites'));
         }
         $run->reportColumn(
             ['SiteConfig'],
             'SEOTitleTemplate',
             MigrationResult::DROPPED,
-            'the title is the meta title (or page title), the separator and SiteConfig.SeoTitleSuffix or the site name'
+            _t(
+                __CLASS__ . '.TitleTemplate',
+                'the title is the meta title (or page title), the separator and SiteConfig.SeoTitleSuffix or the site name'
+            )
         );
 
         $this->migrateStructuredData($run);
@@ -56,7 +59,7 @@ class LiveSeoMapper implements SeoMigrationMapper
     protected function migrateStructuredData(MigrationRun $run): void
     {
         if (!$run->hasTable('StructuredDataThing')) {
-            $run->note('StructuredData tables not found: no structured data to migrate.');
+            $run->note(_t(__CLASS__ . '.NoTables', 'StructuredData tables not found: no structured data to migrate.'));
             return;
         }
 
@@ -71,31 +74,35 @@ class LiveSeoMapper implements SeoMigrationMapper
         foreach ($perType as $type => $count) {
             $summary[] = "{$type} {$count}";
         }
-        $run->info(sprintf('StructuredData: %d rows: %s', count($things), implode(', ', $summary) ?: 'none'));
+        $run->info(_t(__CLASS__ . '.Rows', 'StructuredData: {count} rows: {types}', [
+            'count' => count($things),
+            'types' => implode(', ', $summary) ?: _t(__CLASS__ . '.None', 'none'),
+        ]));
 
         $pages = 0;
         if ($run->hasTable('SiteTree_StructuredDataItems')) {
             $pages = (int) DB::query('SELECT COUNT(DISTINCT "SiteTreeID") FROM "SiteTree_StructuredDataItems"')->value();
         }
-        $run->info(sprintf('StructuredData attached to %d pages', $pages));
+        $run->info(_t(__CLASS__ . '.Attached', 'StructuredData attached to {count} pages', ['count' => $pages]));
 
         foreach (['Rating', 'AggregateRating'] as $type) {
             if (isset($perType[$type])) {
-                $run->reportCount($type, MigrationResult::DROPPED, $perType[$type], 'review markup for an own organisation is not shown by Google');
+                $run->reportCount($type, MigrationResult::DROPPED, $perType[$type], _t(__CLASS__ . '.Reviews', 'review markup for an own organisation is not shown by Google'));
             }
         }
         foreach (['OpeningHoursSpecification'] as $type) {
             if (isset($perType[$type])) {
-                $run->reportCount($type, MigrationResult::REPORTED, $perType[$type], 'map it in YAML (schema_map) if it is still wanted');
+                $run->reportCount($type, MigrationResult::REPORTED, $perType[$type], _t(__CLASS__ . '.MapInYaml', 'map it in YAML (schema_map) if it is still wanted'));
             }
         }
 
         $this->migrateOrganisation($run, $things);
 
-        $run->warn(
+        $run->warn(_t(
+            __CLASS__ . '.HardCoded',
             'a site\'s live Organization JSON-LD may come from a hard-coded template rather than these tables: '
             . 'compare the page source with the rows before trusting this migration.'
-        );
+        ));
     }
 
     /**
@@ -126,21 +133,21 @@ class LiveSeoMapper implements SeoMigrationMapper
                 'LocalBusiness',
                 MigrationResult::REPORTED,
                 $branches,
-                'branches and locations: map them in YAML (a SchemaSource on your own records) if still wanted'
+                _t(__CLASS__ . '.Branches', 'branches and locations: map them in YAML (a SchemaSource on your own records) if still wanted')
             );
         }
 
         if (!$organisations) {
-            $run->note('StructuredData: no site organisation found, nothing to copy to SiteConfig.');
+            $run->note(_t(__CLASS__ . '.NoOrganisation', 'StructuredData: no site organisation found, nothing to copy to SiteConfig.'));
             return;
         }
         if (count($organisations) > 1) {
             $names = array_map(fn (array $thing) => '"' . ($thing['name'] ?: $thing['DataItemHandle']) . '"', $organisations);
-            $run->warn(sprintf(
-                'StructuredData has %d top-level organisations (%s): nothing copied to SiteConfig; set its logo and '
-                . 'profiles by hand.',
-                count($organisations),
-                implode(', ', $names)
+            $run->warn(_t(
+                __CLASS__ . '.SeveralOrganisations',
+                'StructuredData has {count} top-level organisations ({names}): nothing copied to SiteConfig; set its '
+                . 'logo and profiles by hand.',
+                ['count' => count($organisations), 'names' => implode(', ', $names)]
             ));
             return;
         }
@@ -149,10 +156,11 @@ class LiveSeoMapper implements SeoMigrationMapper
         $id = (int) $organisation['ID'];
         $siteConfigs = $run->rows('SiteConfig');
         if (count($siteConfigs) !== 1) {
-            $run->warn(sprintf(
-                'there are %d SiteConfig rows (subsites?): the organisation\'s logo and profiles are not copied; '
+            $run->warn(_t(
+                __CLASS__ . '.SeveralSiteConfigs',
+                'there are {count} SiteConfig rows (subsites?): the organisation\'s logo and profiles are not copied; '
                 . 'set them by hand on the right one.',
-                count($siteConfigs)
+                ['count' => count($siteConfigs)]
             ));
             return;
         }
@@ -161,11 +169,11 @@ class LiveSeoMapper implements SeoMigrationMapper
 
         $name = trim((string) $organisation['name']);
         if ($name !== '') {
-            $run->note(sprintf(
-                'Organization name "%s": the Organization node takes SiteConfig.Title ("%s"); change that title if '
-                . 'the two should be the same.',
-                $name,
-                (string) ($siteConfig['Title'] ?? '')
+            $run->note(_t(
+                __CLASS__ . '.OrganisationName',
+                'Organization name "{name}": the Organization node takes SiteConfig.Title ("{title}"); change that '
+                . 'title if the two should be the same.',
+                ['name' => $name, 'title' => (string) ($siteConfig['Title'] ?? '')]
             ));
         }
 
@@ -195,14 +203,15 @@ class LiveSeoMapper implements SeoMigrationMapper
 
         $details = $run->rows('StructuredDataOrganization', '"ID" = ?', [$id])[0] ?? [];
         $this->copyContactDetails($run, $siteConfigID, $organisation, $details);
-        $run->note(
+        $run->note(_t(
+            __CLASS__ . '.ReadSiteConfig',
             'code that still reads StructuredDataOrganization (a partner feed, a template) should read SiteConfig '
             . 'after migrating: SeoOrgDescription, SeoOrgEmail, SeoOrgTelephone, SeoOrgStreet, SeoOrgPostalCode, '
             . 'SeoOrgLocality, SeoOrgCountry, and Title for the name.'
-        );
+        ));
 
         # No SiteConfig fields here for these: a project adds its own and maps them in YAML
-        $hint = 'add a field for it and map it in SiteConfig\'s schema_map (YAML)';
+        $hint = _t(__CLASS__ . '.AddField', 'add a field for it and map it in SiteConfig\'s schema_map (YAML)');
         foreach (['faxNumber'] as $field) {
             if (trim((string) ($details[$field] ?? '')) !== '') {
                 $run->reportCount('Organization ' . $field, MigrationResult::REPORTED, 1, $hint);
@@ -247,18 +256,20 @@ class LiveSeoMapper implements SeoMigrationMapper
             return;
         }
         if (count($links) > 1) {
-            $run->warn(sprintf(
-                'the site organisation has %d addresses: not copied; fill in the address on Settings > SEO by hand.',
-                count($links)
+            $run->warn(_t(
+                __CLASS__ . '.SeveralAddresses',
+                'the site organisation has {count} addresses: not copied; fill in the address on Settings > SEO by hand.',
+                ['count' => count($links)]
             ));
             return;
         }
         $addressID = (int) $links[0]['StructuredDataPostalAddressID'];
         $address = $run->rows('StructuredDataPostalAddress', '"ID" = ?', [$addressID])[0] ?? null;
         if ($address === null) {
-            $run->warn(sprintf(
-                'the site organisation\'s address %d is not in StructuredDataPostalAddress: not copied.',
-                $addressID
+            $run->warn(_t(
+                __CLASS__ . '.AddressMissing',
+                'the site organisation\'s address {id} is not in StructuredDataPostalAddress: not copied.',
+                ['id' => $addressID]
             ));
             return;
         }

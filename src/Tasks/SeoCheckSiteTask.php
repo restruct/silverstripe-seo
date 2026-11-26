@@ -38,12 +38,21 @@ class SeoCheckSiteTask extends BuildTask
      */
     private static bool $can_run_in_browser = false;
 
+    /**
+     * The title in the site's locale; core's getDescription() already translates the description (key
+     * `description`).
+     */
+    public function getTitle(): string
+    {
+        return _t(__CLASS__ . '.Title', 'Check the SEO of every page');
+    }
+
     public function getOptions(): array
     {
         return [
-            new InputOption('limit', null, InputOption::VALUE_REQUIRED, 'Stop after rendering this many pages'),
-            new InputOption('only-stale', null, InputOption::VALUE_NONE, 'Skip pages whose stored result is up to date'),
-            new InputOption('from-id', null, InputOption::VALUE_REQUIRED, 'Start at the page with this ID (pages are checked by ID)'),
+            new InputOption('limit', null, InputOption::VALUE_REQUIRED, _t(__CLASS__ . '.OptionLimit', 'Stop after rendering this many pages')),
+            new InputOption('only-stale', null, InputOption::VALUE_NONE, _t(__CLASS__ . '.OptionOnlyStale', 'Skip pages whose stored result is up to date')),
+            new InputOption('from-id', null, InputOption::VALUE_REQUIRED, _t(__CLASS__ . '.OptionFromId', 'Start at the page with this ID (pages are checked by ID)')),
         ];
     }
 
@@ -52,7 +61,7 @@ class SeoCheckSiteTask extends BuildTask
         $limit = $this->positiveInt($input, 'limit');
         $fromID = $this->positiveInt($input, 'from-id');
         if ($limit === false || $fromID === false) {
-            $output->writeln('Give --limit and --from-id as whole numbers of 1 or more.');
+            $output->writeln(_t(__CLASS__ . '.InvalidNumber', 'Give --limit and --from-id as whole numbers of 1 or more.'));
             return Command::INVALID;
         }
         $onlyStale = (bool) $input->getOption('only-stale');
@@ -69,7 +78,9 @@ class SeoCheckSiteTask extends BuildTask
             # Resume a run that stopped at --limit: the IDs are in order
             $ids = array_values(array_filter($ids, fn (int $id) => $id >= $fromID));
         }
-        $output->writeln(sprintf('%d eligible pages%s.', count($ids), $onlyStale ? ', skipping up-to-date results' : ''));
+        $output->writeln($onlyStale
+            ? _t(__CLASS__ . '.EligibleSkipping', '{count} eligible pages, skipping up-to-date results.', ['count' => count($ids)])
+            : _t(__CLASS__ . '.Eligible', '{count} eligible pages.', ['count' => count($ids)]));
 
         $counts = SiteCheck::emptyCounts();
         # One staleness context for the run: the site epoch and the config fingerprint are read once
@@ -92,9 +103,11 @@ class SeoCheckSiteTask extends BuildTask
         }
 
         $left = count($ids) - $done;
-        $output->writeln(SiteCheck::describe($counts) . ($left > 0 ? sprintf(', %d left', $left) : '') . '.');
+        $output->writeln($left > 0
+            ? _t(__CLASS__ . '.SummaryLeft', '{summary}, {left} left.', ['summary' => SiteCheck::describe($counts), 'left' => $left])
+            : SiteCheck::describe($counts) . '.');
         if ($left > 0) {
-            $output->writeln(sprintf('Continue with --from-id=%d.', $ids[$done]));
+            $output->writeln(_t(__CLASS__ . '.Continue', 'Continue with --from-id={id}.', ['id' => $ids[$done]]));
         }
         return $counts[SiteCheck::FAILED] > 0 ? Command::FAILURE : Command::SUCCESS;
     }

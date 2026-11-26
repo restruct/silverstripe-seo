@@ -45,18 +45,18 @@ class PlasticStudioMapper implements SeoMigrationMapper
         }
         $run->copyColumn(self::PAGE, 'SocialImageID', 'SiteTree', 'OGImageID', $run->imageTransform(), true);
 
-        $sitemap = 'wilr/silverstripe-googlesitemaps has its own Priority and ChangeFrequency per page';
+        $sitemap = _t(__CLASS__ . '.Sitemap', 'wilr/silverstripe-googlesitemaps has its own Priority and ChangeFrequency per page');
         foreach (['Priority', 'ChangeFrequency'] as $column) {
             $run->reportColumn(self::PAGE, $column, MigrationResult::REPORTED, $sitemap);
         }
         foreach (['SitemapHide', 'XMLSitemapHide'] as $column) {
-            $run->reportColumn(self::PAGE, $column, MigrationResult::REPORTED, 'noindex pages are left out of the sitemap');
+            $run->reportColumn(self::PAGE, $column, MigrationResult::REPORTED, _t(__CLASS__ . '.SitemapHide', 'noindex pages are left out of the sitemap'));
         }
-        $run->reportColumn(self::PAGE, 'HideSocial', MigrationResult::REPORTED, 'to leave out Open Graph site-wide set seo_output_open_graph: false');
-        $run->reportColumn(self::PAGE, 'OGtype', MigrationResult::REPORTED, 'og:type is set per page class (seo_og_type)');
-        $run->reportColumn(self::PAGE, 'OGlocale', MigrationResult::DROPPED, 'og:locale follows the page locale');
-        $run->reportColumn(self::PAGE, 'TwitterCard', MigrationResult::REPORTED, 'the card type is site-wide (seo_twitter_card)');
-        $run->reportColumn(self::PAGE, 'ManualSchema', MigrationResult::REPORTED, 'structured data is mapped from records in YAML (schema_map)');
+        $run->reportColumn(self::PAGE, 'HideSocial', MigrationResult::REPORTED, _t(__CLASS__ . '.HideSocial', 'to leave out Open Graph site-wide set seo_output_open_graph: false'));
+        $run->reportColumn(self::PAGE, 'OGtype', MigrationResult::REPORTED, _t(__CLASS__ . '.OgType', 'og:type is set per page class (seo_og_type)'));
+        $run->reportColumn(self::PAGE, 'OGlocale', MigrationResult::DROPPED, _t(__CLASS__ . '.OgLocale', 'og:locale follows the page locale'));
+        $run->reportColumn(self::PAGE, 'TwitterCard', MigrationResult::REPORTED, _t(__CLASS__ . '.TwitterCard', 'the card type is site-wide (seo_twitter_card)'));
+        $run->reportColumn(self::PAGE, 'ManualSchema', MigrationResult::REPORTED, _t(__CLASS__ . '.ManualSchema', 'structured data is mapped from records in YAML (schema_map)'));
         $run->reportColumn(self::PAGE, 'MetaTitleLastEdited', MigrationResult::DROPPED);
         $run->reportColumn(self::PAGE, 'MetaDescriptionLastEdited', MigrationResult::DROPPED);
         if ($run->hasTable('SeoHeadTag')) {
@@ -64,15 +64,15 @@ class PlasticStudioMapper implements SeoMigrationMapper
                 'SeoHeadTag',
                 MigrationResult::REPORTED,
                 count($run->rows('SeoHeadTag')),
-                'extra head tags: move them to core\'s ExtraMeta ("Custom meta tags") by hand'
+                _t(__CLASS__ . '.HeadTags', 'extra head tags: move them to core\'s ExtraMeta ("Custom meta tags") by hand')
             );
         }
 
         $run->copyColumn(['SiteConfig'], 'DefaultSocialImageID', 'SiteConfig', 'SeoDefaultImageID', $run->imageTransform(), true);
         $run->copyColumn(['SiteConfig'], 'SchemaOrganisationImageID', 'SiteConfig', 'SeoLogoID', $run->imageTransform(), true);
-        $run->reportColumn(['SiteConfig'], 'SchemaOrganisationName', MigrationResult::REPORTED, 'the Organization node takes SiteConfig.Title');
+        $run->reportColumn(['SiteConfig'], 'SchemaOrganisationName', MigrationResult::REPORTED, _t(__CLASS__ . '.OrganisationName', 'the Organization node takes SiteConfig.Title'));
         foreach (['Address', 'Suburb', 'State', 'Postcode', 'Country', 'Lat', 'Lng', 'Phone'] as $column) {
-            $run->reportColumn(['SiteConfig'], $column, MigrationResult::REPORTED, 'map it in SiteConfig\'s schema_map (YAML)');
+            $run->reportColumn(['SiteConfig'], $column, MigrationResult::REPORTED, _t(__CLASS__ . '.SchemaMap', 'map it in SiteConfig\'s schema_map (YAML)'));
         }
         foreach (['OGSiteName', 'TwitterHandle', 'CreatorTwitterHandle', 'FacebookAppID', 'UseTitleAsMetaTitle'] as $column) {
             $run->reportColumn(['SiteConfig'], $column, MigrationResult::DROPPED);

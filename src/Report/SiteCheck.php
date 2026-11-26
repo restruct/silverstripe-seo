@@ -87,7 +87,12 @@ class SiteCheck
         }
         $member = Member::get()->filter('Email', $email)->first();
         if (!$member) {
-            throw new RuntimeException(sprintf('[seo] SiteCheck.run_as names no member (%s)', $email));
+            # Printed by the task as it is: in the site's locale, with the [seo] prefix the log lines carry
+            throw new RuntimeException('[seo] ' . _t(
+                __CLASS__ . '.RunAsMissing',
+                'SiteCheck.run_as names no member ({email})',
+                ['email' => $email]
+            ));
         }
         return $member;
     }

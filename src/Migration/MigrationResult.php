@@ -53,36 +53,51 @@ class MigrationResult
 
     public function format(bool $apply, bool $overwrite): string
     {
-        $label = $this->label . ($this->stage ? " [{$this->stage}]" : '') . ':';
+        # The stage in the site's locale; the column names in the label are the database's and stay as they are
+        $stage = match ($this->stage) {
+            'draft' => _t(__CLASS__ . '.StageDraft', 'draft'),
+            'live' => _t(__CLASS__ . '.StageLive', 'live'),
+            default => $this->stage,
+        };
+        $label = $this->label . ($stage ? " [{$stage}]" : '') . ':';
         $hint = $this->hint !== '' ? ': ' . $this->hint : '';
+        $values = ['label' => $label, 'read' => $this->read, 'hint' => $hint];
         switch ($this->status) {
             case self::SAME_COLUMN:
-                return sprintf('%s same column, nothing to copy (%d values in use)', $label, $this->read);
+                return _t(__CLASS__ . '.Same', '{label} same column, nothing to copy ({read} values in use)', $values);
             case self::DROPPED:
-                return sprintf('%s dropped, %d values left in place%s', $label, $this->read, $hint);
+                return _t(__CLASS__ . '.Dropped', '{label} dropped, {read} values left in place{hint}', $values);
             case self::REPORTED:
-                return sprintf('%s no equivalent, %d values%s', $label, $this->read, $hint);
+                return _t(__CLASS__ . '.Reported', '{label} no equivalent, {read} values{hint}', $values);
             case self::MISSING:
-                return sprintf('%s not found, skipped%s', $label, $hint);
+                return _t(__CLASS__ . '.Missing', '{label} not found, skipped{hint}', $values);
         }
         if ($overwrite) {
-            $kept = $apply ? 'overwritten' : 'would be overwritten';
+            $kept = $apply
+                ? _t(__CLASS__ . '.Overwritten', 'overwritten')
+                : _t(__CLASS__ . '.WouldBeOverwritten', 'would be overwritten');
         } else {
-            $kept = 'kept';
+            $kept = _t(__CLASS__ . '.Kept', 'kept');
         }
-        return sprintf(
-            '%s read %d, %s %d, already same %d, conflicts %d (%s), invalid %d%s%s',
-            $label,
-            $this->read,
-            $apply ? 'copied' : 'would copy',
-            $this->copied,
-            $this->same,
-            $this->conflicts,
-            $kept,
-            $this->invalid,
-            # Only when it happens: a file of the old page that was never published
-            $this->unpublished ? sprintf(', unpublished %d (file not published, live left as it is)', $this->unpublished) : '',
-            $hint
+        # Only when it happens: a file of the old page that was never published
+        $unpublished = $this->unpublished ? _t(
+            __CLASS__ . '.Unpublished',
+            ', unpublished {count} (file not published, live left as it is)',
+            ['count' => $this->unpublished]
+        ) : '';
+        return _t(
+            __CLASS__ . ($apply ? '.Copy' : '.WouldCopy'),
+            $apply
+                ? '{label} read {read}, copied {copied}, already same {same}, conflicts {conflicts} ({kept}), invalid {invalid}{unpublished}{hint}'
+                : '{label} read {read}, would copy {copied}, already same {same}, conflicts {conflicts} ({kept}), invalid {invalid}{unpublished}{hint}',
+            $values + [
+                'copied' => $this->copied,
+                'same' => $this->same,
+                'conflicts' => $this->conflicts,
+                'kept' => $kept,
+                'invalid' => $this->invalid,
+                'unpublished' => $unpublished,
+            ]
         );
     }
 }

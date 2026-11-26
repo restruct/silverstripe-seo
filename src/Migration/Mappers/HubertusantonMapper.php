@@ -30,15 +30,15 @@ class HubertusantonMapper implements SeoMigrationMapper
             self::PAGE,
             'SEOHideSocialData',
             MigrationResult::REPORTED,
-            'no per-page switch here; to leave out Open Graph site-wide set SeoSiteTreeExtension.seo_output_open_graph: false'
+            _t(__CLASS__ . '.HideSocial', 'no per-page switch here; to leave out Open Graph site-wide set SeoSiteTreeExtension.seo_output_open_graph: false')
         );
-        $run->reportColumn(self::PAGE, 'SEOPageSubject', MigrationResult::DROPPED, 'focus keyphrases are not used here');
-        $run->reportColumn(self::PAGE, 'SEOSocialType', MigrationResult::DROPPED, 'og:type is set per page class (seo_og_type)');
+        $run->reportColumn(self::PAGE, 'SEOPageSubject', MigrationResult::DROPPED, _t(__CLASS__ . '.FocusKeyphrase', 'focus keyphrases are not used here'));
+        $run->reportColumn(self::PAGE, 'SEOSocialType', MigrationResult::DROPPED, _t(__CLASS__ . '.OgType', 'og:type is set per page class (seo_og_type)'));
         $run->reportColumn(
             ['SiteConfig'],
             'GoogleWebmasterMetaTag',
             MigrationResult::REPORTED,
-            'put the verification tag in the page template, or verify the site through DNS'
+            _t(__CLASS__ . '.Verification', 'put the verification tag in the page template, or verify the site through DNS')
         );
     }
 }

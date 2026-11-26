@@ -37,7 +37,7 @@ class SimpleSeoMapper implements SeoMigrationMapper
     {
         $run->copyColumn(['SiteTree'], 'MetaTitle', 'SiteTree', 'MetaTitle');
         if (!$run->hasTable('LinkField_Link') && $run->locateColumn(['SiteTree'], 'CanonicalLinkID')) {
-            $run->note('LinkField_Link not found (silverstripe/linkfield removed?): the canonical links cannot be resolved.');
+            $run->note(_t(__CLASS__ . '.NoLinkField', 'LinkField_Link not found (silverstripe/linkfield removed?): the canonical links cannot be resolved.'));
         }
         $run->copyColumn(
             ['SiteTree'],
@@ -50,7 +50,7 @@ class SimpleSeoMapper implements SeoMigrationMapper
                 return is_string($url) ? $run->canonicalTransform()($url) : $url;
             }
         );
-        $run->note('ExtraMeta ("Custom meta tags") is core\'s own field: nothing to do.');
+        $run->note(_t(__CLASS__ . '.ExtraMeta', 'ExtraMeta ("Custom meta tags") is core\'s own field: nothing to do.'));
     }
 
     /**

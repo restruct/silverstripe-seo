@@ -61,13 +61,26 @@ class MigrateFromSeoModuleTask extends BuildTask
         'SiteConfig_Localised',
     ];
 
+    /**
+     * The title in the site's locale; core's getDescription() already translates the description (key
+     * `description`).
+     */
+    public function getTitle(): string
+    {
+        return _t(__CLASS__ . '.Title', 'Migrate SEO data from another SEO module');
+    }
+
     public function getOptions(): array
     {
         return [
-            new InputOption('source', null, InputOption::VALUE_REQUIRED, 'The module to migrate from: ' . implode(', ', $this->sourceNames())),
-            new InputOption('apply', null, InputOption::VALUE_NONE, 'Write the changes (without it, a dry run that only reports)'),
-            new InputOption('dry-run', null, InputOption::VALUE_NONE, 'Only report (the default)'),
-            new InputOption('overwrite', null, InputOption::VALUE_NONE, 'Replace values that are already filled in here'),
+            new InputOption('source', null, InputOption::VALUE_REQUIRED, _t(
+                __CLASS__ . '.OptionSource',
+                'The module to migrate from: {sources}',
+                ['sources' => implode(', ', $this->sourceNames())]
+            )),
+            new InputOption('apply', null, InputOption::VALUE_NONE, _t(__CLASS__ . '.OptionApply', 'Write the changes (without it, a dry run that only reports)')),
+            new InputOption('dry-run', null, InputOption::VALUE_NONE, _t(__CLASS__ . '.OptionDryRun', 'Only report (the default)')),
+            new InputOption('overwrite', null, InputOption::VALUE_NONE, _t(__CLASS__ . '.OptionOverwrite', 'Replace values that are already filled in here')),
         ];
     }
 
@@ -77,20 +90,24 @@ class MigrateFromSeoModuleTask extends BuildTask
         $mappers = array_filter((array) static::config()->get('mappers'));
         if ($source === '' || !isset($mappers[$source])) {
             $output->writeln($source === ''
-                ? 'Give the module to migrate from with --source=<name>.'
+                ? _t(__CLASS__ . '.NoSource', 'Give the module to migrate from with --source=<name>.')
                 # The value is the user's: escaped, so neither the console nor the HTML output reads a tag in it
-                : sprintf('Unknown source "%s".', OutputFormatter::escape($source)));
-            $output->writeln('Sources: ' . implode(', ', $this->sourceNames()));
+                : _t(__CLASS__ . '.UnknownSource', 'Unknown source "{source}".', ['source' => OutputFormatter::escape($source)]));
+            $output->writeln(_t(__CLASS__ . '.Sources', 'Sources: {sources}', ['sources' => implode(', ', $this->sourceNames())]));
             return Command::INVALID;
         }
         if ($input->getOption('apply') && $input->getOption('dry-run')) {
-            $output->writeln('Give either --apply or --dry-run, not both.');
+            $output->writeln(_t(__CLASS__ . '.ApplyAndDryRun', 'Give either --apply or --dry-run, not both.'));
             return Command::INVALID;
         }
 
         $mapper = Injector::inst()->create($mappers[$source]);
         if (!$mapper instanceof SeoMigrationMapper) {
-            $output->writeln(sprintf('%s is not a %s.', $mappers[$source], SeoMigrationMapper::class));
+            $output->writeln(_t(
+                __CLASS__ . '.NotAMapper',
+                '{class} is not a {interface}.',
+                ['class' => $mappers[$source], 'interface' => SeoMigrationMapper::class]
+            ));
             return Command::FAILURE;
         }
 
@@ -104,22 +121,23 @@ class MigrateFromSeoModuleTask extends BuildTask
             (array) static::config()->get('localised_tables'),
             fn (string $table) => DB::get_schema()->hasTable($table)
         ));
-        $fluentWarning = $localised ? sprintf(
-            'Warning: %s found (Fluent): migrating per-locale values is not supported yet, so --apply is refused. '
-            . 'Copy the localised values by hand.',
-            implode(', ', $localised)
+        $fluentWarning = $localised ? _t(
+            __CLASS__ . '.FluentWarning',
+            'Warning: {tables} found (Fluent): migrating per-locale values is not supported yet, so --apply is '
+            . 'refused. Copy the localised values by hand.',
+            ['tables' => implode(', ', $localised)]
         ) : null;
         if ($fluentWarning && $apply) {
             $output->writeln($fluentWarning);
             return Command::FAILURE;
         }
 
-        $output->writeln(sprintf('Migrating from %s.', $mapper->getTitle()));
+        $output->writeln(_t(__CLASS__ . '.MigratingFrom', 'Migrating from {source}.', ['source' => $mapper->getTitle()]));
         $output->writeln($apply
-            ? 'Applying: values are written.'
-            : 'Dry run: nothing is written. Run again with --apply to write.');
+            ? _t(__CLASS__ . '.Applying', 'Applying: values are written.')
+            : _t(__CLASS__ . '.DryRun', 'Dry run: nothing is written. Run again with --apply to write.'));
         if ($overwrite) {
-            $output->writeln('Overwrite: values already filled in here are replaced.');
+            $output->writeln(_t(__CLASS__ . '.Overwrite', 'Overwrite: values already filled in here are replaced.'));
         }
         if ($fluentWarning) {
             $output->writeln($fluentWarning);
@@ -163,19 +181,28 @@ class MigrateFromSeoModuleTask extends BuildTask
                 }
                 continue;
             }
-            $prefix = ['note' => 'Note: ', 'warning' => 'Warning: '][$type] ?? '';
+            $prefix = match ($type) {
+                'note' => _t(__CLASS__ . '.NotePrefix', 'Note:') . ' ',
+                'warning' => _t(__CLASS__ . '.WarningPrefix', 'Warning:') . ' ',
+                default => '',
+            };
             $this->line($output, $prefix . $entry);
         }
         $output->writeln('');
-        $output->writeln(sprintf(
-            '%s %d values; %d conflicts (%s); %d invalid; %d unpublished files. Old columns are left in place.',
-            $run->isApply() ? 'Copied' : 'Would copy',
-            $copied,
-            $conflicts,
-            $run->isOverwrite() ? 'replaced' : 'kept, --overwrite replaces them',
-            $invalid,
-            $unpublished
-        ));
+        # One sentence per combination of apply and overwrite: the verbs do not translate word by word
+        $key = ($run->isApply() ? 'Copied' : 'WouldCopy') . ($run->isOverwrite() ? 'Replaced' : 'Kept');
+        $defaults = [
+            'CopiedKept' => 'Copied {copied} values; {conflicts} conflicts (kept, --overwrite replaces them); {invalid} invalid; {unpublished} unpublished files. Old columns are left in place.',
+            'CopiedReplaced' => 'Copied {copied} values; {conflicts} conflicts (replaced); {invalid} invalid; {unpublished} unpublished files. Old columns are left in place.',
+            'WouldCopyKept' => 'Would copy {copied} values; {conflicts} conflicts (kept, --overwrite replaces them); {invalid} invalid; {unpublished} unpublished files. Old columns are left in place.',
+            'WouldCopyReplaced' => 'Would copy {copied} values; {conflicts} conflicts (replaced); {invalid} invalid; {unpublished} unpublished files. Old columns are left in place.',
+        ];
+        $output->writeln(_t(__CLASS__ . '.Total' . $key, $defaults[$key], [
+            'copied' => $copied,
+            'conflicts' => $conflicts,
+            'invalid' => $invalid,
+            'unpublished' => $unpublished,
+        ]));
     }
 
     /**

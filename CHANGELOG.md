@@ -6,6 +6,13 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The site-check and migration tasks print in the site's locale: their titles, descriptions and option help, the
+  site-check summary with the pages left and the `--from-id` to continue with, the migration report lines,
+  totals, notes and warnings, and the mappers' hints. The queued site check's list of failed pages too. Dutch
+  translations for all of them.
+
 ## [0.4.0] - 2026-11-26
 
 ### Added

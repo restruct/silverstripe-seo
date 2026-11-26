@@ -117,7 +117,11 @@ class SeoSiteCheckJob extends AbstractQueuedJob
     {
         $this->addMessage(SiteCheck::describe((array) $this->counts));
         if ($this->failedIDs) {
-            $this->addMessage(sprintf('Failed page IDs: %s (see the log)', implode(', ', (array) $this->failedIDs)), 'WARNING');
+            $this->addMessage(_t(
+                __CLASS__ . '.FailedIDs',
+                'Failed page IDs: {ids} (see the log)',
+                ['ids' => implode(', ', (array) $this->failedIDs)]
+            ), 'WARNING');
         }
         $this->isComplete = true;
     }

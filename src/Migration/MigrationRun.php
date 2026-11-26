@@ -138,11 +138,10 @@ class MigrationRun
             return null;
         }
         if (count($matches) > 1) {
-            $this->warnOnce(sprintf(
-                '%s is in more than one table (%s): read from %s.',
-                $column,
-                implode(', ', $matches),
-                $matches[0]
+            $this->warnOnce(_t(
+                __CLASS__ . '.SeveralTables',
+                '{column} is in more than one table ({tables}): read from {table}.',
+                ['column' => $column, 'tables' => implode(', ', $matches), 'table' => $matches[0]]
             ));
         }
         return $matches[0];
@@ -267,7 +266,7 @@ class MigrationRun
             return;
         }
         if (!$this->hasColumn($targetTable, $targetColumn)) {
-            $this->add(new MigrationResult($label, MigrationResult::MISSING, null, 'run db:build first'));
+            $this->add(new MigrationResult($label, MigrationResult::MISSING, null, _t(__CLASS__ . '.RunDbBuild', 'run db:build first')));
             return;
         }
 
@@ -295,7 +294,7 @@ class MigrationRun
             $result = new MigrationResult($label, MigrationResult::COPY, $stage);
             $this->add($result);
             if (!$selects) {
-                $result->hint = 'the old column has no _Live table, so the live stage is left as it is';
+                $result->hint = _t(__CLASS__ . '.NoLiveTable', 'the old column has no _Live table, so the live stage is left as it is');
                 continue;
             }
 

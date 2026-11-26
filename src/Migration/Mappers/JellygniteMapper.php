@@ -37,14 +37,14 @@ class JellygniteMapper implements SeoMigrationMapper
             true
         );
 
-        $title = 'og:title is the meta title here; copy it to MetaTitle by hand where it should win';
+        $title = _t(__CLASS__ . '.SocialTitle', 'og:title is the meta title here; copy it to MetaTitle by hand where it should win');
         $run->reportColumn(self::PAGE, 'FacebookPageTitle', MigrationResult::REPORTED, $title);
         $run->reportColumn(self::PAGE, 'TwitterPageTitle', MigrationResult::REPORTED, $title);
-        $run->reportColumn(self::PAGE, 'FacebookPageType', MigrationResult::REPORTED, 'og:type is set per page class (seo_og_type)');
+        $run->reportColumn(self::PAGE, 'FacebookPageType', MigrationResult::REPORTED, _t(__CLASS__ . '.OgType', 'og:type is set per page class (seo_og_type)'));
         $run->reportColumn(self::PAGE, 'CreatorID', MigrationResult::DROPPED);
-        $run->reportColumn(self::PAGE, 'FocusKeyword', MigrationResult::DROPPED, 'focus keyphrases are not used here');
+        $run->reportColumn(self::PAGE, 'FocusKeyword', MigrationResult::DROPPED, _t(__CLASS__ . '.FocusKeyphrase', 'focus keyphrases are not used here'));
         foreach (['GoogleAnalyticsTrackingID', 'GoogleAnalytics', 'FacebookPixel', 'TwitterPixel', 'SnapPixel'] as $column) {
-            $run->reportColumn(['SiteConfig'], $column, MigrationResult::REPORTED, 'tracking code is not part of this module');
+            $run->reportColumn(['SiteConfig'], $column, MigrationResult::REPORTED, _t(__CLASS__ . '.Tracking', 'tracking code is not part of this module'));
         }
         $run->reportColumn(['SiteConfig'], 'TwitterAccountName', MigrationResult::DROPPED);
     }
