@@ -296,8 +296,9 @@ class LiveSeoMigrationTest extends SeoMigrationTestCase
         $this->seedAddress();
         $this->insertRaw('StructuredDataThing', ['ID' => 7, 'ClassName' => 'StructuredDataPostalAddress']);
         $this->insertRaw('StructuredDataPostalAddress', ['ID' => 7, 'addressLocality' => 'Amsterdam']);
+        # The join table's ID has no auto-increment in these fixtures: the first row took 0
         $this->insertRaw('StructuredDataOrganization_address', [
-            'StructuredDataOrganizationID' => 1, 'StructuredDataPostalAddressID' => 7,
+            'ID' => 2, 'StructuredDataOrganizationID' => 1, 'StructuredDataPostalAddressID' => 7,
         ]);
 
         $output = $this->runMigration('liveseo', ['--apply' => true]);
