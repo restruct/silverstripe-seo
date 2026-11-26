@@ -13,6 +13,16 @@ All notable changes to this module are documented here. The format follows
   totals, notes and warnings, and the mappers' hints. The queued site check's list of failed pages too. Dutch
   translations for all of them.
 
+### Documentation
+
+- README, migrating: remove a project class that extends or is injected for the old module's classes together
+  with the old package, or `db:build` fails on the missing parent class.
+- README, records shown on a page: what the structured-data WebPage and breadcrumb describe on a holder's
+  sub-action with and without `setSeoSubject()`, how a project's own JSON-LD for the record coexists with the
+  graph or moves into it (`schema_map`, `provideSchemaData()`), and that a canonical the project sets itself (a
+  `MetaComponents()` override, a `Link` header) is left alone, with `updateSeoCanonicalURL` to change it
+  everywhere.
+
 ## [0.4.0] - 2026-11-26
 
 ### Added

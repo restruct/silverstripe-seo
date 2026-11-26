@@ -246,6 +246,28 @@ public function item(HTTPRequest $request)
 Title, description, canonical, Open Graph and robots then describe the record. A controller can also define its
 own `getSeoSubject(): ?DataObject` instead of calling the setter.
 
+The [structured data](#structured-data) follows the same switch:
+
+- **Without `setSeoSubject()`** the sub-action (`/courses/item/12`) still gets a WebPage of its own URL, but it
+  describes the holder page: the holder's title and description, the holder's own node or ItemList as its
+  `mainEntity`, and a breadcrumb that ends at the holder.
+- **With `setSeoSubject($record)`** the WebPage describes the record's URL with the record's title, the
+  record's node is its `mainEntity` (when the record's class is a [source](#records-as-sources) and its node is
+  complete), and the breadcrumb ends at the record. The holder's own node and ItemList are left out there.
+
+A project that already prints its own JSON-LD for the record (a JobPosting in the template, say) can keep it:
+it is a separate `<script>` next to the module's graph, and nothing in the module reads or removes it. To get
+one linked graph instead (the record's node pointing at the site's Organization by `@id`, and the WebPage
+pointing at the record), move it to the module: map the record in YAML (`schema_map`) or give it a
+`provideSchemaData()` method, and remove the template's own script, so the record is not described twice.
+
+A canonical the project sets itself is left alone. A `MetaComponents()` override on the page class that
+replaces `$tags['canonical']` after calling the parent wins over the module's tag, and a `Link` header the
+controller sets (in `init()` or in the action) is never overwritten or put back. Either one changes only that
+output: the module's own `Link` header, `og:url` and the structured-data `@id`s still use the module's canonical.
+To change the canonical everywhere at once, use the `updateSeoCanonicalURL` hook (see
+[Extension hooks](#extension-hooks)).
+
 The record is read by duck-typing, so most DataObjects need no changes: `MetaTitle` or `Title`; `MetaDescription`
 or the first paragraph of `Content`; `SEOFBdescription` for sharing; `AbsoluteLink()` or `Link()` for the
 canonical, with tracking parameters (`utm_*`, `gclid`, `fbclid`, ...) removed; an `OGImage` has_one or a
@@ -829,7 +851,9 @@ How it writes:
 3. Apply: the same with `--apply`. A second run should copy nothing.
 4. Check some pages: the head output, and the fields under **Search engines and sharing**.
 5. `composer remove` the old module, then `vendor/bin/sake db:build --flush`. Its columns stay in the database;
-   drop them by hand once you no longer need them.
+   drop them by hand once you no longer need them. Remove any project class that extends or is injected for the
+   old module's classes (e.g. an extension subclass registered via Injector) together with the old package, or
+   `db:build` fails on the missing parent class.
 
 ### Per source module
 
