@@ -141,6 +141,12 @@ Site-wide, in the CMS under Settings > SEO:
 - **Default sharing image**: used when a page has no sharing image of its own.
 - **Logo** and **Profiles on other sites** (one URL per line): the Organization node's `logo` and `sameAs` in
   structured data.
+- **Organisation contact details**: description, email address, telephone, and a postal address (street and
+  number, postcode, place, province or region, country as a code such as `NL` or a name). The Organization
+  node's `description`, `email`, `telephone` and `address` (see [The organisation](#the-organisation)). Other
+  code that needs the organisation's details (a partner feed, a contact block) can read them from SiteConfig
+  too: `SeoOrgDescription`, `SeoOrgEmail`, `SeoOrgTelephone`, `SeoOrgStreet`, `SeoOrgPostalCode`,
+  `SeoOrgLocality`, `SeoOrgRegion`, `SeoOrgCountry`.
 
 A sharing image is fetched anonymously by the sites a page is shared on, so only a public image is used: one
 that is published, in the public asset store and viewable by anyone. A draft-only image, or one restricted to
@@ -331,7 +337,8 @@ The value of a map entry is one of:
 - `{ html: Field }`: the field's HTML reduced to `p`, `br`, `ul`, `ol`, `li`, `strong`, `em` and `h2` to `h4`,
   without attributes (for a JobPosting description);
 - a nested map, with its own `@type` and optionally `from: Relation` to read from another record (a list gives
-  a list of nodes);
+  a list of nodes), and `'@required'`: a list of properties it must have in the registry's notation
+  (`streetAddress | addressLocality` for either), without which the nested node is left out;
 - a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
 
 Values are converted for JSON: Date fields as `2027-01-05`; Datetime fields, which Silverstripe stores in PHP's
@@ -379,8 +386,10 @@ extension on the record class. To change the whole graph of a page, implement
 ### The organisation
 
 The Organization node is mapped from SiteConfig with the same `schema_map`. The module ships a map using only
-core fields and its own: `name` (the site title), `url` (the site root), `logo` and `sameAs` (Settings > SEO).
-Extend it with the fields your site has:
+core fields and its own: `name` (the site title), `url` (the site root), and from Settings > SEO `logo`,
+`sameAs`, `description`, `email`, `telephone` and `address`. The address is a nested PostalAddress that is only
+output when it has a street or a place (`'@required': ['streetAddress | addressLocality']`): a postcode or a
+country alone locates nothing. Point a property at a field your site already has, or extend the map:
 
 ```yml
 SilverStripe\SiteConfig\SiteConfig:
@@ -390,12 +399,11 @@ SilverStripe\SiteConfig\SiteConfig:
     email: Email
     sameAs: [SeoSchemaSameAs, FacebookURL, LinkedInURL]
     address:
-      '@type': PostalAddress
-      streetAddress: Street
-      postalCode: PostalCode
-      addressLocality: City
       addressCountry: { literal: NL }
 ```
+
+Config arrays merge, so a project's `address` map changes the entries it names and keeps the others (and the
+`@required` guard); `address: null` drops the address.
 
 Without a site title there is no Organization node, and the references to it are removed.
 
@@ -733,11 +741,15 @@ How it writes:
 | the site organisation's first `logo` | SiteConfig `SeoLogoID` |
 | the site organisation's `sameAs` (MultiValueField, serialised PHP or JSON) | SiteConfig `SeoSameAs`, one URL per line |
 | the organisation's `name` | reported next to SiteConfig `Title`, which the Organization node uses |
-| `telephone`, `faxNumber`, `email`, `address`, `contactPoint`, `department`, `location` | reported: no fields here; add your own and map them in SiteConfig's `schema_map` |
+| the organisation's `description`, `email`, `telephone` | SiteConfig `SeoOrgDescription`, `SeoOrgEmail`, `SeoOrgTelephone` |
+| its one `address` (StructuredDataPostalAddress `streetAddress`, `postalCode`, `addressLocality`, `addressCountry`) | SiteConfig `SeoOrgStreet`, `SeoOrgPostalCode`, `SeoOrgLocality`, `SeoOrgCountry`; with two or more addresses nothing is copied and the task says so |
+| `faxNumber`, `contactPoint`, `department`, `location`, other LocalBusiness rows (branches) | reported: no fields here; add your own and map them in YAML |
 | `Rating`, `AggregateRating` | dropped |
 
 The site organisation is the one Organization or LocalBusiness that is not a department or location of another.
 With more than one, or with more than one SiteConfig row (subsites), nothing is copied and the task says so.
+Code of the project that reads the old organisation (a partner feed, a template) has to read SiteConfig's
+`SeoOrg*` fields and `Title` instead before the old module is removed; the report reminds of it.
 **Check the page source first:** a site's live Organization JSON-LD may come from a hard-coded template rather
 than from these tables.
 

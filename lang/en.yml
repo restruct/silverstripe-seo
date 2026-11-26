@@ -151,6 +151,18 @@ en:
     SeoDefaultImageHelp: 'Used when a page that is shared has no sharing image of its own. Best at 1200 x 630 pixels.'
     SeoLogo: Logo
     SeoLogoHelp: "The organisation's logo for search engines. At least 112 x 112 pixels, legible on a white background."
+    SeoOrgCountry: 'Country'
+    SeoOrgCountryHelp: 'A two-letter country code (NL) or the country''s name.'
+    SeoOrgDescription: 'Description of the organisation'
+    SeoOrgEmail: 'Email address'
+    SeoOrgHeader: 'Organisation contact details'
+    SeoOrgIntro: 'Shown to search engines as part of the organisation''s structured data. The address is only used when it has a street or a place.'
+    SeoOrgLocality: 'Place'
+    SeoOrgPostalCode: 'Postcode'
+    SeoOrgRegion: 'Province or region'
+    SeoOrgStreet: 'Street and number'
+    SeoOrgTelephone: 'Telephone'
+    SeoOrgTelephoneHelp: 'Preferably in international format, e.g. +31 20 123 4567.'
     SeoSameAs: 'Profiles on other sites'
     SeoSameAsHelp: "The organisation's pages on other sites (social media, a business register), one URL per line."
     SeoTitleSuffix: 'Title suffix'

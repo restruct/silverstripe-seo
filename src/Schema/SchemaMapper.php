@@ -45,7 +45,8 @@ use Throwable;
  * - `{ html: Field }`: the field's HTML reduced to simple markup ({@see SchemaHtml}), for a JobPosting
  *   description, where Google shows paragraphs and lists;
  * - a nested map, optionally with its own `@type` and a `from` relation to read from (a has_many or many_many
- *   gives a list of nested nodes);
+ *   gives a list of nested nodes), and `@required`: entries in the registry's notation (`streetAddress |
+ *   addressLocality`) the nested node must have, else it is left out (see {@see SchemaTypeRegistry::missingOf()});
  * - a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
  *
  * Values are converted for JSON: Date and Datetime fields to ISO 8601, HTML to plain text, an Image to an
@@ -424,6 +425,7 @@ class SchemaMapper
     protected function resolveNested(ModelData $record, array $spec): mixed
     {
         $type = isset($spec['@type']) ? (string) $spec['@type'] : '';
+        # @required is read in nestedNode(); as a key starting with @ mapRecord() skips it as a property
         $map = array_diff_key($spec, ['@type' => true, 'from' => true]);
 
         if (!isset($spec['from'])) {
@@ -453,7 +455,16 @@ class SchemaMapper
     {
         $node = $this->mapRecord($record, $type, $map);
         # Only a type and no properties says nothing
-        return array_diff_key($node, ['@type' => true]) ? $node : null;
+        if (!array_diff_key($node, ['@type' => true])) {
+            return null;
+        }
+        # The map's own minimum (an address needs a street or a place): without it the node is left out, the
+        # property stays empty, and the parent's own requirements decide whether the parent can stand
+        $required = $map['@required'] ?? [];
+        if ($required && SchemaTypeRegistry::singleton()->missingOf($node, (array) $required)) {
+            return null;
+        }
+        return $node;
     }
 
     /**

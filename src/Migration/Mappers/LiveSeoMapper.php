@@ -12,8 +12,9 @@ use SilverStripe\ORM\DB;
  * The older liveseo module (global-namespace classes, on SiteTree and SiteConfig).
  *
  * Its MetaTitle, the four MetaRobots* flags and SEOFBdescription are this module's own columns, so they need no
- * copy. Its StructuredData tables are reported in detail; the one site organisation's logo and profiles on
- * other sites go to SiteConfig, the rest has no column here (it can be mapped in YAML, see the README).
+ * copy. Its StructuredData tables are reported in detail; the one site organisation's logo, profiles on other
+ * sites, description, email, telephone and postal address go to SiteConfig, the rest has no column here (it can
+ * be mapped in YAML, see the README).
  */
 class LiveSeoMapper implements SeoMigrationMapper
 {
@@ -114,6 +115,21 @@ class LiveSeoMapper implements SeoMigrationMapper
             $things,
             fn (array $thing) => in_array($thing['_type'], self::ORGANISATION_TYPES, true) && !isset($children[$thing['ID']])
         );
+        # Branches and locations (LocalBusiness rows other than the one site organisation) have no home here
+        $siteOrganisationID = count($organisations) === 1 ? (int) array_key_first($organisations) : 0;
+        $branches = count(array_filter(
+            $things,
+            fn (array $thing) => $thing['_type'] === 'LocalBusiness' && (int) $thing['ID'] !== $siteOrganisationID
+        ));
+        if ($branches) {
+            $run->reportCount(
+                'LocalBusiness',
+                MigrationResult::REPORTED,
+                $branches,
+                'branches and locations: map them in YAML (a SchemaSource on your own records) if still wanted'
+            );
+        }
+
         if (!$organisations) {
             $run->note('StructuredData: no site organisation found, nothing to copy to SiteConfig.');
             return;
@@ -177,16 +193,22 @@ class LiveSeoMapper implements SeoMigrationMapper
             );
         }
 
+        $details = $run->rows('StructuredDataOrganization', '"ID" = ?', [$id])[0] ?? [];
+        $this->copyContactDetails($run, $siteConfigID, $organisation, $details);
+        $run->note(
+            'code that still reads StructuredDataOrganization (a partner feed, a template) should read SiteConfig '
+            . 'after migrating: SeoOrgDescription, SeoOrgEmail, SeoOrgTelephone, SeoOrgStreet, SeoOrgPostalCode, '
+            . 'SeoOrgLocality, SeoOrgCountry, and Title for the name.'
+        );
+
         # No SiteConfig fields here for these: a project adds its own and maps them in YAML
         $hint = 'add a field for it and map it in SiteConfig\'s schema_map (YAML)';
-        $details = $run->rows('StructuredDataOrganization', '"ID" = ?', [$id])[0] ?? [];
-        foreach (['telephone', 'faxNumber', 'email'] as $field) {
+        foreach (['faxNumber'] as $field) {
             if (trim((string) ($details[$field] ?? '')) !== '') {
                 $run->reportCount('Organization ' . $field, MigrationResult::REPORTED, 1, $hint);
             }
         }
         $relations = [
-            'address' => 'StructuredDataPostalAddressID',
             'contactPoint' => 'StructuredDataContactPointID',
             'department' => 'ChildID',
             'location' => 'ChildID',
@@ -197,6 +219,71 @@ class LiveSeoMapper implements SeoMigrationMapper
                 $run->reportCount('Organization ' . $relation, MigrationResult::REPORTED, $count, $hint);
             }
         }
+    }
+
+    /**
+     * The site organisation's description, email, telephone and its one postal address, copied to the SeoOrg*
+     * fields on SiteConfig (each a copy line of its own, with the usual rules: a filled value is kept, a value
+     * longer than the column is invalid). Two or more addresses are not guessed between.
+     *
+     * @param array<string, mixed> $organisation its StructuredDataThing row (name, description, ...)
+     * @param array<string, mixed> $details its StructuredDataOrganization row (telephone, email, ...)
+     */
+    protected function copyContactDetails(MigrationRun $run, int $siteConfigID, array $organisation, array $details): void
+    {
+        $values = [
+            # description lives on the base table, the others on the organisation's own
+            'description' => ['SeoOrgDescription', $organisation['description'] ?? null],
+            'email' => ['SeoOrgEmail', $details['email'] ?? null],
+            'telephone' => ['SeoOrgTelephone', $details['telephone'] ?? null],
+        ];
+        foreach ($values as $field => [$column, $value]) {
+            $this->copyText($run, 'Organization ' . $field, $column, $siteConfigID, $value);
+        }
+
+        $id = (int) $organisation['ID'];
+        $links = $run->rows('StructuredDataOrganization_address', '"StructuredDataOrganizationID" = ?', [$id]);
+        if (!$links) {
+            return;
+        }
+        if (count($links) > 1) {
+            $run->warn(sprintf(
+                'the site organisation has %d addresses: not copied; fill in the address on Settings > SEO by hand.',
+                count($links)
+            ));
+            return;
+        }
+        $addressID = (int) $links[0]['StructuredDataPostalAddressID'];
+        $address = $run->rows('StructuredDataPostalAddress', '"ID" = ?', [$addressID])[0] ?? null;
+        if ($address === null) {
+            $run->warn(sprintf(
+                'the site organisation\'s address %d is not in StructuredDataPostalAddress: not copied.',
+                $addressID
+            ));
+            return;
+        }
+        # The older module has no addressRegion, so SeoOrgRegion has no source
+        $columns = [
+            'streetAddress' => 'SeoOrgStreet',
+            'postalCode' => 'SeoOrgPostalCode',
+            'addressLocality' => 'SeoOrgLocality',
+            'addressCountry' => 'SeoOrgCountry',
+        ];
+        foreach ($columns as $field => $column) {
+            $this->copyText($run, 'Organization address ' . $field, $column, $siteConfigID, $address[$field] ?? null);
+        }
+    }
+
+    /**
+     * One text value to a SiteConfig column; an empty old value is no line at all.
+     */
+    protected function copyText(MigrationRun $run, string $label, string $column, int $siteConfigID, mixed $value): void
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return;
+        }
+        $run->copyValue($label . ' -> SiteConfig.' . $column, 'SiteConfig', $column, $siteConfigID, $value);
     }
 
     /**

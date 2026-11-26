@@ -41,6 +41,16 @@ All notable changes to this module are documented here. The format follows
   pages: `isCrossPage()` / `cross_page`, set on the duplicate, link and orphan checks) and when the check
   configuration changes (`SeoCheckResult.ConfigHash`, `CheckRunner::configHash()`, `CheckRunner::CHECKS_VERSION`).
   `StaleContext` decides many results with a fixed number of queries.
+- Organisation contact details on Settings > SEO (`SeoOrgDescription`, `SeoOrgEmail`, `SeoOrgTelephone`,
+  `SeoOrgStreet`, `SeoOrgPostalCode`, `SeoOrgLocality`, `SeoOrgRegion`, `SeoOrgCountry`), mapped by the default
+  Organization `schema_map` to `description`, `email`, `telephone` and a nested PostalAddress `address`, output
+  only with a street or a place.
+- A nested `schema_map` can declare `'@required'` (the registry's notation, `a | b` for either): without those
+  properties the nested node is left out. `SchemaTypeRegistry::missingOf()` checks such a list.
+- The liveseo migration copies the single site organisation's description, email, telephone and its one
+  PostalAddress to those SiteConfig fields (dry run first, filled values kept, too-long values invalid, two or
+  more addresses not guessed), reports other LocalBusiness rows (branches), and notes that code reading the old
+  organisation table (a partner feed) should read SiteConfig after migrating.
 
 ### Changed
 

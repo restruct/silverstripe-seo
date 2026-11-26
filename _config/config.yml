@@ -23,10 +23,23 @@ SilverStripe\SiteConfig\SiteConfig:
     seo-schema: Restruct\Silverstripe\SEO\Extensions\SchemaSource
   schema_type: Organization
   schema_id: organization
-  # Only core SiteConfig fields and the module's own. A project adds its own (address, telephone, email, more
-  # sameAs fields) in its YAML, or sets a property to null to drop it; a LocalBusiness sets schema_type
+  # Only core SiteConfig fields and the module's own. A project adds its own (more sameAs fields, say) or maps a
+  # property to its own field in its YAML, or sets a property to null to drop it; a LocalBusiness sets schema_type
   schema_map:
     name: Title
     url: SeoSchemaSiteURL
     logo: SeoLogo
     sameAs: SeoSchemaSameAs
+    # The contact details on Settings > SEO (SeoSiteConfigExtension)
+    description: SeoOrgDescription
+    email: SeoOrgEmail
+    telephone: SeoOrgTelephone
+    address:
+      '@type': PostalAddress
+      # A postcode or a country alone locates nothing: only output with a street or a place
+      '@required': ['streetAddress | addressLocality']
+      streetAddress: SeoOrgStreet
+      postalCode: SeoOrgPostalCode
+      addressLocality: SeoOrgLocality
+      addressRegion: SeoOrgRegion
+      addressCountry: SeoOrgCountry

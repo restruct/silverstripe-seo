@@ -216,6 +216,19 @@ class SchemaTypeRegistry
     }
 
     /**
+     * The entries of a given list (in the registry's notation, alternatives with `|` and `&`) the node lacks.
+     * For requirements that belong to one map rather than to a type: a nested map's `@required`.
+     *
+     * @param string[] $entries
+     * @param callable(string):?array|null $resolve
+     * @return string[]
+     */
+    public function missingOf(array $node, array $entries, ?callable $resolve = null): array
+    {
+        return $this->missing($node, array_values(array_filter(array_map('strval', $entries))), $resolve);
+    }
+
+    /**
      * @return string[]
      */
     public function typesOf(array $node): array
