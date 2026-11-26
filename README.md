@@ -247,7 +247,9 @@ own `getSeoSubject(): ?DataObject` instead of calling the setter.
 The record is read by duck-typing, so most DataObjects need no changes: `MetaTitle` or `Title`; `MetaDescription`
 or the first paragraph of `Content`; `SEOFBdescription` for sharing; `AbsoluteLink()` or `Link()` for the
 canonical, with tracking parameters (`utm_*`, `gclid`, `fbclid`, ...) removed; an `OGImage` has_one or a
-`getSeoImage()` method; and the `MetaRobots*` boolean fields if it has them (otherwise the page's robots apply).
+`getSeoImage()` method; and the `MetaRobots*` boolean fields or getters if it has them (otherwise the page's
+robots apply). Values are read as a template reads them, so a getter override (`getMetaTitle()`,
+`getMetaRobotsNoIndex()`) wins over the column, and a getter without a column counts as a setting of its own.
 For full control, implement `Restruct\Silverstripe\SEO\Model\SeoSubject`.
 
 A record without a sharing image of its own does not take the image of the page that lists it (that one

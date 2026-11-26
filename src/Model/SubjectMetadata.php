@@ -118,11 +118,12 @@ class SubjectMetadata
         $hasAny = false;
         $directives = [];
         foreach ($map as $field => $directive) {
-            if (!$this->record->hasField($field)) {
+            # A column or a getter of that name is a robots setting of the record's own
+            if (!$this->record->hasField($field) && !$this->hasGetter($field)) {
                 continue;
             }
             $hasAny = true;
-            if ($directive && $this->record->getField($field)) {
+            if ($directive && $this->value($field)) {
                 $directives[] = $directive;
             }
         }
@@ -161,19 +162,27 @@ class SubjectMetadata
     }
 
     /**
-     * A field or a getter method, whichever the record has; null when it has neither.
+     * A value read as a template reads it: a `get<Name>()` getter (an override that ignores the column
+     * included), else the field, else a method of that name; null when the record has none of them.
      */
     protected function value(string $name): mixed
     {
-        if ($this->record->hasField($name)) {
-            return $this->record->getField($name);
+        if ($this->hasGetter($name) || $this->record->hasField($name)) {
+            # ModelData::__get: the getter first, then the field
+            return $this->record->__get($name);
         }
         if ($this->record->hasMethod($name)) {
             return $this->record->$name();
         }
-        if ($this->record->hasMethod('get' . $name)) {
-            return $this->record->{'get' . $name}();
-        }
         return null;
+    }
+
+    /**
+     * Whether the record has a `get<Name>()` getter. getField() is no getter of a field called "Field"
+     * (ModelData::__get makes the same exception).
+     */
+    protected function hasGetter(string $name): bool
+    {
+        return strtolower($name) !== 'field' && $this->record->hasMethod('get' . $name);
     }
 }

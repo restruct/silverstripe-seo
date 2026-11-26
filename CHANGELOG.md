@@ -90,6 +90,10 @@ All notable changes to this module are documented here. The format follows
   back after the action. Headers the project sets (in `init()` or an action) were already never overwritten; both
   are now covered by tests.
 
+- A shown record (SEO subject) read by duck-typing ignored getter overrides: fields were read before getters and
+  robots with `getField()`. A `get<Name>()` getter now wins over the column, and a robots getter without a column
+  counts as the record's own setting.
+
 ## [0.3.0] - 2026-11-25
 
 ### Added
