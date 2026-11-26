@@ -192,6 +192,121 @@ class LiveSeoMigrationTest extends SeoMigrationTestCase
         $this->assertReportLine($again, 'Organization sameAs -> SiteConfig.SeoSameAs:', ['copied 0', 'already same 1']);
     }
 
+    /**
+     * The organisation's address as the older module stores it: a StructuredDataPostalAddress row (on top of
+     * its StructuredDataThing row 3, which seedOrganisation() links through the many_many join).
+     */
+    private function seedAddress(array $values = []): void
+    {
+        $this->createOldTable('StructuredDataPostalAddress', [
+            'streetAddress' => 'varchar(100)',
+            'addressLocality' => 'varchar(100)',
+            'postalCode' => 'varchar(255)',
+            'addressCountry' => 'varchar(255)',
+        ]);
+        $this->insertRaw('StructuredDataPostalAddress', $values + [
+            'ID' => 3,
+            'streetAddress' => 'Main street 1',
+            'addressLocality' => 'Utrecht',
+            'postalCode' => '1234 AB',
+            'addressCountry' => 'NL',
+        ]);
+        DB::prepared_query(
+            'UPDATE "StructuredDataThing" SET "description" = ? WHERE "ID" = 1',
+            ['Courses for professionals.']
+        );
+    }
+
+    public function testOrganisationContactDetailsAreCopiedToSiteConfig(): void
+    {
+        $logo = $this->createTestImage('logo.png', 400, 400);
+        $this->seedOrganisation($logo->ID);
+        $this->seedAddress();
+        $id = $this->siteConfigID();
+
+        $dry = $this->runMigration('liveseo');
+        foreach ([
+            'description -> SiteConfig.SeoOrgDescription',
+            'email -> SiteConfig.SeoOrgEmail',
+            'telephone -> SiteConfig.SeoOrgTelephone',
+            'address streetAddress -> SiteConfig.SeoOrgStreet',
+            'address postalCode -> SiteConfig.SeoOrgPostalCode',
+            'address addressLocality -> SiteConfig.SeoOrgLocality',
+            'address addressCountry -> SiteConfig.SeoOrgCountry',
+        ] as $label) {
+            $this->assertReportLine($dry, 'Organization ' . $label . ':', ['read 1', 'would copy 1']);
+        }
+        $this->assertEmpty($this->raw('SiteConfig', 'SeoOrgEmail', $id), 'a dry run writes nothing');
+
+        $this->runMigration('liveseo', ['--apply' => true]);
+
+        $this->assertSame('Courses for professionals.', $this->raw('SiteConfig', 'SeoOrgDescription', $id));
+        $this->assertSame('info@example.com', $this->raw('SiteConfig', 'SeoOrgEmail', $id));
+        $this->assertSame('+31 20 000 0000', $this->raw('SiteConfig', 'SeoOrgTelephone', $id));
+        $this->assertSame('Main street 1', $this->raw('SiteConfig', 'SeoOrgStreet', $id));
+        $this->assertSame('1234 AB', $this->raw('SiteConfig', 'SeoOrgPostalCode', $id));
+        $this->assertSame('Utrecht', $this->raw('SiteConfig', 'SeoOrgLocality', $id));
+        $this->assertSame('NL', $this->raw('SiteConfig', 'SeoOrgCountry', $id));
+        # The older module has no region
+        $this->assertEmpty($this->raw('SiteConfig', 'SeoOrgRegion', $id));
+
+        $again = $this->runMigration('liveseo', ['--apply' => true]);
+        $this->assertReportLine($again, 'Organization email -> SiteConfig.SeoOrgEmail:', ['copied 0', 'already same 1']);
+        $this->assertReportLine($again, 'Organization address addressLocality -> SiteConfig.SeoOrgLocality:', ['copied 0', 'already same 1']);
+    }
+
+    public function testFilledContactDetailsAreKeptAndTooLongOnesInvalid(): void
+    {
+        $logo = $this->createTestImage('logo.png', 400, 400);
+        $this->seedOrganisation($logo->ID);
+        $this->seedAddress(['postalCode' => str_repeat('9', 40)]);
+        $id = $this->siteConfigID();
+        $this->setRaw('SiteConfig', $id, ['SeoOrgEmail' => 'kept@example.com']);
+
+        $output = $this->runMigration('liveseo', ['--apply' => true]);
+
+        $this->assertReportLine($output, 'Organization email -> SiteConfig.SeoOrgEmail:', ['copied 0', 'conflicts 1 (kept)']);
+        $this->assertSame('kept@example.com', $this->raw('SiteConfig', 'SeoOrgEmail', $id));
+        # Longer than the column here: never cut off
+        $this->assertReportLine($output, 'Organization address postalCode -> SiteConfig.SeoOrgPostalCode:', ['invalid 1']);
+        $this->assertEmpty($this->raw('SiteConfig', 'SeoOrgPostalCode', $id));
+        $this->assertSame('Utrecht', $this->raw('SiteConfig', 'SeoOrgLocality', $id));
+    }
+
+    public function testOtherOrganisationDataStaysReportOnlyWithAHintForItsReaders(): void
+    {
+        $logo = $this->createTestImage('logo.png', 400, 400);
+        $this->seedOrganisation($logo->ID);
+        $this->seedAddress();
+
+        $output = $this->runMigration('liveseo');
+
+        $this->assertReportLine($output, 'Organization contactPoint:', ['no equivalent', '1 values']);
+        $this->assertReportLine($output, 'Organization location:', ['no equivalent', '1 values']);
+        $this->assertReportLine($output, 'LocalBusiness:', ['no equivalent', '1 values']);
+        # A project that reads the old organisation (a partner feed, say) has to read SiteConfig instead
+        $this->assertReportLine($output, 'Note:', ['StructuredDataOrganization', 'SiteConfig', 'SeoOrg']);
+    }
+
+    public function testTwoAddressesAreNotGuessed(): void
+    {
+        $logo = $this->createTestImage('logo.png', 400, 400);
+        $this->seedOrganisation($logo->ID);
+        $this->seedAddress();
+        $this->insertRaw('StructuredDataThing', ['ID' => 7, 'ClassName' => 'StructuredDataPostalAddress']);
+        $this->insertRaw('StructuredDataPostalAddress', ['ID' => 7, 'addressLocality' => 'Amsterdam']);
+        $this->insertRaw('StructuredDataOrganization_address', [
+            'StructuredDataOrganizationID' => 1, 'StructuredDataPostalAddressID' => 7,
+        ]);
+
+        $output = $this->runMigration('liveseo', ['--apply' => true]);
+
+        $this->assertReportLine($output, 'Warning:', ['2 addresses', 'not copied']);
+        $this->assertEmpty($this->raw('SiteConfig', 'SeoOrgLocality', $this->siteConfigID()));
+        # The other details are still copied
+        $this->assertSame('info@example.com', $this->raw('SiteConfig', 'SeoOrgEmail', $this->siteConfigID()));
+    }
+
     public function testSameAsStoredAsJsonIsReadToo(): void
     {
         $logo = $this->createTestImage('logo.png', 400, 400);

@@ -123,6 +123,34 @@ class SeoCmsFieldsTest extends SapphireTest
         $this->assertSame(1, $counts['SeoTitleSuffix'] ?? 0);
     }
 
+    public function testOrganizationContactFieldsAreOnTheSeoTab(): void
+    {
+        $fields = SiteConfig::current_site_config()->getCMSFields();
+        $counts = $this->countFields($fields);
+        $tab = $fields->fieldByName('Root.SEO');
+        $this->assertNotNull($tab);
+        foreach ([
+            'SeoOrgDescription', 'SeoOrgEmail', 'SeoOrgTelephone', 'SeoOrgStreet', 'SeoOrgPostalCode',
+            'SeoOrgLocality', 'SeoOrgRegion', 'SeoOrgCountry',
+        ] as $name) {
+            $this->assertSame(1, $counts[$name] ?? 0, "$name should appear exactly once");
+            $this->assertNotNull($tab->getChildren()->dataFieldByName($name), "$name should be on the SEO tab");
+        }
+    }
+
+    public function testOrganizationContactLabelsAreTranslatable(): void
+    {
+        $english = SiteConfig::singleton()->fieldLabels();
+        $this->assertSame('Telephone', $english['SeoOrgTelephone'] ?? null);
+        $dutch = i18n::with_locale('nl_NL', function () {
+            DataObject::reset();
+            return SiteConfig::singleton()->fieldLabels();
+        });
+        DataObject::reset();
+        $this->assertSame('Telefoonnummer', $dutch['SeoOrgTelephone'] ?? null);
+        $this->assertSame('Plaats', $dutch['SeoOrgLocality'] ?? null);
+    }
+
     public function testLabelsAreTranslatable(): void
     {
         $labels = SeoTestPage::singleton()->fieldLabels();

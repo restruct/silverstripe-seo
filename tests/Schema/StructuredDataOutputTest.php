@@ -216,6 +216,73 @@ class StructuredDataOutputTest extends FunctionalTest
         $this->assertSame('ES', $organization['alternateName']);
     }
 
+    public function testOrganizationContactDetailsFromSiteConfig(): void
+    {
+        $config = SiteConfig::current_site_config();
+        $config->update([
+            'SeoOrgDescription' => 'Courses for professionals.',
+            'SeoOrgEmail' => 'info@example.com',
+            'SeoOrgTelephone' => '+31 20 000 0000',
+            'SeoOrgStreet' => 'Main street 1',
+            'SeoOrgPostalCode' => '1234 AB',
+            'SeoOrgLocality' => 'Utrecht',
+            'SeoOrgRegion' => 'Utrecht',
+            'SeoOrgCountry' => 'NL',
+        ]);
+        $config->write();
+
+        $this->publish(SeoTestPage::create(['Title' => 'About us', 'URLSegment' => 'about-us']));
+        $organization = $this->graph('about-us')[$this->base() . '/#organization'];
+
+        $this->assertSame('Courses for professionals.', $organization['description']);
+        $this->assertSame('info@example.com', $organization['email']);
+        $this->assertSame('+31 20 000 0000', $organization['telephone']);
+        $this->assertSame([
+            '@type' => 'PostalAddress',
+            'streetAddress' => 'Main street 1',
+            'postalCode' => '1234 AB',
+            'addressLocality' => 'Utrecht',
+            'addressRegion' => 'Utrecht',
+            'addressCountry' => 'NL',
+        ], $organization['address']);
+    }
+
+    public function testOrganizationAddressNeedsAStreetOrALocality(): void
+    {
+        $config = SiteConfig::current_site_config();
+        # A postcode and a country alone locate nothing: no address
+        $config->update(['SeoOrgPostalCode' => '1234 AB', 'SeoOrgCountry' => 'NL']);
+        $config->write();
+        $this->publish(SeoTestPage::create(['Title' => 'About us', 'URLSegment' => 'about-us']));
+
+        $organization = $this->graph('about-us')[$this->base() . '/#organization'];
+        $this->assertArrayNotHasKey('address', $organization);
+
+        # A locality is enough
+        $config->SeoOrgLocality = 'Utrecht';
+        $config->write();
+        $organization = $this->graph('about-us')[$this->base() . '/#organization'];
+        $this->assertSame('Utrecht', $organization['address']['addressLocality'] ?? null);
+
+        # So is a street
+        $config->SeoOrgLocality = '';
+        $config->SeoOrgStreet = 'Main street 1';
+        $config->write();
+        $organization = $this->graph('about-us')[$this->base() . '/#organization'];
+        $this->assertSame('Main street 1', $organization['address']['streetAddress'] ?? null);
+        $this->assertArrayNotHasKey('addressLocality', $organization['address']);
+    }
+
+    public function testWithoutContactDetailsTheOrganizationHasNone(): void
+    {
+        $this->publish(SeoTestPage::create(['Title' => 'About us', 'URLSegment' => 'about-us']));
+        $organization = $this->graph('about-us')[$this->base() . '/#organization'];
+
+        foreach (['description', 'email', 'telephone', 'address'] as $property) {
+            $this->assertArrayNotHasKey($property, $organization);
+        }
+    }
+
     public function testWithoutASiteNameThereIsNoOrganizationAndNothingPointsAtIt(): void
     {
         $config = SiteConfig::current_site_config();
