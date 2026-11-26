@@ -85,6 +85,10 @@ All notable changes to this module are documented here. The format follows
   are now confirmed in PHP, and all pages of a class with a `getMetaTitle()` override are compared on their real
   title.
 
+- An action that removed the module's `X-Robots-Tag` or `Link` header from the controller's response got it put
+  back after the action. Headers the project sets (in `init()` or an action) were already never overwritten; both
+  are now covered by tests.
+
 ## [0.3.0] - 2026-11-25
 
 ### Added

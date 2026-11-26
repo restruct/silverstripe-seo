@@ -86,17 +86,25 @@ class SeoContentControllerExtension extends Extension
 
     /**
      * Sets (or clears) a header this extension owns. A value set earlier by this extension is replaced or removed
-     * when the action changed the outcome; a value someone else set is left alone.
+     * when the action changed the outcome; a value someone else set is left alone, and so is the absence of one
+     * this extension set and someone else removed from the same response.
      */
     protected function setHeader(HTTPResponse $response, string $name, string $value): void
     {
         $key = 'SeoHeaderSent_' . strtolower($name);
         $owner = $this->getOwner();
-        $ours = $owner->hasDynamicData($key) ? $owner->getDynamicData($key) : null;
+        # What this extension sent last, and on which response: an action may return a response of its own
+        $sent = $owner->hasDynamicData($key) ? $owner->getDynamicData($key) : null;
+        $sameResponse = is_array($sent) && ($sent['response'] ?? null) === $response;
+        $ours = $sameResponse ? $sent['value'] : null;
         $current = $response->getHeader($name);
 
         if ($current !== null && $current !== $ours) {
             # Not ours (the project or another module set it): never overwrite
+            return;
+        }
+        if ($current === null && $ours !== null) {
+            # Ours was on this response and is gone: the project removed it (an action that wants no header)
             return;
         }
         if ($value === '') {
@@ -106,6 +114,6 @@ class SeoContentControllerExtension extends Extension
         } else {
             $response->addHeader($name, $value);
         }
-        $owner->setDynamicData($key, $value === '' ? null : $value);
+        $owner->setDynamicData($key, ['response' => $response, 'value' => $value === '' ? null : $value]);
     }
 }

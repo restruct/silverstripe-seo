@@ -78,7 +78,9 @@ A template that builds its own title from `$MetaTitle` (as the default startup t
 column is called `MetaTitle`, but it bypasses the title suffix setting and the duplicate-site-name guard. Switch
 to `$SeoTitle` to get those.
 
-The response headers (`X-Robots-Tag`, `Link`) need nothing from the theme.
+The response headers (`X-Robots-Tag`, `Link`) need nothing from the theme. A header your own controller code sets
+(in `init()`, before or after `parent::init()`, or in an action, on the controller's response or on one the
+action returns) is never overwritten, and one an action removes is not put back: project code decides.
 
 A theme that already prints its own canonical or Open Graph tags should switch the module's output off, so they
 do not appear twice:
