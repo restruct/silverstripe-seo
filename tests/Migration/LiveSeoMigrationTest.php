@@ -160,9 +160,10 @@ class LiveSeoMigrationTest extends SeoMigrationTestCase
         $this->assertReportLine($output, 'Organization logo -> SiteConfig.SeoLogoID:', ['read 1', 'would copy 1']);
         $this->assertReportLine($output, 'Organization sameAs -> SiteConfig.SeoSameAs:', ['read 1', 'would copy 1']);
         $this->assertReportLine($output, 'Note: Organization name "Example Organisation"', ['SiteConfig.Title']);
-        $this->assertReportLine($output, 'Organization telephone:', ['no equivalent', '1 values', 'schema_map']);
-        $this->assertReportLine($output, 'Organization email:', ['no equivalent', '1 values']);
-        $this->assertReportLine($output, 'Organization address:', ['no equivalent', '1 values']);
+        $this->assertReportLine($output, 'Organization telephone -> SiteConfig.SeoOrgTelephone:', ['read 1', 'would copy 1']);
+        $this->assertReportLine($output, 'Organization email -> SiteConfig.SeoOrgEmail:', ['read 1', 'would copy 1']);
+        # The join names address 3, but this seed has no StructuredDataPostalAddress table to read it from
+        $this->assertReportLine($output, 'Warning:', ['address', 'StructuredDataPostalAddress', 'not copied']);
         $this->assertReportLine($output, 'Organization contactPoint:', ['no equivalent', '1 values']);
         $this->assertReportLine($output, 'Organization location:', ['no equivalent', '1 values']);
         $this->assertReportLine($output, 'AggregateRating:', ['dropped', '1 values']);
