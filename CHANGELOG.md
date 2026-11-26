@@ -53,6 +53,10 @@ All notable changes to this module are documented here. The format follows
   organisation table (a partner feed) should read SiteConfig after migrating.
 - `seo_hidden_fields` and `seo_readonly_fields` per page class: the module's fields (and MetaDescription) by
   name, left out of the edit form or shown read-only; output is not affected.
+- `MetaDescriptionFallback()` on a page class: the fallback description when none is typed, before the module
+  derives one from the content (an empty return leaves it to the module; the hook runs after either).
+- `SeoTitleFromCode()` on pages, and the search result preview shows the title from PHP when the page overrides
+  `getMetaTitle()` or hides or locks the MetaTitle field.
 
 ### Changed
 
@@ -68,6 +72,16 @@ All notable changes to this module are documented here. The format follows
 - The `Restruct\Silverstripe\SEO\Rendering\PageRenderer` interface (never implemented): the shared
   `Restruct\Silverstripe\RenderedContentExtractor\PageRenderer` service takes its place, without a fallback
   copy.
+
+### Fixed
+
+- A page class's getter override of a robots flag (`getMetaRobotsNoIndex()`, ...) was ignored: the flags were read
+  with `getField()`. It now decides the robots meta tag, `X-Robots-Tag`, the sitemap, the noindex check and which
+  checks run.
+- The duplicate title and description checks compared the MetaTitle and MetaRobotsNoIndex columns in SQL, so a
+  page class that generates its title or noindex in a getter was compared on values it does not output. Candidates
+  are now confirmed in PHP, and all pages of a class with a `getMetaTitle()` override are compared on their real
+  title.
 
 ## [0.3.0] - 2026-11-25
 

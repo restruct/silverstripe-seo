@@ -7,6 +7,7 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\ORM\DataList;
+use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\Versioned;
 
 /**
@@ -27,10 +28,29 @@ class SiteData
     public function pagesWithTitle(SiteTree $page, string $title): DataList
     {
         $title = trim($title);
-        return $this->otherIndexablePages($page)->whereAny([
+        $columnMatch = [
             '"SiteTree"."MetaTitle" = ?' => $title,
             '("SiteTree"."MetaTitle" IS NULL OR "SiteTree"."MetaTitle" = \'\') AND "SiteTree"."Title" = ?' => $title,
-        ]);
+        ];
+        # A page class with a getMetaTitle() override decides its title in code, so its column says nothing:
+        # its pages are all candidates, compared below on the title they really have
+        $getterClasses = $this->classesWithGetter('MetaTitle');
+        if ($getterClasses) {
+            $placeholders = DB::placeholders($getterClasses);
+            $candidates = $this->otherPages($page)->whereAny([
+                '"SiteTree"."ClassName" IN (' . $placeholders . ')' => $getterClasses,
+                '"SiteTree"."ClassName" NOT IN (' . $placeholders . ') AND (' . implode(' OR ', array_keys($columnMatch)) . ')'
+                    => array_merge($getterClasses, array_values($columnMatch)),
+            ]);
+        } else {
+            $candidates = $this->otherPages($page)->whereAny($columnMatch);
+        }
+        $wanted = mb_strtolower($title);
+        return $this->indexableAmong(
+            $candidates,
+            # As the database compares: case-insensitively
+            fn (SiteTree $other) => mb_strtolower(trim((string) $other->SeoPageTitle())) === $wanted
+        );
     }
 
     /**
@@ -41,7 +61,7 @@ class SiteData
      */
     public function pagesWithDescription(SiteTree $page, string $description): DataList
     {
-        return $this->otherIndexablePages($page)->filter('MetaDescription', trim($description));
+        return $this->indexableAmong($this->otherPages($page)->filter('MetaDescription', trim($description)));
     }
 
     public function inboundLinkCount(SiteTree $page): int
@@ -72,13 +92,13 @@ class SiteData
     }
 
     /**
-     * Pages other than this one that search engines may list: not noindex, and of a type the checks apply to.
+     * Pages other than this one, of a type the checks apply to.
      *
      * @return DataList<SiteTree>
      */
-    protected function otherIndexablePages(SiteTree $page): DataList
+    protected function otherPages(SiteTree $page): DataList
     {
-        $list = SiteTree::get()->exclude('ID', (int) $page->ID)->filter('MetaRobotsNoIndex', false);
+        $list = SiteTree::get()->exclude('ID', (int) $page->ID);
         # The excluded classes with their subclasses, as PageEligibility applies them
         $excluded = [];
         foreach (PageEligibility::singleton()->getExcludedClasses() as $class) {
@@ -86,4 +106,63 @@ class SiteData
         }
         return $excluded ? $list->exclude('ClassName', array_unique($excluded)) : $list;
     }
+
+    /**
+     * The candidates that search engines may list (not noindex), and that pass $match, as a list of their own.
+     *
+     * The noindex column narrows the candidates in the query; pages of a class with a getMetaRobotsNoIndex()
+     * override stay in, as their column says nothing. Every remaining candidate is then asked the way the head
+     * decides it (getter, robots hook), so the column and the page never disagree here. The candidates are few
+     * (pages with one title or one description), except for the pages of a class with a getMetaTitle()
+     * override, which are all loaded: their titles exist only in PHP.
+     *
+     * @param DataList<SiteTree> $candidates
+     * @param callable(SiteTree):bool|null $match
+     * @return DataList<SiteTree>
+     */
+    protected function indexableAmong(DataList $candidates, ?callable $match = null): DataList
+    {
+        $getterClasses = $this->classesWithGetter('MetaRobotsNoIndex');
+        if ($getterClasses) {
+            $candidates = $candidates->whereAny([
+                '"SiteTree"."MetaRobotsNoIndex" = 0' => [],
+                '"SiteTree"."ClassName" IN (' . DB::placeholders($getterClasses) . ')' => $getterClasses,
+            ]);
+        } else {
+            $candidates = $candidates->filter('MetaRobotsNoIndex', false);
+        }
+        $ids = [];
+        foreach ($candidates as $other) {
+            if (($match === null || $match($other)) && !PageAnalysis::create($other, null, $this)->isNoindex()) {
+                $ids[] = (int) $other->ID;
+            }
+        }
+        # An empty IN () is no valid SQL; ID 0 matches nothing
+        return SiteTree::get()->filter('ID', $ids ?: [0]);
+    }
+
+    /**
+     * Page classes that read a field through a getter of their own (`getMetaTitle()`), from the class or an
+     * extension. Cached per field for the lifetime of this object: a site run asks once per page.
+     *
+     * @return string[]
+     */
+    protected function classesWithGetter(string $field): array
+    {
+        if (!isset($this->getterClasses[$field])) {
+            $classes = [];
+            foreach (ClassInfo::subclassesFor(SiteTree::class) as $class) {
+                if (SiteTree::singleton($class)->hasMethod('get' . $field)) {
+                    $classes[] = $class;
+                }
+            }
+            $this->getterClasses[$field] = $classes;
+        }
+        return $this->getterClasses[$field];
+    }
+
+    /**
+     * @var array<string, string[]>
+     */
+    protected array $getterClasses = [];
 }

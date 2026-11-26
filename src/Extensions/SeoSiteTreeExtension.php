@@ -47,13 +47,18 @@ use Throwable;
  * `MetaComponents`/`MetaTags` extension methods are never called on SS6). The matching response headers are set
  * by {@see SeoContentControllerExtension}.
  *
+ * Values are read as a template reads them, so a page class that decides them in code is respected: a getter
+ * override (`getMetaTitle()`, `getMetaRobotsNoIndex()`, ...) wins over the column, and a `MetaDescriptionFallback()`
+ * method supplies the fallback description before the module derives one.
+ *
  * When the page's controller shows a record on a sub-action and declares it with `setSeoSubject()`, the title,
  * description, canonical, sharing values and (if the record has its own) robots come from that record instead;
  * see {@see SubjectMetadata}.
  *
  * Extension hooks offered to projects and later versions of this module, all called on the page:
  * - `updateSeoTitle(string &$title)`: the full `<title>` text, suffix included;
- * - `updateSeoDescriptionFallback(?string &$description)`: the description used when none was typed;
+ * - `updateSeoDescriptionFallback(?string &$description)`: the description used when none was typed (the
+ *   page's own `MetaDescriptionFallback()` when it has one and it returns text, else the content summary);
  * - `updateSeoRobotsDirectives(array &$directives)`: the robots directives, e.g. to add `max-image-preview`;
  * - `updateSeoCanonicalURL(?string &$url, ?HTTPRequest $request)`;
  * - `updateSeoImageFallback(?Image &$image)`: the sharing image when the page has none of its own;
@@ -614,7 +619,9 @@ class SeoSiteTreeExtension extends Extension
         if ($directives === null) {
             $directives = [];
             foreach ((array) $page->config()->get('seo_robots_directives') as $field => $directive) {
-                if ($directive && $page->getField($field)) {
+                # Read as a template reads it (ModelData::__get): a page class's getter override, such as a
+                # getMetaRobotsNoIndex() that forces noindex on archived pages, wins over the column
+                if ($directive && $page->__get($field)) {
                     $directives[] = $directive;
                 }
             }
@@ -869,12 +876,37 @@ class SeoSiteTreeExtension extends Extension
         if (!$page->config()->get('seo_description_fallback')) {
             return '';
         }
-        $description = DescriptionSummary::fromHtml(
-            (string) $page->Content,
-            (int) $page->config()->get('seo_description_fallback_length')
-        );
+        # The page class's own fallback first (a description generated from course data, say), by convention
+        # a MetaDescriptionFallback() method; empty leaves it to the content summary
+        $description = $page->hasMethod('MetaDescriptionFallback')
+            ? trim((string) $page->MetaDescriptionFallback())
+            : '';
+        if ($description === '') {
+            $description = DescriptionSummary::fromHtml(
+                (string) $page->Content,
+                (int) $page->config()->get('seo_description_fallback_length')
+            );
+        }
         $page->extend('updateSeoDescriptionFallback', $description);
         return trim((string) $description);
+    }
+
+    /**
+     * Whether the page's title for search is not what the MetaTitle field holds: the page class overrides
+     * getMetaTitle(), or does not let editors change the field (seo_hidden_fields, seo_readonly_fields). The
+     * search result preview then shows the title from PHP rather than build it from the form.
+     */
+    public function SeoTitleFromCode(): bool
+    {
+        $page = $this->getOwner();
+        if ($page->hasMethod('getMetaTitle')) {
+            return true;
+        }
+        $locked = array_merge(
+            (array) $page->config()->get('seo_hidden_fields'),
+            (array) $page->config()->get('seo_readonly_fields')
+        );
+        return in_array('MetaTitle', $locked, true);
     }
 
     /**

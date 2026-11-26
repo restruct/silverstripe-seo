@@ -53,6 +53,8 @@ class SeoSnippetPreviewField extends FormField
                 'separator' => (string) $page->config()->get('seo_title_separator'),
                 'suffix' => trim((string) ($config->SeoTitleSuffix ?: $config->Title)),
                 'appendSiteName' => (bool) $page->config()->get('seo_title_append_site_name'),
+                # Set when the page decides its title in code: the script uses it instead of the form's inputs
+                'pageTitle' => $page->SeoTitleFromCode() ? (string) $page->SeoPageTitle() : null,
             ], TitleWidth::singleton()->clientConfig()),
             'description' => [
                 'min' => (int) DescriptionLengthCheck::config()->get('min_length'),

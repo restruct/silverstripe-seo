@@ -128,7 +128,10 @@
         }
         var metaTitle = $.trim(form.find(':input[name=MetaTitle]').val() || '');
         var pageTitle = $.trim(form.find(':input[name=Title]').val() || '');
-        var title = buildTitle(metaTitle || pageTitle, config.title);
+        // A title the page generates in code (a getter, or a locked MetaTitle field) comes from PHP: the inputs
+        // would show what the page does not output
+        var ownTitle = config.title.pageTitle ? config.title.pageTitle : (metaTitle || pageTitle);
+        var title = buildTitle(ownTitle, config.title);
         var typed = $.trim(form.find(':input[name=MetaDescription]').val() || '');
         var description = typed || config.description.fallback || '';
 

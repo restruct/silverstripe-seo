@@ -173,6 +173,46 @@ The names are the field names: `MetaTitle`, `MetaDescription` (core's, in the sa
 What the page outputs is not changed by this: a page that generates its title does so with a getter (see
 [Titles, robots and descriptions from code](#titles-robots-and-descriptions-from-code)).
 
+### Titles, robots and descriptions from code
+
+The values are read the way a template reads them, so a page class that decides them in code is respected
+everywhere the module uses them: the head, the `X-Robots-Tag` header, the sitemap, the search result preview and
+the checks (the noindex check and which checks run, the title checks, and the duplicate checks on both sides).
+
+```php
+class CoursePage extends Page
+{
+    # The title is generated; whatever is in the MetaTitle column is ignored
+    public function getMetaTitle(): string
+    {
+        return $this->Title . ' (' . $this->CourseCode . ')';
+    }
+
+    # Archived courses are never indexed, whatever the checkbox says
+    public function getMetaRobotsNoIndex(): bool
+    {
+        return (bool) $this->Archived || (bool) $this->getField('MetaRobotsNoIndex');
+    }
+
+    # The description when the editor typed none, before the module derives one from the content
+    public function MetaDescriptionFallback(): string
+    {
+        return sprintf('%s: dates, prices and locations.', $this->Title);
+    }
+}
+```
+
+- A `get<Field>()` override wins over the column for `MetaTitle` and the robots flags (`MetaRobotsNoIndex`,
+  `MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache`).
+- `MetaDescriptionFallback()` is a convention of this module: when the page has it and it returns text, that is
+  the fallback description; when it returns an empty string, the module derives one from the content as usual.
+  The `updateSeoDescriptionFallback` hook runs after either, and `seo_description_fallback: false` switches both
+  off. A typed meta description always wins.
+- The duplicate-title check loads every page of a class with a `getMetaTitle()` override to compare its title,
+  since that title exists only in PHP; a cheap getter keeps that fast.
+- Hide or lock the field the getter makes meaningless with `seo_hidden_fields` / `seo_readonly_fields` (above);
+  the search result preview then shows the title from PHP rather than from the form.
+
 ## Canonical URLs
 
 - A page's canonical is its own URL, without query string except the parameters in
@@ -678,7 +718,7 @@ Called on the page (implement them in an `Extension` applied to `SiteTree` or a 
 | Hook | Use it to |
 |---|---|
 | `updateSeoTitle(string &$title)` | change the complete `<title>` text |
-| `updateSeoDescriptionFallback(?string &$description)` | supply a better fallback description (also called on a shown record) |
+| `updateSeoDescriptionFallback(?string &$description)` | supply a better fallback description (also called on a shown record); a page can also define `MetaDescriptionFallback()`, see [Titles, robots and descriptions from code](#titles-robots-and-descriptions-from-code) |
 | `updateSeoRobotsDirectives(array &$directives)` | add directives such as `max-image-preview:large` |
 | `updateSeoCanonicalURL(?string &$url, ?HTTPRequest $request)` | change the canonical |
 | `updateSeoImageFallback(?Image &$image)` | supply a sharing image when the page has none (a hero image, say) |
