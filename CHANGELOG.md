@@ -57,6 +57,8 @@ All notable changes to this module are documented here. The format follows
   derives one from the content (an empty return leaves it to the module; the hook runs after either).
 - `SeoTitleFromCode()` on pages, and the search result preview shows the title from PHP when the page overrides
   `getMetaTitle()` or hides or locks the MetaTitle field.
+- A nested `schema_map` over a relation takes `limit` and `sort` (`hasCourseInstance: { from: Runs, sort:
+  'StartDate ASC', limit: 50, ... }`); the limit counts the nodes that are output.
 
 ### Changed
 

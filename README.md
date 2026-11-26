@@ -398,9 +398,46 @@ The value of a map entry is one of:
 - `{ html: Field }`: the field's HTML reduced to `p`, `br`, `ul`, `ol`, `li`, `strong`, `em` and `h2` to `h4`,
   without attributes (for a JobPosting description);
 - a nested map, with its own `@type` and optionally `from: Relation` to read from another record (a list gives
-  a list of nodes), and `'@required'`: a list of properties it must have in the registry's notation
+  a list of nodes, ordered by `sort` and capped by `limit`, see below), and `'@required'`: a list of properties it must have in the registry's notation
   (`streetAddress | addressLocality` for either), without which the nested node is left out;
 - a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
+
+A nested map over a list takes `limit` (at most that many nodes) and `sort` (as `DataList::sort()` takes it, a
+string or `{ Field: ASC }`). A course with many runs, the next fifty as CourseInstances:
+
+```yml
+App\Page\CoursePage:
+  extensions:
+    - Restruct\Silverstripe\SEO\Extensions\SchemaSource
+  schema_type: Course
+  schema_map:
+    name: Title
+    description: Summary
+    provider: { ref: organization }
+    hasCourseInstance:
+      '@type': CourseInstance
+      from: Runs
+      sort: 'StartDate ASC'
+      limit: 50
+      courseMode: Mode
+      startDate: { date: StartDate, time: StartTime }
+      location:
+        '@type': Place
+        from: Venue
+        name: Title
+        address:
+          '@type': PostalAddress
+          streetAddress: Street
+          addressLocality: City
+      offers:
+        '@type': Offer
+        price: Cost
+        priceCurrency: { literal: EUR }
+```
+
+The limit counts the nodes that are output: a run an anonymous visitor may not see, or one that maps to nothing,
+does not use up a place. A sort the list cannot apply (an unknown column, a plain array from a method) is
+ignored. `limit` and `sort` are not output as properties.
 
 Values are converted for JSON: Date fields as `2027-01-05`; Datetime fields, which Silverstripe stores in PHP's
 default timezone, as that moment in `seo_schema_timezone`; HTML as plain text,

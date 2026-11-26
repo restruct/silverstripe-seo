@@ -45,7 +45,7 @@ use Throwable;
  * - `{ html: Field }`: the field's HTML reduced to simple markup ({@see SchemaHtml}), for a JobPosting
  *   description, where Google shows paragraphs and lists;
  * - a nested map, optionally with its own `@type` and a `from` relation to read from (a has_many or many_many
- *   gives a list of nested nodes), and `@required`: entries in the registry's notation (`streetAddress |
+ *   gives a list of nested nodes, ordered by `sort` and capped by `limit` when given), and `@required`: entries in the registry's notation (`streetAddress |
  *   addressLocality`) the nested node must have, else it is left out (see {@see SchemaTypeRegistry::missingOf()});
  * - a YAML list of any of these: a list of values (`sameAs: [FacebookURL, LinkedInURL]`).
  *
@@ -420,19 +420,24 @@ class SchemaMapper
     }
 
     /**
-     * A nested map: its own `@type`, optionally a `from` relation (a list gives a list of nodes).
+     * A nested map: its own `@type`, optionally a `from` relation (a list gives a list of nodes), and for a list
+     * `sort` (as DataList::sort() takes it: `StartDate ASC`, or `{ StartDate: ASC }`) and `limit` (at most that
+     * many nodes).
      */
     protected function resolveNested(ModelData $record, array $spec): mixed
     {
         $type = isset($spec['@type']) ? (string) $spec['@type'] : '';
         # @required is read in nestedNode(); as a key starting with @ mapRecord() skips it as a property
-        $map = array_diff_key($spec, ['@type' => true, 'from' => true]);
+        $map = array_diff_key($spec, ['@type' => true, 'from' => true, 'limit' => true, 'sort' => true]);
 
         if (!isset($spec['from'])) {
             return $this->nestedNode($record, $type, $map);
         }
         $target = $this->resolvePath($record, (string) $spec['from']);
         if ($target instanceof SS_List || is_array($target)) {
+            $target = $this->sortList($target, $spec['sort'] ?? null);
+            # Counted on the nodes that are output, so a hidden or empty record does not use up a place
+            $limit = max(0, (int) ($spec['limit'] ?? 0));
             $nodes = [];
             foreach ($target as $item) {
                 if ($item instanceof DataObject && !$this->isVisible($item)) {
@@ -440,6 +445,9 @@ class SchemaMapper
                 }
                 if ($item instanceof ModelData && ($node = $this->nestedNode($item, $type, $map))) {
                     $nodes[] = $node;
+                    if ($limit && count($nodes) >= $limit) {
+                        break;
+                    }
                 }
             }
             return $nodes ?: null;
@@ -449,6 +457,22 @@ class SchemaMapper
             return null;
         }
         return $target instanceof ModelData ? $this->nestedNode($target, $type, $map) : null;
+    }
+
+    /**
+     * A nested map's `sort` applied to its list. A plain array (from a method) and a sort the list rejects (an
+     * unknown column) stay as they are: the order is a nicety, the data still goes out.
+     */
+    protected function sortList(SS_List|array $list, mixed $sort): SS_List|array
+    {
+        if ($sort === null || $sort === '' || $sort === [] || !$list instanceof SS_List || !method_exists($list, 'sort')) {
+            return $list;
+        }
+        try {
+            return is_array($sort) ? $list->sort($sort) : $list->sort((string) $sort);
+        } catch (Throwable) {
+            return $list;
+        }
     }
 
     protected function nestedNode(ModelData $record, string $type, array $map): ?array
