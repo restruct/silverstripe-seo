@@ -279,6 +279,66 @@ class SchemaSourceTest extends SapphireTest
         $this->assertEquals(0, $offers[1]['price']);
     }
 
+    /**
+     * Five tickets with prices 10 to 50, created in a different order than their price.
+     */
+    private function eventWithFiveTickets(): SchemaTestEvent
+    {
+        $event = $this->event();
+        foreach ([30, 10, 50, 20, 40] as $price) {
+            SchemaTestTicket::create(['Title' => 'Ticket ' . $price, 'Price' => $price, 'EventID' => $event->ID])->write();
+        }
+        return $event;
+    }
+
+    public function testANestedListCanBeLimited(): void
+    {
+        # A course with up to 50 runs: the map caps the relation, not the project's code
+        Config::modify()->merge(SchemaTestEvent::class, 'schema_map', ['offers' => ['limit' => 2]]);
+
+        $offers = $this->mapper()->nodesFor($this->eventWithFiveTickets())[0]['offers'];
+
+        # Without a sort, in whatever order the relation gives
+        $this->assertCount(2, $offers);
+    }
+
+    public function testANestedListCanBeSortedBeforeTheLimit(): void
+    {
+        Config::modify()->merge(SchemaTestEvent::class, 'schema_map', ['offers' => ['limit' => 3, 'sort' => 'Price DESC']]);
+
+        $offers = $this->mapper()->nodesFor($this->eventWithFiveTickets())[0]['offers'];
+
+        $this->assertSame(['Ticket 50', 'Ticket 40', 'Ticket 30'], array_column($offers, 'name'));
+    }
+
+    public function testLimitAndSortAreNoProperties(): void
+    {
+        Config::modify()->merge(SchemaTestEvent::class, 'schema_map', ['offers' => ['limit' => 1, 'sort' => ['Price' => 'ASC']]]);
+
+        $offers = $this->mapper()->nodesFor($this->eventWithFiveTickets())[0]['offers'];
+
+        $this->assertSame(['Ticket 10'], array_column($offers, 'name'));
+        $this->assertArrayNotHasKey('limit', $offers[0]);
+        $this->assertArrayNotHasKey('sort', $offers[0]);
+    }
+
+    public function testTheLimitCountsNodesThatAreOutput(): void
+    {
+        # A ticket that maps to nothing (only the title is mapped here, and it has none) does not use up a place
+        Config::modify()->merge(SchemaTestEvent::class, 'schema_map', [
+            'offers' => ['limit' => 2, 'sort' => 'Title ASC', 'price' => null, 'priceCurrency' => null],
+        ]);
+        $event = $this->event();
+        SchemaTestTicket::create(['Title' => '', 'EventID' => $event->ID])->write();
+        foreach ([10, 20, 30] as $price) {
+            SchemaTestTicket::create(['Title' => 'Ticket ' . $price, 'Price' => $price, 'EventID' => $event->ID])->write();
+        }
+
+        $offers = $this->mapper()->nodesFor($event)[0]['offers'];
+
+        $this->assertSame(['Ticket 10', 'Ticket 20'], array_column($offers, 'name'));
+    }
+
     public function testIdsAreStable(): void
     {
         $event = $this->event();
