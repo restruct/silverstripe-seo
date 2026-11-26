@@ -2,11 +2,13 @@
 
 namespace Restruct\Silverstripe\SEO\Tests;
 
+use Restruct\Silverstripe\SEO\Tests\Stub\SeoFieldRulesTestPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\Form;
 use SilverStripe\i18n\i18n;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -26,6 +28,7 @@ class SeoCmsFieldsTest extends SapphireTest
 
     protected static $extra_dataobjects = [
         SeoTestPage::class,
+        SeoFieldRulesTestPage::class,
     ];
 
     private const PAGE_FIELDS = [
@@ -114,6 +117,50 @@ class SeoCmsFieldsTest extends SapphireTest
             $this->assertNotNull($field, "$name is shown on a virtual page");
             $this->assertTrue($field->isReadonly(), "$name should be read-only on a virtual page");
         }
+    }
+
+    public function testAPageClassHidesAndLocksFields(): void
+    {
+        $page = SeoFieldRulesTestPage::create(['Title' => 'A course']);
+        $page->write();
+        $fields = $page->getCMSFields();
+        $counts = $this->countFields($fields);
+
+        # Hidden: not in the form at all
+        $this->assertArrayNotHasKey('MetaTitle', $counts);
+        $this->assertArrayNotHasKey('OGImage', $counts);
+        # Read-only: shown, once, but not editable
+        foreach (['CanonicalURL', 'MetaRobotsNoIndex', 'MetaDescription'] as $name) {
+            $this->assertSame(1, $counts[$name] ?? 0, "$name should appear exactly once");
+            $this->assertTrue($fields->dataFieldByName($name)->isReadonly(), "$name should be read-only");
+        }
+        # The rest is untouched
+        foreach (['MetaRobotsNoFollow', 'SEOFBdescription'] as $name) {
+            $this->assertFalse($fields->dataFieldByName($name)->isReadonly(), "$name should stay editable");
+        }
+    }
+
+    public function testOtherPageClassesKeepEveryField(): void
+    {
+        $this->assertSame([], SeoTestPage::config()->get('seo_hidden_fields'));
+        $this->assertSame([], SeoTestPage::config()->get('seo_readonly_fields'));
+        $page = SeoTestPage::create(['Title' => 'About us']);
+        $page->write();
+        $fields = $page->getCMSFields();
+        $this->assertFalse($fields->dataFieldByName('MetaTitle')->isReadonly());
+        $this->assertFalse($fields->dataFieldByName('CanonicalURL')->isReadonly());
+    }
+
+    public function testAHiddenFieldKeepsItsValueOnSave(): void
+    {
+        # Hiding a field only changes the form: a value already stored stays, and a save does not empty it
+        $page = SeoFieldRulesTestPage::create(['Title' => 'A course', 'MetaTitle' => 'Stored']);
+        $page->write();
+        $form = Form::create(null, 'Form', $page->getCMSFields(), FieldList::create());
+        $form->loadDataFrom($page);
+        $form->saveInto($page);
+        $page->write();
+        $this->assertSame('Stored', SeoFieldRulesTestPage::get()->byID($page->ID)->getField('MetaTitle'));
     }
 
     public function testSiteConfigFieldsAppearOnce(): void
