@@ -151,6 +151,19 @@ class SeoSiteTreeExtension extends Extension
     ];
 
     /**
+     * Fields of this module (and core's MetaDescription, which sits with them) that a page class leaves out of
+     * its edit form, by field name: `MetaTitle` on a page type whose title is generated, say. The value is still
+     * read for output; it is only no longer editable. Other names are ignored. A list, so a subclass adds to its
+     * parent's.
+     */
+    private static array $seo_hidden_fields = [];
+
+    /**
+     * The same fields shown read-only instead of hidden: the editor sees the value, but cannot change it.
+     */
+    private static array $seo_readonly_fields = [];
+
+    /**
      * Derive a description from the page when the editor typed none.
      */
     private static bool $seo_description_fallback = true;
@@ -375,6 +388,32 @@ class SeoSiteTreeExtension extends Extension
 
         if ($page instanceof VirtualPage) {
             $this->makeVirtualFieldsReadonly($page, $fields);
+        }
+
+        $this->applyFieldRules($fields);
+    }
+
+    /**
+     * `seo_hidden_fields` and `seo_readonly_fields` of the page class. Only this module's fields and
+     * MetaDescription are touched; a hidden field also wins over a read-only one.
+     */
+    protected function applyFieldRules(FieldList $fields): void
+    {
+        $config = $this->getOwner()->config();
+        $own = array_merge(static::EDITABLE_FIELDS, ['MetaDescription']);
+        $hidden = array_values(array_intersect($own, (array) $config->get('seo_hidden_fields')));
+        foreach ($hidden as $name) {
+            # Searches the tabs and the Metadata toggle; only the data field, never a container of that name
+            $fields->removeByName($name, true);
+        }
+
+        $transformation = ReadonlyTransformation::create();
+        $readonly = array_diff(array_intersect($own, (array) $config->get('seo_readonly_fields')), $hidden);
+        foreach ($readonly as $name) {
+            $field = $fields->dataFieldByName($name);
+            if ($field && !$field->isReadonly()) {
+                $fields->replaceField($name, $field->transform($transformation));
+            }
         }
     }
 

@@ -51,6 +51,8 @@ All notable changes to this module are documented here. The format follows
   PostalAddress to those SiteConfig fields (dry run first, filled values kept, too-long values invalid, two or
   more addresses not guessed), reports other LocalBusiness rows (branches), and notes that code reading the old
   organisation table (a partner feed) should read SiteConfig after migrating.
+- `seo_hidden_fields` and `seo_readonly_fields` per page class: the module's fields (and MetaDescription) by
+  name, left out of the edit form or shown read-only; output is not affected.
 
 ### Changed
 

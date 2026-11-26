@@ -152,6 +152,27 @@ A sharing image is fetched anonymously by the sites a page is shared on, so only
 that is published, in the public asset store and viewable by anyone. A draft-only image, or one restricted to
 logged-in members, is skipped and the next one in the chain is used.
 
+### Hiding or locking fields per page class
+
+A page type whose title or robots are decided by code (a course page that generates its title, say) can leave
+the module's fields out of its edit form, or show them read-only:
+
+```yml
+App\Page\CoursePage:
+  # Not in the form at all; a stored value stays and is still read
+  seo_hidden_fields:
+    - MetaTitle
+  # Shown, but not editable
+  seo_readonly_fields:
+    - MetaRobotsNoIndex
+```
+
+The names are the field names: `MetaTitle`, `MetaDescription` (core's, in the same group), `MetaRobotsNoIndex`,
+`MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache`, `CanonicalURL`, `SEOFBdescription` and
+`OGImage`. Other names are ignored. Both are lists, so a subclass adds to its parent's; a field in both is hidden.
+What the page outputs is not changed by this: a page that generates its title does so with a getter (see
+[Titles, robots and descriptions from code](#titles-robots-and-descriptions-from-code)).
+
 ## Canonical URLs
 
 - A page's canonical is its own URL, without query string except the parameters in
