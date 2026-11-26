@@ -4,7 +4,7 @@ namespace Restruct\Silverstripe\SEO\Report;
 
 use Psr\Log\LoggerInterface;
 use ReflectionProperty;
-use Restruct\Silverstripe\PageRender\PageEligibility;
+use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use Restruct\Silverstripe\SEO\Model\StaleContext;
@@ -31,7 +31,7 @@ use Throwable;
  * the email of a dedicated member with view (and draft) rights; the results then reflect what that member sees.
  *
  * Side effects: every check renders a page through its own controller and templates (see
- * {@see \Restruct\Silverstripe\PageRender\PageRenderer}), so a site run renders every eligible page once. Page
+ * {@see \Restruct\Silverstripe\RenderedContentExtractor\PageRenderer}), so a site run renders every eligible page once. Page
  * code that counts views, sends mail, calls outside services or writes records does so for each, unless it
  * checks PageRenderer::isRendering().
  */

@@ -2,7 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Report;
 
-use Restruct\Silverstripe\PageRender\PageEligibility;
+use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
 use Restruct\Silverstripe\SEO\Checks\Check;
 use Restruct\Silverstripe\SEO\Checks\CheckResult;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;

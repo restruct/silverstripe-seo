@@ -3,9 +3,9 @@
 namespace Restruct\Silverstripe\SEO\Checks;
 
 use Psr\Log\LoggerInterface;
-use Restruct\Silverstripe\PageRender\PageEligibility;
-use Restruct\Silverstripe\PageRender\PageRenderer;
-use Restruct\Silverstripe\PageRender\RenderResult;
+use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
+use Restruct\Silverstripe\RenderedContentExtractor\PageRenderer;
+use Restruct\Silverstripe\RenderedContentExtractor\RenderResult;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Config;

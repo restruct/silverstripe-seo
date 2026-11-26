@@ -2,7 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Checks;
 
-use Restruct\Silverstripe\PageRender\PageEligibility;
+use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injectable;

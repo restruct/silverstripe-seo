@@ -2,7 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Extensions;
 
-use Restruct\Silverstripe\PageRender\PageEligibility;
+use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
 use Restruct\Silverstripe\SEO\Checks\LinkGraph;
 use Restruct\Silverstripe\SEO\Forms\SeoChecksField;
 use Restruct\Silverstripe\SEO\Forms\SeoSnippetPreviewField;

@@ -32,8 +32,8 @@ Planned for later versions: optional AI suggestions.
 
 - PHP 8.3+
 - Silverstripe CMS 6 (`silverstripe/framework` ^6, `silverstripe/cms` ^6)
-- [restruct/silverstripe-page-render](https://github.com/restruct/silverstripe-page-render) (installed with it):
-  renders a page in-process for the checks
+- [restruct/silverstripe-rendered-content-extractor](https://github.com/restruct/silverstripe-rendered-content-extractor)
+  (installed with it): renders a page in-process for the checks
 
 ## Installation
 
@@ -437,8 +437,8 @@ Restruct\Silverstripe\SEO\Schema\SchemaTypeRegistry:
 
 The checks run on the **draft as the site renders it**: the page is rendered in-process through its own
 controller and templates (no HTTP request, so drafts, basic auth and test environments all work), as the CMS
-user who asks, by [restruct/silverstripe-page-render](https://github.com/restruct/silverstripe-page-render). The
-render is parsed once and shared by all checks; content checks read the content area (`<main>`, else `<body>`,
+user who asks, by [restruct/silverstripe-rendered-content-extractor](https://github.com/restruct/silverstripe-rendered-content-extractor).
+The render is parsed once and shared by all checks; content checks read the content area (`<main>`, else `<body>`,
 minus what `ContentNarrower.ignore_selectors` and `data-content-ignore` mark), head checks read the full head.
 
 In the page editor, under **Search engines and sharing**:
@@ -486,7 +486,8 @@ Two changes elsewhere also make a result stale:
 
 **Rendering has side effects** that a page's own code can cause: the render runs the page's controller and
 template in the same PHP process (see the render library's README). Code that should not run during a check
-(analytics, counters, mail) can test `Restruct\Silverstripe\PageRender\PageRenderer::isRendering()`.
+(analytics, counters, mail) can test
+`Restruct\Silverstripe\RenderedContentExtractor\PageRenderer::isRendering()`.
 
 ### The catalogue
 
@@ -636,8 +637,8 @@ A `run_as` that names no member stops the run, rather than silently checking as 
 
 **A site run renders every page.** Each check runs the page's controller and templates in-process, so code with
 side effects (view counters, mail, calls to outside services, writes) runs once per page unless it tests
-`Restruct\Silverstripe\PageRender\PageRenderer::isRendering()`. One page that throws is logged and counted as
-failed; the run carries on.
+`Restruct\Silverstripe\RenderedContentExtractor\PageRenderer::isRendering()`. One page that throws is logged and
+counted as failed; the run carries on.
 
 ## Extension hooks
 
