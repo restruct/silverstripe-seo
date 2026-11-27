@@ -22,12 +22,33 @@ class EntwineSelectorsTest extends SapphireTest
         $rules = 0;
         foreach ($files as $file) {
             $js = (string) file_get_contents($file);
-            preg_match_all('/\$\(\s*([\'"])(.*?)\1\s*\)\s*\.entwine\(/s', $js, $matches);
-            foreach ($matches[2] as $selector) {
+            foreach ($this->entwineSelectors($js) as $selector) {
                 $rules++;
                 $this->assertStringNotContainsString('[', $selector, basename($file) . ": entwine selector \"$selector\" has an attribute test");
             }
         }
         $this->assertGreaterThan(0, $rules, 'control: the entwine rules were found');
+    }
+
+    public function testOnlyTheSelectorOfAnEntwineRuleIsRead(): void
+    {
+        # A jQuery call that builds an element is no entwine rule: its string must not run on, across other
+        # code (an index like errors[0]), to the next rule's .entwine(
+        $js = "var x = $('<div class=\"modal\"/>').attr('id', y); var z = errors[0];\n"
+            . "$('.cms-edit-form .seo-checks').entwine({});\n"
+            . "$(\"div[data-x]\").entwine({});";
+        $this->assertSame(['.cms-edit-form .seo-checks', 'div[data-x]'], $this->entwineSelectors($js));
+    }
+
+    /**
+     * The selector of every `$('selector').entwine(` rule: one quoted string, never running past its own closing
+     * quote (an earlier, lazier pattern spanned from any `$('` to the next rule and failed on unrelated code).
+     *
+     * @return string[]
+     */
+    private function entwineSelectors(string $js): array
+    {
+        preg_match_all('/\$\(\s*([\'"])((?:(?!\1).)*)\1\s*\)\s*\.entwine\(/s', $js, $matches);
+        return $matches[2];
     }
 }
