@@ -11,6 +11,11 @@
 // - The panel (.seo-checks) re-checks when the server says its stored result is missing or stale, after every
 //   form submit (a save that only changed blocks does not mark the page stale), and on the Re-check button.
 //   The endpoint answers with the panel's fresh markup, which replaces the old element.
+// - The icon controls of a finding (.seo-checks__tip) get the admin's Bootstrap tooltip; "About this check"
+//   (.seo-checks__about) opens the module's spec of the check in a Bootstrap modal, rendered by the CMS endpoint.
+//   Both are the admin's own Bootstrap 5 (tooltip.js is loaded by the admin, modal.js by this module's config),
+//   used through their jQuery bridge. Without them the button keeps its native title and the link opens the
+//   published spec in a new tab.
 // - The preview (.seo-snippet) follows the Title, Meta title and Meta description fields on every keystroke,
 //   with the thresholds and width table the server put in data-seo-config.
 (function ($) {
@@ -18,6 +23,25 @@
     // How long to wait before re-checking, so a stale panel and the submit event of the same save collapse
     // into one request
     var RECHECK_DELAY = 150;
+
+    // The admin's Bootstrap plugins. jQuery UI (also in the admin) has a $.fn.tooltip of its own; Bootstrap's
+    // jQuery bridge is the one with a Constructor
+    function hasBootstrapTooltip() {
+      return !!($.fn.tooltip && $.fn.tooltip.Constructor);
+    }
+
+    function hasBootstrapModal() {
+      return !!($.fn.modal && $.fn.modal.Constructor);
+    }
+
+    // Numbers the dialogs' title ids, for aria-labelledby
+    var docCount = 0;
+
+    // A new element with classes. Built with createElement rather than a $('<tag ...>') string: the static
+    // selector test (tests/Checks/EntwineSelectorsTest.php) reads every $('...') up to a .entwine( call
+    function el(tag, className) {
+      return $(document.createElement(tag)).addClass(className || '');
+    }
 
     $('.cms-edit-form .seo-checks').entwine({
       onmatch: function () {
@@ -62,6 +86,64 @@
         this.find('.seo-checks__status').text(text);
         if (window.console && window.console.error) {
           window.console.error('[seo-checks] ' + text, detail);
+        }
+      },
+
+      // The "About this check" dialog: opened at once with a loading line, filled with the spec the endpoint
+      // rendered (escaped there, with only the renderer's own tags), removed again when closed. When the spec
+      // cannot be loaded, the dialog says so and links to the published spec instead
+      showDoc: function (url, fallbackHref, title) {
+        var self = this;
+        var titleId = 'seo-checks-doc-title-' + (++docCount);
+        var heading = el('h5', 'modal-title').attr('id', titleId).text(title || '');
+        var close = el('button', 'btn-close')
+          .attr({type: 'button', 'data-bs-dismiss': 'modal', 'aria-label': this.message('data-msg-close', 'Close')});
+        var body = el('div', 'modal-body').append(
+          el('p').text(this.message('data-msg-loading', 'Loading...'))
+        );
+        var modal = el('div', 'modal fade seo-checks-doc')
+          .attr({tabindex: '-1', 'aria-hidden': 'true', 'aria-labelledby': titleId})
+          .append(el('div', 'modal-dialog modal-lg modal-dialog-scrollable').append(
+            el('div', 'modal-content').append(
+              el('div', 'modal-header').append(heading, close),
+              body
+            )
+          ));
+        modal.on('hidden.bs.modal', function () {
+          modal.modal('dispose');
+          modal.remove();
+        });
+        modal.appendTo(document.body).modal('show');
+
+        $.ajax({
+          url: url,
+          type: 'GET',
+          dataType: 'json'
+        }).done(function (response) {
+          if (response && typeof response.html === 'string') {
+            if (response.title) {
+              heading.text(response.title);
+            }
+            body.html(response.html);
+          } else {
+            failed(200, response);
+          }
+        }).fail(function (xhr) {
+          failed(xhr.status, xhr.responseText);
+        });
+
+        function failed(status, detail) {
+          var text = self.message('data-msg-doc-failed', 'Could not load the explanation.');
+          body.empty().append(el('p').text(text));
+          if (fallbackHref) {
+            body.append(el('p').append(
+              el('a').attr({href: fallbackHref, target: '_blank', rel: 'noopener noreferrer'})
+                .text(self.message('data-msg-doc-link', 'Open the documentation'))
+            ));
+          }
+          if (window.console && window.console.error) {
+            window.console.error('[seo-checks] ' + text, {url: url, status: status, detail: detail});
+          }
         }
       },
 
@@ -128,6 +210,41 @@
           Check: this.attr('data-check'),
           Ignore: this.attr('data-ignore')
         });
+      }
+    });
+
+    // The admin initialises its tooltips once, on page load; the panel arrives later (and again after every
+    // re-check), so each control starts its own and disposes of it when it leaves, or its tip would stay behind
+    $('.cms-edit-form .seo-checks .seo-checks__tip').entwine({
+      onmatch: function () {
+        this._super();
+        if (hasBootstrapTooltip()) {
+          this.tooltip();
+        }
+      },
+
+      onunmatch: function () {
+        if (hasBootstrapTooltip() && $.fn.tooltip.Constructor.getInstance(this[0])) {
+          this.tooltip('dispose');
+        }
+        this._super();
+      }
+    });
+
+    // A module check's spec in a dialog; otherwise (a project's check, or no Bootstrap modal) the link opens the
+    // published spec in a new tab as it would without this script
+    $('.cms-edit-form .seo-checks .seo-checks__about').entwine({
+      onclick: function (e) {
+        var url = this.attr('data-doc-url');
+        if (!url || !hasBootstrapModal()) {
+          return;
+        }
+        e.preventDefault();
+        if (hasBootstrapTooltip() && $.fn.tooltip.Constructor.getInstance(this[0])) {
+          this.tooltip('hide');
+        }
+        var item = this.closest('.seo-checks__item');
+        this.closest('.seo-checks').showDoc(url, this.attr('href'), $.trim(item.find('.seo-checks__title').text()));
       }
     });
 

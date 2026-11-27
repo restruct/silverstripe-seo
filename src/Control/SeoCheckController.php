@@ -6,6 +6,7 @@ use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Forms\SeoChecksField;
 use Restruct\Silverstripe\SEO\Model\SeoCheckIgnore;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
+use Restruct\Silverstripe\SEO\Text\DocMarkdown;
 use SilverStripe\Admin\AdminController;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\HTTPRequest;
@@ -23,6 +24,11 @@ use SilverStripe\Versioned\Versioned;
  * ID comes from the edit form's own ID field, posted by the panel; nothing else of the request is used to pick
  * what is rendered. The checks render the draft as the member asking, and the answer holds the results and the
  * panel's own markup, never the rendered page.
+ *
+ * `admin/seo-checks/doc?check=<id>` answers the panel's "About this check" dialog with the module's own spec of
+ * that check, rendered from docs/checks/<id>.md without any raw HTML ({@see DocMarkdown}). It only reads, so it
+ * takes any method and no token; it needs CMS access (403), no rights on a page. The id must be a registered
+ * module check ({@see CheckRunner::docFile()}), anything else is a 404; it is never used as a path.
  */
 class SeoCheckController extends AdminController
 {
@@ -35,6 +41,7 @@ class SeoCheckController extends AdminController
     private static $allowed_actions = [
         'recheck',
         'ignore',
+        'doc',
     ];
 
     public function recheck(HTTPRequest $request): HTTPResponse
@@ -61,6 +68,28 @@ class SeoCheckController extends AdminController
             CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
         }
         return $this->answer($page);
+    }
+
+    public function doc(HTTPRequest $request): HTTPResponse
+    {
+        # As in editablePage(): init() lets an ajax request of a member without CMS access run
+        if (!$this->canView()) {
+            $this->jsonError(403);
+        }
+        $check = $request->getVar('check');
+        $file = is_string($check) ? CheckRunner::singleton()->docFile($check) : null;
+        if ($file === null) {
+            $this->jsonError(404, _t(__CLASS__ . '.UnknownCheck', 'Unknown check.'));
+        }
+        $this->releaseSessionLock();
+        $doc = DocMarkdown::create()->render((string) file_get_contents($file));
+        $this->getResponse()->addHeader('X-Content-Type-Options', 'nosniff');
+        return $this->jsonSuccess(200, [
+            'check' => $check,
+            # Both escaped by the renderer: the title as text, the body with the renderer's own tags only
+            'title' => $doc['title'],
+            'html' => $doc['html'],
+        ]);
     }
 
     /**

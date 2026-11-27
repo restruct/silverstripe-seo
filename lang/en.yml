@@ -254,7 +254,11 @@ en:
     IgnoredTitle: 'Ignored for this page'
     MoreAbout: 'About this check'
     MsgChecking: 'Checking...'
+    MsgClose: Close
+    MsgDocFailed: 'Could not load the explanation.'
+    MsgDocLink: 'Open the documentation'
     MsgFailed: 'Check failed (HTTP [status]).'
+    MsgLoading: 'Loading...'
     MsgNotStarted: 'Could not start the check.'
     NotChecked: 'Not checked yet.'
     Passed: '{count} checks passed.'

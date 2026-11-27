@@ -51,6 +51,33 @@
     border-left: 3px solid #ced5e1;
     padding: 6px 0 6px 10px;
     margin-bottom: 8px;
+    /* Contains the floated ignore button */
+    display: flow-root;
+}
+
+/* "Ignore for this page" as an icon button, first in the finding and floated to its top right */
+.seo-checks__ignore--icon {
+    float: right;
+    margin: -4px 0 0 8px;
+    color: #566b8d;
+}
+
+.seo-checks__ignore--icon:hover,
+.seo-checks__ignore--icon:focus {
+    color: #43536d;
+}
+
+/* "About this check" as an info icon right after the title; a link, so it works without the script */
+.seo-checks__about {
+    margin-left: 4px;
+    color: #566b8d;
+    text-decoration: none;
+}
+
+.seo-checks__about:hover,
+.seo-checks__about:focus {
+    color: #0071c4;
+    text-decoration: none;
 }
 
 .seo-checks__item--problem {
@@ -133,15 +160,49 @@
     margin-top: 6px;
 }
 
+/* Priority as an outlined badge: the size of the severity badge, with a border instead of a fill, so it does
+   not compete with the severity's colour */
 .seo-checks__priority {
-    font-size: .8rem;
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: 0 6px;
+    margin: 0 6px 0 4px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
     color: #566b8d;
-    margin: 0 6px;
 }
 
 .seo-checks__message,
 .seo-checks__fix {
     margin: 4px 0;
+}
+
+/* The "About this check" dialog (a Bootstrap modal appended to the body): the spec, rendered on the server */
+.seo-checks-doc .modal-body h3 {
+    font-size: 1rem;
+    margin: 16px 0 6px;
+}
+
+.seo-checks-doc .modal-body h3:first-child {
+    margin-top: 0;
+}
+
+.seo-checks-doc .modal-body h4 {
+    font-size: .9rem;
+    margin: 12px 0 4px;
+}
+
+.seo-checks-doc .modal-body pre {
+    background: #f1f3f6;
+    border-radius: 3px;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+    font-size: .8rem;
+}
+
+.seo-checks-doc .modal-body code {
+    word-break: break-word;
 }
 
 .seo-checks__details {

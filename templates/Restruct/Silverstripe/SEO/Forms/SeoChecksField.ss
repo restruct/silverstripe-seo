@@ -3,7 +3,9 @@
      escaped by the template (ArrayData strings are cast as Text). --%>
 <div class="seo-checks" data-seo-checks data-seo-stale="<% if $Stale %>1<% else %>0<% end_if %>"
      data-recheck-url="$RecheckURL.ATT" data-ignore-url="$IgnoreURL.ATT"
-     data-msg-checking="$MsgChecking.ATT" data-msg-not-started="$MsgNotStarted.ATT" data-msg-failed="$MsgFailed.ATT">
+     data-msg-checking="$MsgChecking.ATT" data-msg-not-started="$MsgNotStarted.ATT" data-msg-failed="$MsgFailed.ATT"
+     data-msg-loading="$MsgLoading.ATT" data-msg-doc-failed="$MsgDocFailed.ATT" data-msg-doc-link="$MsgDocLink.ATT"
+     data-msg-close="$MsgClose.ATT">
     <div class="seo-checks__summary">
         <% if $HasResult %>
             <p class="seo-checks__counts">$CountsText</p>
@@ -26,11 +28,26 @@
             <ul class="seo-checks__list">
                 <% loop $Entries %>
                     <li class="seo-checks__item seo-checks__item--$Severity.ATT" data-check="$ID.ATT">
+                        <%-- First in the finding, floated to its top right; the label is in the tooltip and the
+                             aria-label, the title is what the tooltip reads (and the fallback without script) --%>
+                        <% if $CanIgnore %>
+                            <button type="button" class="btn btn-link btn-sm btn--no-text btn--icon-md font-icon-eye-with-line seo-checks__ignore seo-checks__ignore--icon seo-checks__tip"
+                                    data-check="$ID.ATT" data-ignore="1" data-bs-toggle="tooltip" data-bs-placement="left"
+                                    title="$IgnoreLabel.ATT"
+                                    aria-label="$IgnoreLabel.ATT"></button>
+                        <% end_if %>
+                        <%-- No "Not met" marker on a failure: the fail title and the severity badge say it --%>
                         <div class="seo-checks__heading">
                             <span class="seo-checks__badge seo-checks__badge--$Severity.ATT">$SeverityLabel</span>
-                            <span class="seo-checks__state seo-checks__state--$Status.ATT">$StatusLabel</span>
                             <span class="seo-checks__priority">$PriorityLabel</span>
                             <strong class="seo-checks__title">$Title</strong>
+                            <%-- A link to the published spec, so it works without the script; with it, a module
+                                 check's spec opens in a dialog from data-doc-url --%>
+                            <% if $Docs %><a href="$Docs.ATT" target="_blank" rel="noopener noreferrer"
+                               class="font-icon-info-circled seo-checks__about seo-checks__tip"<% if $DocURL %> data-doc-url="$DocURL.ATT"<% end_if %>
+                               data-bs-toggle="tooltip"
+                               title="$AboutLabel.ATT"
+                               aria-label="$AboutLabel.ATT"></a><% end_if %>
                         </div>
                         <p class="seo-checks__message">$Message</p>
                         <% if $Details.Count %>
@@ -41,13 +58,7 @@
                         <% if $HowToFix %>
                             <p class="seo-checks__fix">
                                 <strong><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.HowToFix 'How to fix:' %></strong> $HowToFix
-                                <% if $Docs %><a href="$Docs.ATT" target="_blank" rel="noopener noreferrer"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.MoreAbout 'About this check' %></a><% end_if %>
                             </p>
-                        <% end_if %>
-                        <% if $CanIgnore %>
-                            <button type="button" class="btn btn-link btn-sm seo-checks__ignore" data-check="$ID.ATT" data-ignore="1">
-                                <%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.Ignore 'Ignore for this page' %>
-                            </button>
                         <% end_if %>
                     </li>
                 <% end_loop %>
@@ -76,7 +87,6 @@
             <ul class="seo-checks__list">
                 <% loop $Ignored %>
                     <li class="seo-checks__item seo-checks__item--ignored" data-check="$ID.ATT">
-                        <span class="seo-checks__state seo-checks__state--$Status.ATT">$StatusLabel</span>
                         <strong class="seo-checks__title">$Title</strong>: $Message
                         <em class="seo-checks__ignored-by"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.IgnoredBy 'Ignored by {name} on {date}.' name=$IgnoredByName date=$IgnoredDate %></em>
                         <button type="button" class="btn btn-link btn-sm seo-checks__ignore" data-check="$ID.ATT" data-ignore="0">

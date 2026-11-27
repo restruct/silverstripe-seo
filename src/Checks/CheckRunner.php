@@ -207,6 +207,27 @@ class CheckRunner
     }
 
     /**
+     * The module's own spec of a registered, enabled module check (docs/checks/<id>.md), for the panel's "About
+     * this check" dialog; null for anything else: an unknown or disabled id, the render entry, a project's
+     * check (its docsUrl() points elsewhere) or a module check that brings its own docsUrl().
+     *
+     * The id is only ever compared with the registered ids; the path is built from a registered one, never from
+     * what was asked for.
+     */
+    public function docFile(string $id): ?string
+    {
+        $check = $this->getChecks()[$id] ?? null;
+        if (!$check instanceof Check || !preg_match('/^[a-z0-9-]+$/', $id)) {
+            return null;
+        }
+        if ($this->docsFor($check, $id) !== sprintf((string) static::config()->get('docs_url'), rawurlencode($id))) {
+            return null;
+        }
+        $file = dirname(__DIR__, 2) . '/docs/checks/' . $id . '.md';
+        return is_file($file) ? $file : null;
+    }
+
+    /**
      * Stored entries in the current locale: message, details and how-to-fix translated; the title and general
      * advice of a registered check taken from the check itself. Entries of the earlier format (plain text) are
      * shown as they are.

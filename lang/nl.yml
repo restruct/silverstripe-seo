@@ -254,7 +254,11 @@ nl:
     IgnoredTitle: 'Genegeerd voor deze pagina'
     MoreAbout: 'Over deze controle'
     MsgChecking: 'Bezig met controleren...'
+    MsgClose: Sluiten
+    MsgDocFailed: 'De uitleg kon niet worden geladen.'
+    MsgDocLink: 'Open de documentatie'
     MsgFailed: 'Controle mislukt (HTTP [status]).'
+    MsgLoading: 'Bezig met laden...'
     MsgNotStarted: 'De controle kon niet starten.'
     NotChecked: 'Nog niet gecontroleerd.'
     Passed: '{count} controles zijn goed.'

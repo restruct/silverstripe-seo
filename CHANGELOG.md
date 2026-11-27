@@ -6,6 +6,21 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- "About this check" opens the check's spec in a dialog inside the CMS instead of a new tab: the module's own
+  `docs/checks/<id>.md`, rendered on the server by a new `admin/seo-checks/doc?check=<id>` endpoint (CMS access
+  needed, registered module checks only, no raw HTML passed through). It is an info icon with a tooltip next to
+  the check's title now; without JavaScript, and for a project's own check, it stays a link to the published
+  spec.
+- "Ignore for this page" is an icon button with a tooltip at the top right of a finding, instead of a line of
+  its own.
+- A failed check no longer carries a "Not met" marker: its fail title and severity badge say it. Passed checks
+  keep "OK" and skipped ones "Not checked".
+- The priority ("High priority" and so on) is an outlined badge.
+- The module adds the admin's own Bootstrap modal (`silverstripe/admin:thirdparty/bootstrap/js/dist/modal.js`)
+  to the CMS requirements; the admin loads only Bootstrap's tooltip and collapse itself.
+
 ## [0.5.1] - 2026-11-27
 
 ### Added

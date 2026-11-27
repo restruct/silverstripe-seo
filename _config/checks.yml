@@ -89,9 +89,12 @@ SilverStripe\Core\Injector\Injector:
       disable-container: true
 
 # The panel's script (plain JS on the admin's jQuery/entwine, no build step) and styles, in every CMS view: the
-# edit form arrives by ajax, and the rules only match inside it
+# edit form arrives by ajax, and the rules only match inside it.
+# The admin loads Bootstrap's tooltip (and collapse) itself but not its modal; the "About this check" dialog uses
+# the admin's own copy of it, loaded before the panel's script
 SilverStripe\Admin\LeftAndMain:
   extra_requirements_javascript:
+    'silverstripe/admin:thirdparty/bootstrap/js/dist/modal.js': {}
     'restruct/silverstripe-seo:client/dist/js/seo-checks.js': {}
   extra_requirements_css:
     'restruct/silverstripe-seo:client/dist/css/seo-checks.css': {}

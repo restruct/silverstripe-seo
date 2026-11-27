@@ -106,6 +106,29 @@ class SeoChecksField extends FormField
         return str_replace('[status]', '{status}', _t(__CLASS__ . '.MsgFailed', 'Check failed (HTTP [status]).'));
     }
 
+    /**
+     * Messages of the "About this check" dialog, which the script builds.
+     */
+    public function getMsgLoading(): string
+    {
+        return _t(__CLASS__ . '.MsgLoading', 'Loading...');
+    }
+
+    public function getMsgDocFailed(): string
+    {
+        return _t(__CLASS__ . '.MsgDocFailed', 'Could not load the explanation.');
+    }
+
+    public function getMsgDocLink(): string
+    {
+        return _t(__CLASS__ . '.MsgDocLink', 'Open the documentation');
+    }
+
+    public function getMsgClose(): string
+    {
+        return _t(__CLASS__ . '.MsgClose', 'Close');
+    }
+
     public function getRecheckURL(): string
     {
         return SeoCheckController::singleton()->Link('recheck');
@@ -250,6 +273,14 @@ class SeoChecksField extends FormField
             )),
             'HowToFix' => (string) ($entry['howToFix'] ?? ''),
             'Docs' => (string) ($entry['docs'] ?? ''),
+            # The CMS endpoint that renders the spec in a dialog, for a module check only; the Docs link stays the
+            # fallback without the script, and the only link for a project's check
+            'DocURL' => CheckRunner::singleton()->docFile((string) ($entry['id'] ?? ''))
+                ? SeoCheckController::singleton()->Link('doc') . '?check=' . rawurlencode((string) $entry['id'])
+                : '',
+            # Tooltip and aria-label of the icon controls, here so the template can escape them for an attribute
+            'IgnoreLabel' => _t(__CLASS__ . '.Ignore', 'Ignore for this page'),
+            'AboutLabel' => _t(__CLASS__ . '.MoreAbout', 'About this check'),
             # The render entry is not a check and cannot be ignored
             'CanIgnore' => ($entry['id'] ?? '') !== 'render',
             'IgnoredByName' => (string) ($ignoredBy['name'] ?? ''),
@@ -286,6 +317,8 @@ class SeoChecksField extends FormField
 
     /**
      * The marker next to the severity badge, so the outcome reads at a glance and not only from the heading.
+     * The panel shows it for passed and skipped checks only: on a failure the fail title and the severity badge
+     * already say it (product owner's call, 2026-11-27).
      */
     public static function statusLabel(string $status): string
     {

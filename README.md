@@ -609,13 +609,16 @@ In the page editor, at the top of the **SEO** tab:
 
 - **SEO checks**: "1 problem, 2 warnings, 3 tips", then the failing checks per group (indexing, title,
   description, content, images, links, structured data, social, URL), each with its priority, the message,
-  details (the image sources or links concerned) and how to fix it, with a link to the check's spec. There is no
-  score: severity says how bad it is (problem / warning / tip), priority how much it matters (high / medium / low).
-  A failing check is headed by what was found ("Title is not unique") with a **Not met** marker next to the
-  severity badge; the passed checks fold away under their count, each headed by what is right ("Title is unique")
-  and marked **OK**; checks that could not run are marked **Not checked**.
-- **Ignore for this page**: an editor can ignore a check where the page is fine as it is; it is stored with who
-  and when, listed as ignored and not counted.
+  details (the image sources or links concerned) and how to fix it. There is no score: severity says how bad it
+  is (problem / warning / tip), priority how much it matters (high / medium / low, an outlined badge).
+  A failing check is headed by what was found ("Title is not unique") next to its severity badge; the passed
+  checks fold away under their count, each headed by what is right ("Title is unique") and marked **OK**; checks
+  that could not run are marked **Not checked**.
+- **About this check**: the info icon after a check's title opens the module's spec of that check
+  (`docs/checks/<id>.md`) in a dialog inside the CMS, rendered on the server by `admin/seo-checks/doc?check=<id>`.
+  Without JavaScript, and for a project's own check, the icon is a link to the published spec instead.
+- **Ignore for this page**: the icon button at the top right of a finding ignores a check where the page is fine
+  as it is; it is stored with who and when, listed as ignored and not counted.
 - **Search result preview** below the panel, above the fields: title, URL breadcrumb and description, with the title's
   approximate width and the description's length, updated on every keystroke. The numbers are the checks' own
   thresholds, passed from PHP config, so the counter and the checks agree.
@@ -634,6 +637,11 @@ of date when they are.
 
 The endpoint is POST only, needs the CMS's CSRF token and CMS access, checks `canEdit()` on the page (the ID is
 the edit form's own) and answers with the results and the panel's markup, never with the rendered page.
+The `doc` action only reads: it needs CMS access but no rights on a page, accepts only the id of a registered
+module check (never a path; anything else is a 404), and renders the spec with a small Markdown subset that
+escapes all text, so no raw HTML of the spec reaches the CMS (`Restruct\Silverstripe\SEO\Text\DocMarkdown`).
+The dialog and the tooltips are the admin's own Bootstrap 5: the admin loads its tooltip, and the module adds the
+admin's copy of its modal (`thirdparty/bootstrap/js/dist/modal.js`) to the CMS requirements.
 Once authorised it releases the PHP session lock, so a slow render does not block the editor's other CMS
 requests. The panel is only shown to members who may edit the page; the stored result is shared between them
 and reflects the render of whoever checked last. Messages are stored as translation keys and shown in the
@@ -731,7 +739,7 @@ Build messages with `$this->_t(key, default, params)` rather than the global `_t
 parameters and translated when shown. Details are capped at `max_listed` (default 20, config on
 `AbstractCheck` or per check class), followed by "and N more". "About this check" links to this module's docs
 only for the module's own checks; a project's check links to whatever its `docsUrl()` returns (nothing by
-default). `OrphanPageCheck.lists_children_classes` names holder classes whose template lists their children
+default), and only the module's own checks open in the CMS dialog. `OrphanPageCheck.lists_children_classes` names holder classes whose template lists their children
 (empty by default; a blog or news holder, say); an `updateIsOrphan(bool &$orphan, PageAnalysis $analysis)`
 extension hook decides other cases.
 
