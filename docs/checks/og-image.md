@@ -3,6 +3,8 @@
 Check 21 of the catalogue. Severity: tip. Priority: low. Group: social. Reads the rendered page: no (uses it when there is one).
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\OgImageCheck`.
 
+Heading in the panel: "Sharing image is set" when it passes, "Sharing image is missing" when it fails.
+
 ## What it checks
 
 No `og:image` in the rendered head: no sharing image on the page, from a project fallback, or as the site default.

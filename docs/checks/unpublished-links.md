@@ -3,6 +3,8 @@
 Check 13b of the catalogue. Severity: warning. Priority: medium. Group: links. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\UnpublishedLinksCheck`.
 
+Heading in the panel: "Link targets are published" when it passes, "Links point to unpublished pages or files" when it fails.
+
 ## What it checks
 
 Links and images in the content area that point at a page or file that exists only as a draft (not in the live stage). Resolved as in `broken-links`, without HTTP requests.

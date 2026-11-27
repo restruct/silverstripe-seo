@@ -26,6 +26,16 @@ class TitleMissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Page title in search results');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Page has a title for search results');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Page has no title for search results');
+    }
+
     public function howToFix(): string
     {
         return _t(

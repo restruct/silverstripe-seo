@@ -584,6 +584,9 @@ In the page editor, under **Search engines and sharing**:
   description, content, images, links, structured data, social, URL), each with its priority, the message,
   details (the image sources or links concerned) and how to fix it, with a link to the check's spec. There is no
   score: severity says how bad it is (problem / warning / tip), priority how much it matters (high / medium / low).
+  A failing check is headed by what was found ("Title is not unique") with a **Not met** marker next to the
+  severity badge; the passed checks fold away under their count, each headed by what is right ("Title is unique")
+  and marked **OK**; checks that could not run are marked **Not checked**.
 - **Ignore for this page**: an editor can ignore a check where the page is fine as it is; it is stored with who
   and when, listed as ignored and not counted.
 - **Search result preview** below the meta description: title, URL breadcrumb and description, with the title's
@@ -684,6 +687,11 @@ A check gets a `PageAnalysis`: the draft record, the `RenderResult`, `content()`
 `query()` for XPath), `head()`, `title()`, `description()`, `links()` (resolves an internal URL to a page or file
 from the database) and `site()` (duplicate lookups, inbound links, menu placement). Set `needs_render: true` on a
 check that reads the render; it is then skipped, not failed, when the page does not render.
+
+A check has three titles: `title()`, its goal ("Title is unique", shown for a skipped check and in the report's
+check filter), `passTitle()` (defaults to the goal; override it when the goal is a neutral name such as
+"Canonical URL") and `failTitle()`, what a failure means ("Title is not unique"). Give every check a
+`failTitle()`: without one a failure is headed by the goal and reads like a pass.
 
 Build messages with `$this->_t(key, default, params)` rather than the global `_t()`: they are stored as key and
 parameters and translated when shown. Details are capped at `max_listed` (default 20, config on

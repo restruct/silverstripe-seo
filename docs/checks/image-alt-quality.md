@@ -3,6 +3,8 @@
 Check 12 of the catalogue. Severity: tip. Priority: medium. Group: images. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\ImageAltQualityCheck`.
 
+Heading in the panel: "Alt text describes the image" when it passes, "Alt text does not describe the image" when it fails.
+
 ## What it checks
 
 Alt texts that look like a file or camera name ("IMG_1234", "DSC-0042", "photo2"; a sentence such as "Photo 2 of the new building" is not one), start with "image of" / "afbeelding van" and the like, are very short or very long, are the same on two different images, or repeat a word.

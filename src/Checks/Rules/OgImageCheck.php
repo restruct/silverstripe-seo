@@ -25,6 +25,16 @@ class OgImageCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Sharing image');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Sharing image is set');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Sharing image is missing');
+    }
+
     public function howToFix(): string
     {
         return _t(

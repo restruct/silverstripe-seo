@@ -46,6 +46,16 @@ class UrlSegmentCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Readable URL');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'URL is readable');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'URL is hard to read');
+    }
+
     public function howToFix(): string
     {
         return _t(

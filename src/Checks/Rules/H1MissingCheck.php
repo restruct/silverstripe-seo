@@ -27,6 +27,16 @@ class H1MissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Main heading (H1)');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Page has a main heading (H1)');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Main heading (H1) is missing');
+    }
+
     public function howToFix(): string
     {
         return _t(

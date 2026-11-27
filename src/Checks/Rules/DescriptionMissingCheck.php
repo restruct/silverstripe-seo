@@ -37,6 +37,16 @@ class DescriptionMissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Meta description');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Page has a usable meta description');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'No usable meta description');
+    }
+
     public function howToFix(): string
     {
         return _t(

@@ -69,7 +69,10 @@ interface Check
     public function priority(): string;
 
     /**
-     * Short name of the check, shown in the panel.
+     * Short name of the check: its goal ("Title is unique"). Shown for a check that was skipped, in the report's
+     * check filter, and as the heading of a result when the check has no passTitle() or failTitle(): an
+     * {@see AbstractCheck} has both ("Title is unique" and "Title is not unique"), so a failure never reads
+     * like a pass. A check that implements this interface directly can add them as public methods too.
      */
     public function title(): string;
 

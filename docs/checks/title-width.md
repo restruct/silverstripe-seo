@@ -3,6 +3,8 @@
 Check 5 of the catalogue. Severity: tip. Priority: medium. Group: title. Reads the rendered page: no.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\TitleWidthCheck`.
 
+Heading in the panel: "Title fits in a search result" when it passes, "Title is too wide for a search result" when it fails.
+
 ## What it checks
 
 The estimated width of the full title, in pixels, from a table of Arial character widths at 20 px (`Restruct\Silverstripe\SEO\Text\TitleWidth`).

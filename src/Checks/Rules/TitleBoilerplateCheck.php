@@ -41,6 +41,11 @@ class TitleBoilerplateCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Title says what the page is about');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Title does not say what the page is about');
+    }
+
     public function howToFix(): string
     {
         return _t(

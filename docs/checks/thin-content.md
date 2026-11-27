@@ -3,6 +3,8 @@
 Check 19 of the catalogue. Severity: tip. Priority: low. Group: content. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\ThinContentCheck`.
 
+Heading in the panel: "Page has enough text" when it passes, "Page has very little text" when it fails.
+
 ## What it checks
 
 The number of words in the content area (blocks included), when it is very low.

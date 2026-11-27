@@ -28,6 +28,16 @@ class CanonicalCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Canonical URL');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Canonical URL is right');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Canonical URL is wrong');
+    }
+
     public function howToFix(): string
     {
         return _t(

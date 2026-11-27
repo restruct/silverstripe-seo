@@ -33,6 +33,16 @@ class ThinContentCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Amount of text');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Page has enough text');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Page has very little text');
+    }
+
     public function howToFix(): string
     {
         return _t(

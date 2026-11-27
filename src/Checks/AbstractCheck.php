@@ -68,6 +68,24 @@ abstract class AbstractCheck implements Check
         return (string) static::config()->get('priority');
     }
 
+    /**
+     * The heading of a passed result. The goal title, unless the goal is a neutral name ("Canonical URL"): then
+     * a check says what passing means ("Canonical URL is right").
+     */
+    public function passTitle(): string
+    {
+        return $this->title();
+    }
+
+    /**
+     * The heading of a failed result: what was found ("Title is not unique"), never the goal. Falls back to the
+     * goal title for a project's check that does not say.
+     */
+    public function failTitle(): string
+    {
+        return $this->title();
+    }
+
     public function needsRender(): bool
     {
         return (bool) static::config()->get('needs_render');

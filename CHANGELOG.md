@@ -11,6 +11,12 @@ All notable changes to this module are documented here. The format follows
 - The homepage was never checked: the panel said the page responded with status 301 and skipped every check that
   reads the rendered page. The cause was in restruct/silverstripe-rendered-content-extractor (it rendered the
   homepage as a redirect to the root); fixed there, so update that library along with this module.
+- A failed check read as if it passed: its heading was the check's goal ("Title is unique") while the finding
+  was that it is not. Every check now has a pass and a fail title (`AbstractCheck::passTitle()` and
+  `failTitle()`, en and nl), shown by outcome, with a **Not met** / **OK** / **Not checked** marker next to the
+  severity badge; the passed checks are listed (folded away) under their pass titles. Stored results keep their
+  message keys and are translated when shown, so rows checked before this release get the new headings too; a
+  row of a check that is no longer registered shows its stored goal title.
 - A render that redirects to the page's own address gets its own message and advice in the panel, instead of the
   general "it redirected (status 301)", which read as if the page were sent elsewhere.
 

@@ -27,6 +27,16 @@ class NoindexPublishedCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Published page hidden from search engines');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Published page is not hidden from search engines');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Published page is hidden from search engines');
+    }
+
     public function howToFix(): string
     {
         return _t(

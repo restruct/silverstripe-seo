@@ -3,6 +3,8 @@
 Check 6 of the catalogue. Severity: warning. Priority: medium. Group: description. Reads the rendered page: no (uses it when there is one).
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\DescriptionMissingCheck`.
 
+Heading in the panel: "Page has a usable meta description" when it passes, "No usable meta description" when it fails.
+
 ## What it checks
 
 No meta description was typed, and the one in the rendered head (derived from the page content) is missing or shorter than `weak_fallback_length`. When the text sits in blocks, which the field-based fallback cannot read, the first paragraph of the rendered content is offered as a suggestion.

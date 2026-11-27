@@ -31,6 +31,11 @@ class TitleWidthCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Title fits in a search result');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Title is too wide for a search result');
+    }
+
     public function howToFix(): string
     {
         return _t(

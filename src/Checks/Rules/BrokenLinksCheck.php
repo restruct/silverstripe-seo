@@ -41,6 +41,11 @@ class BrokenLinksCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Links and files work');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Links or files do not work');
+    }
+
     public function howToFix(): string
     {
         return _t(

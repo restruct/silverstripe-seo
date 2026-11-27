@@ -3,6 +3,8 @@
 Check 11 of the catalogue. Severity: warning. Priority: high. Group: images. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\ImageAltMissingCheck`.
 
+Heading in the panel: "Images have alt text" when it passes, "Images lack alt text" when it fails.
+
 ## What it checks
 
 Images in the content area (blocks and template images included) without an `alt` attribute. An empty alt (`alt=""`) passes: HTML defines it as the mark of a decorative image, with or without `role="presentation"` or `aria-hidden="true"`.

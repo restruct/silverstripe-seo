@@ -3,6 +3,8 @@
 Check 3 of the catalogue. Severity: warning. Priority: high. Group: title. Reads the rendered page: no.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\TitleBoilerplateCheck`.
 
+Heading in the panel: "Title says what the page is about" when it passes, "Title does not say what the page is about" when it fails.
+
 ## What it checks
 
 The page's own part of the title (meta title, else page title) is the site name; the site name appears twice in the page's own part, or that part already ends in the site name while the suffix is appended again (counted as whole words, unicode-aware: "Shop" is not in "Workshop"; "About Acme | Acme" passes); or the title is a placeholder such as "New Page".

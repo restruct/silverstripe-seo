@@ -48,6 +48,11 @@ class LinkTextCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Link text says where it goes');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Link text does not say where it goes');
+    }
+
     public function howToFix(): string
     {
         return _t(

@@ -3,6 +3,8 @@
 Check 23 of the catalogue. Severity: tip. Priority: low. Group: url. Reads the rendered page: no.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\UrlSegmentCheck`.
 
+Heading in the panel: "URL is readable" when it passes, "URL is hard to read" when it fails.
+
 ## What it checks
 
 The page's URL segment contains underscores, is long, or contains several small words ("the", "of", "de", "van").

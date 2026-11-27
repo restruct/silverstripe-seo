@@ -40,6 +40,11 @@ class PlaceholderTextCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'No placeholder text');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Page contains placeholder text');
+    }
+
     public function howToFix(): string
     {
         return _t(

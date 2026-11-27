@@ -218,7 +218,9 @@ class CheckRunner
         $checks = $this->getChecks();
         foreach ($entries as $id => $entry) {
             $check = $checks[$id] ?? null;
-            $entry['title'] = $check ? $check->title() : CheckMessage::text($entry['title'] ?? '');
+            # The heading follows the outcome ("Title is not unique" for a failure); the goal stays available
+            $entry['goalTitle'] = $this->displayTitle((string) $id, '', $entry['title'] ?? '');
+            $entry['title'] = $this->displayTitle((string) $id, (string) ($entry['status'] ?? ''), $entry['title'] ?? '');
             $entry['message'] = CheckMessage::text($entry['message'] ?? '');
             $entry['details'] = array_map([CheckMessage::class, 'text'], (array) ($entry['details'] ?? []));
             $howToFix = CheckMessage::text($entry['howToFix'] ?? '');
@@ -229,6 +231,34 @@ class CheckRunner
             $entries[$id] = $entry;
         }
         return $entries;
+    }
+
+    /**
+     * The heading of an entry in the current locale, for its outcome: the check's fail title for a failure, its
+     * pass title for a pass, its goal title otherwise (skipped, or '' to ask for the goal). Computed when shown,
+     * so stored rows of any age get it. A check that is no longer registered shows the goal title stored with it.
+     *
+     * @param string|array $storedTitle The title stored with the entry, plain or a {@see CheckMessage}
+     */
+    public function displayTitle(string $id, string $status, string|array $storedTitle = ''): string
+    {
+        if ($id === self::RENDER_ENTRY) {
+            # Not a check: the entry only exists when the page did not render
+            return $status === CheckResult::FAIL
+                ? _t(__CLASS__ . '.RenderFailTitle', 'The page does not render')
+                : _t(__CLASS__ . '.RenderTitle', 'The page renders');
+        }
+        $check = $this->getChecks()[$id] ?? null;
+        if (!$check) {
+            return CheckMessage::text($storedTitle);
+        }
+        $method = match ($status) {
+            CheckResult::FAIL => 'failTitle',
+            CheckResult::PASS => 'passTitle',
+            default => null,
+        };
+        $title = $method && method_exists($check, $method) ? (string) $check->$method() : '';
+        return $title !== '' ? $title : $check->title();
     }
 
     protected function runCheck(Check $check, PageAnalysis $analysis): CheckResult

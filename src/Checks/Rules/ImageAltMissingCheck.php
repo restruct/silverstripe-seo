@@ -29,6 +29,11 @@ class ImageAltMissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Images have alt text');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Images lack alt text');
+    }
+
     public function howToFix(): string
     {
         return _t(

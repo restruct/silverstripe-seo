@@ -27,6 +27,16 @@ class HeadingStructureCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Heading structure');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Headings are in a logical order');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Headings are not in a logical order');
+    }
+
     public function howToFix(): string
     {
         return _t(

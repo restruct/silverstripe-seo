@@ -32,6 +32,16 @@ class DescriptionLengthCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Meta description length');
     }
 
+    public function passTitle(): string
+    {
+        return _t(__CLASS__ . '.PassTitle', 'Meta description has a good length');
+    }
+
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Meta description is too short or too long');
+    }
+
     public function howToFix(): string
     {
         return _t(

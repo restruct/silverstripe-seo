@@ -34,6 +34,11 @@ class LinkRedirectsCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Links go straight to their target');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Links go through a redirect');
+    }
+
     public function howToFix(): string
     {
         return _t(

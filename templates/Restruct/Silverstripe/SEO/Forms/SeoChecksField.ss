@@ -27,6 +27,7 @@
                     <li class="seo-checks__item seo-checks__item--$Severity.ATT" data-check="$ID.ATT">
                         <div class="seo-checks__heading">
                             <span class="seo-checks__badge seo-checks__badge--$Severity.ATT">$SeverityLabel</span>
+                            <span class="seo-checks__state seo-checks__state--$Status.ATT">$StatusLabel</span>
                             <span class="seo-checks__priority">$PriorityLabel</span>
                             <strong class="seo-checks__title">$Title</strong>
                         </div>
@@ -53,8 +54,19 @@
         </div>
     <% end_loop %>
 
+    <%-- Passed checks fold away under their count: each under its pass title, so the list reads as what is right --%>
     <% if $HasResult && $PassedCount %>
-        <p class="seo-checks__passed"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.Passed '{count} checks passed.' count=$PassedCount %></p>
+        <details class="seo-checks__passed">
+            <summary><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.Passed '{count} checks passed.' count=$PassedCount %></summary>
+            <ul class="seo-checks__list">
+                <% loop $Passed %>
+                    <li class="seo-checks__item seo-checks__item--pass">
+                        <span class="seo-checks__state seo-checks__state--$Status.ATT">$StatusLabel</span>
+                        <span class="seo-checks__title">$Title</span>
+                    </li>
+                <% end_loop %>
+            </ul>
+        </details>
     <% end_if %>
 
     <% if $Ignored.Count %>
@@ -63,6 +75,7 @@
             <ul class="seo-checks__list">
                 <% loop $Ignored %>
                     <li class="seo-checks__item seo-checks__item--ignored" data-check="$ID.ATT">
+                        <span class="seo-checks__state seo-checks__state--$Status.ATT">$StatusLabel</span>
                         <strong class="seo-checks__title">$Title</strong>: $Message
                         <em class="seo-checks__ignored-by"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.IgnoredBy 'Ignored by {name} on {date}.' name=$IgnoredByName date=$IgnoredDate %></em>
                         <button type="button" class="btn btn-link btn-sm seo-checks__ignore" data-check="$ID.ATT" data-ignore="0">
@@ -78,7 +91,12 @@
         <div class="seo-checks__skipped">
             <h4 class="seo-checks__group-title"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.SkippedTitle 'Not checked' %></h4>
             <ul class="seo-checks__list">
-                <% loop $Skipped %><li class="seo-checks__item">$Title: $Message</li><% end_loop %>
+                <% loop $Skipped %>
+                    <li class="seo-checks__item">
+                        <span class="seo-checks__state seo-checks__state--$Status.ATT">$StatusLabel</span>
+                        $Title: $Message
+                    </li>
+                <% end_loop %>
             </ul>
         </div>
     <% end_if %>

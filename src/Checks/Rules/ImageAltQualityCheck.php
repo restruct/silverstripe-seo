@@ -53,6 +53,11 @@ class ImageAltQualityCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Alt text describes the image');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Alt text does not describe the image');
+    }
+
     public function howToFix(): string
     {
         return _t(

@@ -3,6 +3,8 @@
 Check 2 of the catalogue. Severity: problem. Priority: high. Group: title. Reads the rendered page: no (uses it when there is one).
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\TitleMissingCheck`.
 
+Heading in the panel: "Page has a title for search results" when it passes, "Page has no title for search results" when it fails.
+
 ## What it checks
 
 The rendered page has no `<title>` element, or an empty one.

@@ -3,6 +3,8 @@
 Check 8 of the catalogue. Severity: tip. Priority: low. Group: description. Reads the rendered page: no (uses it when there is one).
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\DescriptionLengthCheck`.
 
+Heading in the panel: "Meta description has a good length" when it passes, "Meta description is too short or too long" when it fails.
+
 ## What it checks
 
 The length (in characters) of the description search engines get, typed or derived. An empty description is check 6's business.

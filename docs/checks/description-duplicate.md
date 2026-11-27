@@ -3,6 +3,8 @@
 Check 7 of the catalogue. Severity: warning. Priority: medium. Group: description. Reads the rendered page: no.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\DescriptionDuplicateCheck`.
 
+Heading in the panel: "Meta description is unique" when it passes, "Meta description is not unique" when it fails.
+
 ## What it checks
 
 Another indexable page has the same typed meta description. Derived descriptions are not compared.

@@ -55,6 +55,11 @@ class OrphanPageCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Other pages link to this page');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'No other page links to this page');
+    }
+
     public function howToFix(): string
     {
         return _t(

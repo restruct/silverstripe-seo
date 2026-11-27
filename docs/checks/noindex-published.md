@@ -3,6 +3,8 @@
 Check 1 of the catalogue. Severity: problem. Priority: high. Group: indexing. Reads the rendered page: no.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\NoindexPublishedCheck`.
 
+Heading in the panel: "Published page is not hidden from search engines" when it passes, "Published page is hidden from search engines" when it fails.
+
 ## What it checks
 
 The page is published and asks search engines not to list it: `noindex` in its robots directives (the "Hide from search results" box, or a project hook that adds it).

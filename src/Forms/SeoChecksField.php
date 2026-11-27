@@ -179,6 +179,22 @@ class SeoChecksField extends FormField
         return $list;
     }
 
+    /**
+     * Passed checks, each under its pass title ("Title is unique"), in the order they ran.
+     *
+     * @return ArrayList<ArrayData>
+     */
+    public function getPassed(): ArrayList
+    {
+        $list = ArrayList::create();
+        foreach ($this->entries() as $entry) {
+            if ($entry['status'] === CheckResult::PASS) {
+                $list->push($this->entryData($entry));
+            }
+        }
+        return $list;
+    }
+
     public function getPassedCount(): int
     {
         return count(array_filter($this->entries(), fn ($e) => $e['status'] === CheckResult::PASS));
@@ -200,7 +216,10 @@ class SeoChecksField extends FormField
         $ignoredBy = is_array($entry['ignoredBy'] ?? null) ? $entry['ignoredBy'] : null;
         return ArrayData::create([
             'ID' => (string) ($entry['id'] ?? ''),
+            # Says what was found: the fail title for a failure, the pass title for a pass
             'Title' => (string) ($entry['title'] ?? ''),
+            'Status' => (string) ($entry['status'] ?? ''),
+            'StatusLabel' => static::statusLabel((string) ($entry['status'] ?? '')),
             'Severity' => (string) ($entry['severity'] ?? ''),
             'SeverityLabel' => static::severityLabel((string) ($entry['severity'] ?? '')),
             'PriorityLabel' => static::priorityLabel((string) ($entry['priority'] ?? '')),
@@ -242,6 +261,18 @@ class SeoChecksField extends FormField
             Check::GROUP_SOCIAL => _t(__CLASS__ . '.GroupSocial', 'Social'),
             Check::GROUP_URL => _t(__CLASS__ . '.GroupUrl', 'URL'),
             default => _t(__CLASS__ . '.GroupOther', 'Other'),
+        };
+    }
+
+    /**
+     * The marker next to the severity badge, so the outcome reads at a glance and not only from the heading.
+     */
+    public static function statusLabel(string $status): string
+    {
+        return match ($status) {
+            CheckResult::FAIL => _t(__CLASS__ . '.StatusFail', 'Not met'),
+            CheckResult::PASS => _t(__CLASS__ . '.StatusPass', 'OK'),
+            default => _t(__CLASS__ . '.StatusSkipped', 'Not checked'),
         };
     }
 

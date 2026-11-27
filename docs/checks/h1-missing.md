@@ -3,6 +3,8 @@
 Check 9 of the catalogue. Severity: warning. Priority: medium. Group: content. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\H1MissingCheck`.
 
+Heading in the panel: "Page has a main heading (H1)" when it passes, "Main heading (H1) is missing" when it fails.
+
 ## What it checks
 
 There is no `<h1>` anywhere in the rendered body (the page header above `<main>` included).

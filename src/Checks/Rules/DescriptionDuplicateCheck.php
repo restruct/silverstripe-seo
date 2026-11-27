@@ -28,6 +28,11 @@ class DescriptionDuplicateCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Meta description is unique');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Meta description is not unique');
+    }
+
     public function howToFix(): string
     {
         return _t(

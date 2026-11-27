@@ -3,6 +3,8 @@
 Check 17 of the catalogue. Severity: warning. Priority: high. Group: indexing. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\CanonicalCheck`.
 
+Heading in the panel: "Canonical URL is right" when it passes, "Canonical URL is wrong" when it fails.
+
 ## What it checks
 
 The canonical URL(s) in the rendered head: more than one with different values, not a complete http(s) URL, or pointing at another URL than the page's own. No canonical passes.

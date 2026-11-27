@@ -3,6 +3,8 @@
 Check 10 of the catalogue. Severity: tip. Priority: low. Group: content. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\HeadingStructureCheck`.
 
+Heading in the panel: "Headings are in a logical order" when it passes, "Headings are not in a logical order" when it fails.
+
 ## What it checks
 
 More than one `<h1>` in the body, or a heading level skipped in the content area (an H2 followed by an H4). The first heading of the content may follow the page's H1.

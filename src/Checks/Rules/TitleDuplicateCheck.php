@@ -28,6 +28,11 @@ class TitleDuplicateCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Title is unique');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Title is not unique');
+    }
+
     public function howToFix(): string
     {
         return _t(

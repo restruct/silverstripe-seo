@@ -3,6 +3,8 @@
 Check 14 of the catalogue. Severity: tip. Priority: medium. Group: links. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck`.
 
+Heading in the panel: "Link text says where it goes" when it passes, "Link text does not say where it goes" when it fails.
+
 ## What it checks
 
 Links in the content area whose accessible name is empty, or is one of the non-descriptive texts: "click here", "read more", "lees meer", "klik hier", and so on. The accessible name is aria-labelledby (the text of the referenced elements), else aria-label, else title, else the link text (or the alt text of its images).

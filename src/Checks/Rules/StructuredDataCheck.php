@@ -30,6 +30,11 @@ class StructuredDataCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Structured data is complete');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Structured data is incomplete or invalid');
+    }
+
     public function howToFix(): string
     {
         return _t(

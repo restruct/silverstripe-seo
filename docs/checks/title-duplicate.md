@@ -3,6 +3,8 @@
 Check 4 of the catalogue. Severity: warning. Priority: high. Group: title. Reads the rendered page: no.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\TitleDuplicateCheck`.
 
+Heading in the panel: "Title is unique" when it passes, "Title is not unique" when it fails.
+
 ## What it checks
 
 Another indexable page (not noindex, not a redirector, virtual or error page) has the same title for search, compared in the draft stage as the database compares (case-insensitive with the default collation).

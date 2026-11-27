@@ -3,6 +3,8 @@
 Check 18 of the catalogue. Severity: problem. Priority: high. Group: content. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\PlaceholderTextCheck`.
 
+Heading in the panel: "No placeholder text" when it passes, "Page contains placeholder text" when it fails.
+
 ## What it checks
 
 Placeholder text in the content area, the title or the description: "lorem ipsum", "dolor sit amet", TODO, FIXME, TBD, xxx, "[placeholder]", "tekst volgt".

@@ -3,6 +3,8 @@
 Check 15 of the catalogue. Severity: tip. Priority: low. Group: links. Reads the rendered page: yes.
 Class: `Restruct\Silverstripe\SEO\Checks\Rules\LinkRedirectsCheck`.
 
+Heading in the panel: "Links go straight to their target" when it passes, "Links go through a redirect" when it fails.
+
 ## What it checks
 
 Links in the content area to a redirector page, and `http://` links while the site runs on https.

@@ -26,6 +26,11 @@ class UnpublishedLinksCheck extends BrokenLinksCheck
         return _t(__CLASS__ . '.Title', 'Link targets are published');
     }
 
+    public function failTitle(): string
+    {
+        return _t(__CLASS__ . '.FailTitle', 'Links point to unpublished pages or files');
+    }
+
     public function howToFix(): string
     {
         return _t(
