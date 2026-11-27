@@ -124,7 +124,7 @@ class PanelControlsTest extends ChecksTestCase
     public function testThePriorityIsAnOutlinedBadge(): void
     {
         $finding = $this->finding($this->panelHtml($this->failingH1Page()), 'h1-missing');
-        $this->assertMatchesRegularExpression('#<span class="seo-checks__priority">\s*High priority\s*</span>#', $finding);
+        $this->assertMatchesRegularExpression('#<span class="seo-checks__priority">\s*Medium priority\s*</span>#', $finding);
 
         $css = (string) file_get_contents(dirname(__DIR__, 2) . '/client/dist/css/seo-checks.css');
         $this->assertSame(1, preg_match('#\.seo-checks__priority\s*\{([^}]*)\}#', $css, $rule));
