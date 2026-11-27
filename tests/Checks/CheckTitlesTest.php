@@ -12,8 +12,10 @@ use SilverStripe\Versioned\Versioned;
 
 /**
  * A check's heading says what was found, not what the check is after: "Title is not unique" for a failure,
- * "Title is unique" for a pass, with a status marker next to the severity badge. The goal title ("Title is
- * unique") is what a skipped check and a stored row of a removed check show.
+ * "Title is unique" for a pass. A passed check carries an "OK" marker and a skipped one "Not checked"; a failure
+ * has none, as its fail title and severity badge already say it (dropped on the product owner's call,
+ * 2026-11-27). The goal title ("Title is unique") is what a skipped check and a stored row of a removed check
+ * show.
  */
 class CheckTitlesTest extends ChecksTestCase
 {
@@ -51,7 +53,7 @@ class CheckTitlesTest extends ChecksTestCase
         $this->assertSame(['Titel is uniek', 'Titel is niet uniek'], $titles['nl_NL']['title-duplicate']);
     }
 
-    public function testAFailingCheckShowsItsFailTitleAndANotMetMarker(): void
+    public function testAFailingCheckShowsItsFailTitleWithoutANotMetMarker(): void
     {
         $this->page(['Title' => 'Pottery for beginners'], [], true);
         $page = $this->page(['Title' => 'Pottery for beginners']);
@@ -59,9 +61,12 @@ class CheckTitlesTest extends ChecksTestCase
 
         $html = $this->panelHtml($page);
         $this->assertMatchesRegularExpression(
-            '#data-check="title-duplicate".*?seo-checks__state--fail[^>]*>\s*Not met\s*<.*?seo-checks__title">\s*Title is not unique\s*<#s',
+            '#data-check="title-duplicate".*?seo-checks__title">\s*Title is not unique\s*<#s',
             $html
         );
+        # The fail title and the severity badge say it: no outcome marker on a failure
+        $this->assertStringNotContainsString('seo-checks__state--fail', $html);
+        $this->assertStringNotContainsString('Not met', $html);
     }
 
     public function testPassedChecksAreListedWithTheirPassTitleAndAnOkMarker(): void
@@ -92,14 +97,14 @@ class CheckTitlesTest extends ChecksTestCase
         $this->assertStringContainsString('The page does not render', $html);
     }
 
-    public function testTheDutchPanelSaysNietGehaald(): void
+    public function testTheDutchPanelShowsTheDutchFailTitleWithoutAMarker(): void
     {
         $this->page(['Title' => 'Pottery for beginners'], [], true);
         $page = $this->page(['Title' => 'Pottery for beginners']);
         CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
 
         $html = i18n::with_locale('nl_NL', fn () => $this->panelHtml($page));
-        $this->assertStringContainsString('Niet gehaald', $html);
+        $this->assertStringNotContainsString('Niet gehaald', $html);
         $this->assertStringContainsString('Titel is niet uniek', $html);
     }
 
@@ -125,6 +130,6 @@ class CheckTitlesTest extends ChecksTestCase
         ]);
 
         $html = $this->panelHtml($page);
-        $this->assertMatchesRegularExpression('#seo-checks__state--fail.*?Old goal title#s', $html);
+        $this->assertMatchesRegularExpression('#data-check="gone-check".*?Old goal title#s', $html);
     }
 }
