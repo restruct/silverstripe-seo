@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-27
+
 ### Changed
 
 - The "About this check" dialog renders the check's spec with `league/commonmark` (^2.7, a new dependency)
