@@ -74,7 +74,9 @@ class CanonicalCheck extends AbstractCheck
     }
 
     /**
-     * Scheme and host case-insensitive, a trailing slash optional.
+     * Scheme and host case-insensitive, a trailing slash optional ("https://host" is the root "https://host/").
+     * The scheme itself must match: the render takes the scheme of the site (PageRenderer's render request),
+     * so an http canonical on an https site is a real mismatch, not an artefact of the render.
      */
     protected static function normalise(string $url): string
     {

@@ -253,6 +253,13 @@ class CoursePage extends Page
   segment is kept (`/home/archive/...`), since that is where the action lives.
 - Error pages, error responses (status 400 or higher) and redirects (including redirector pages) get no
   canonical, no `og:url` and no `Link` header; redirects also get no `X-Robots-Tag`.
+- The site root is written with its slash (`https://example.com/`), also for an override of `/`. Core's
+  `Director::absoluteURL()` leaves it without one when `add_trailing_slash` is off; both are the same URL.
+- A project that overrides `MetaComponents()` (or implements `updateMetaComponents`) and sets
+  `$tags['canonical']` after calling the parent replaces the module's canonical tag, and the canonical check
+  then judges the project's value, not the module's. The check compares the canonical with the page's own URL
+  ignoring the case of the host and a trailing slash, but not the scheme: an `http://` canonical on an https
+  site fails.
 
 ## Records shown on a page
 
