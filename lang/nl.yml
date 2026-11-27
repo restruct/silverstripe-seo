@@ -5,7 +5,9 @@ nl:
     RenderFailed: 'De pagina kon niet worden opgebouwd (status {status}). De controles die de opgebouwde pagina lezen, zijn overgeslagen.'
     RenderHowToFix: 'Bekijk het concept in de preview. Toont die een fout of stuurt die door naar een andere pagina, los dat dan eerst op en controleer opnieuw.'
     RenderRedirected: 'De pagina kon niet worden opgebouwd: ze stuurde door (status {status}). De controles die de opgebouwde pagina lezen, zijn overgeslagen.'
+    RenderRedirectedToItself: 'De pagina kon niet worden opgebouwd: ze stuurde door naar haar eigen adres (status {status}), dus de controle kreeg haar niet te zien. De controles die de opgebouwde pagina lezen, zijn overgeslagen.'
     RenderTitle: 'De pagina wordt opgebouwd'
+    RenderToItselfHowToFix: 'Open de pagina in een browser. Toont die normaal, dan gebeurt de doorverwijzing alleen bij het controleren: vraag een ontwikkelaar te kijken naar de code die deze pagina naar haar eigen adres stuurt. Blijft de browser herladen, dan verwijst de pagina ook voor bezoekers naar zichzelf: los dat eerst op.'
     SkippedError: 'Niet gecontroleerd: de controle is mislukt ({message}).'
     SkippedNoRender: 'Niet gecontroleerd: de pagina kon niet worden opgebouwd.'
   Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck:

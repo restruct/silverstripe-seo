@@ -8,6 +8,7 @@ use Restruct\Silverstripe\RenderedContentExtractor\PageRenderer;
 use Restruct\Silverstripe\RenderedContentExtractor\RenderResult;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Injector\Injectable;
@@ -309,9 +310,17 @@ class CheckRunner
     protected function renderEntry(RenderResult $render): array
     {
         $status = $render->getStatusCode();
-        $message = $status >= 300 && $status < 400
-            ? CheckMessage::_t(__CLASS__ . '.RenderRedirected', 'The page did not render: it redirected (status {status}). The checks that read the rendered page were skipped.', ['status' => $status])
-            : CheckMessage::_t(__CLASS__ . '.RenderFailed', 'The page did not render (status {status}). The checks that read the rendered page were skipped.', ['status' => $status]);
+        $redirect = $status >= 300 && $status < 400;
+        $toItself = $redirect && $this->redirectsToItself($render);
+        $message = match (true) {
+            $toItself => CheckMessage::_t(__CLASS__ . '.RenderRedirectedToItself', 'The page did not render: it redirected to its own address (status {status}), so the check never got to see it. The checks that read the rendered page were skipped.', ['status' => $status]),
+            $redirect => CheckMessage::_t(__CLASS__ . '.RenderRedirected', 'The page did not render: it redirected (status {status}). The checks that read the rendered page were skipped.', ['status' => $status]),
+            default => CheckMessage::_t(__CLASS__ . '.RenderFailed', 'The page did not render (status {status}). The checks that read the rendered page were skipped.', ['status' => $status]),
+        };
+        # Sending a page to its own address is a loop the preview does not show: the generic advice does not help
+        $howToFix = $toItself
+            ? CheckMessage::_t(__CLASS__ . '.RenderToItselfHowToFix', 'Open the page in a browser. If it shows normally, the redirect only happens when the page is checked: ask a developer to look at the code that sends this page to its own address. If the browser keeps reloading, the page redirects to itself for visitors too: fix that first.')
+            : CheckMessage::_t(__CLASS__ . '.RenderHowToFix', 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.');
         return [
             'id' => self::RENDER_ENTRY,
             'group' => Check::GROUP_INDEXING,
@@ -321,7 +330,7 @@ class CheckRunner
             'status' => CheckResult::FAIL,
             'message' => $message,
             'details' => array_values(array_filter([(string) $render->getError()])),
-            'howToFix' => CheckMessage::_t(__CLASS__ . '.RenderHowToFix', 'Preview the draft. If it shows an error or sends you elsewhere, fix that first, then re-check.'),
+            'howToFix' => $howToFix,
             'docs' => '',
             'crossPage' => false,
             'ignored' => false,
@@ -329,7 +338,25 @@ class CheckRunner
         ];
     }
 
-    protected function runsOnNoindex(Check $check): bool
+    /**
+     * Whether a redirect's Location is the rendered page's own URL (path compared without slashes at either end,
+     * the query string ignored; an absolute URL on another host is never the page itself).
+     */
+    protected function redirectsToItself(RenderResult $render): bool
+    {
+        $location = trim((string) $render->getHeader('Location'));
+        if ($location === '') {
+            return false;
+        }
+        $host = parse_url($location, PHP_URL_HOST);
+        if (is_string($host) && strcasecmp($host, (string) parse_url(Director::absoluteBaseURL(), PHP_URL_HOST)) !== 0) {
+            return false;
+        }
+        $path = static fn (string $url): string => trim((string) parse_url(Director::makeRelative($url), PHP_URL_PATH), '/');
+        return $path($location) === $path((string) $render->getPage()->Link());
+    }
+
+        protected function runsOnNoindex(Check $check): bool
     {
         return $check instanceof AbstractCheck && (bool) $check::config()->get('runs_on_noindex');
     }

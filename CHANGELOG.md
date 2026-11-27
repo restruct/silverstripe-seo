@@ -6,6 +6,14 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The homepage was never checked: the panel said the page responded with status 301 and skipped every check that
+  reads the rendered page. The cause was in restruct/silverstripe-rendered-content-extractor (it rendered the
+  homepage as a redirect to the root); fixed there, so update that library along with this module.
+- A render that redirects to the page's own address gets its own message and advice in the panel, instead of the
+  general "it redirected (status 301)", which read as if the page were sent elsewhere.
+
 ## [0.4.1] - 2026-11-26
 
 ### Fixed
