@@ -15,6 +15,7 @@ use SilverStripe\ORM\HasManyList;
  * @property bool $HideH1
  * @property bool $IncompleteEvent
  * @property string $ExtraHead
+ * @property string $RedirectTo
  * @method HasManyList<SeoCheckTestBlock> Blocks()
  */
 class SeoCheckTestPage extends SiteTree implements TestOnly
@@ -30,6 +31,8 @@ class SeoCheckTestPage extends SiteTree implements TestOnly
         'IncompleteEvent' => 'Boolean',
         # Printed as-is in the head, for markup a theme or another module adds there (JSON-LD, say)
         'ExtraHead' => 'Text',
+        # The controller redirects: 'self' to the page's own URL, anything else to that URL, for the render entry
+        'RedirectTo' => 'Varchar(255)',
     ];
 
     private static array $has_many = [

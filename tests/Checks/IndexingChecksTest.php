@@ -3,6 +3,8 @@
 namespace Restruct\Silverstripe\SEO\Tests\Checks;
 
 use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
+use Restruct\Silverstripe\SEO\Checks\CheckRunner;
+use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\Control\Director;
 
 /**
@@ -53,6 +55,36 @@ class IndexingChecksTest extends ChecksTestCase
         $page = $this->page([], [], true);
         $this->assertCheckPasses($page, 'noindex-published');
         $this->assertArrayHasKey('h1-missing', $this->results($page));
+    }
+
+    public function testARedirectToThePageItselfGetsItsOwnMessage(): void
+    {
+        $entry = $this->entry($this->page(['RedirectTo' => 'self']), CheckRunner::RENDER_ENTRY);
+
+        $this->assertSame('fail', $entry['status']);
+        $this->assertStringContainsString('its own address', $entry['message']);
+        $this->assertStringContainsString('301', $entry['message']);
+        $this->assertStringContainsString('browser', $entry['howToFix'], 'advice for a redirect to itself');
+    }
+
+    public function testARedirectElsewhereKeepsTheGeneralMessage(): void
+    {
+        $entry = $this->entry($this->page(['RedirectTo' => '/somewhere-else/']), CheckRunner::RENDER_ENTRY);
+
+        $this->assertSame('fail', $entry['status']);
+        $this->assertStringContainsString('it redirected (status 302)', $entry['message']);
+        $this->assertStringNotContainsString('its own address', $entry['message']);
+    }
+
+    public function testTheHomepageIsRenderedAndChecked(): void
+    {
+        # The renderer used to answer the homepage with a 301 to the base URL, so nothing on it was checked
+        $home = $this->page(['URLSegment' => RootURLController::get_homepage_link()], [], true);
+
+        $results = $this->results($home);
+
+        $this->assertArrayNotHasKey(CheckRunner::RENDER_ENTRY, $results, json_encode($results[CheckRunner::RENDER_ENTRY] ?? null));
+        $this->assertSame('pass', $results['h1-missing']['status']);
     }
 
     public function testCanonicalPassesForASelfReference(): void
