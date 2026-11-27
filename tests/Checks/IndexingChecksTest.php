@@ -6,6 +6,9 @@ use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Session;
+use SilverStripe\Core\Injector\Injector;
 
 /**
  * Check 1 and the gating it does, and check 17 (canonical).
@@ -104,5 +107,84 @@ class IndexingChecksTest extends ChecksTestCase
         $page->ExtraMeta = '<link rel="canonical" href="https://other.example.org/">';
         $page->write();
         $this->assertCheckFails($page, 'canonical');
+    }
+
+    public function testCanonicalPassesForTheHomepageAndAPageInsideAnHttpsCmsRequest(): void
+    {
+        # The panel runs inside a CMS request over https; the render must not come out as http (it did: the
+        # module's own canonical then read http://host while the check expected https://host)
+        $home = $this->page(['Title' => 'Home', 'URLSegment' => RootURLController::get_homepage_link()]);
+        $page = $this->page();
+        $this->inHttpsRequest(function () use ($home, $page) {
+            $this->assertCheckPasses($home, 'canonical');
+            $this->assertCheckPasses($page, 'canonical');
+        });
+    }
+
+    public function testCanonicalPassesForTheHomepageAndAPageOnAnHttpsBaseUrlOutsideAnyRequest(): void
+    {
+        # A queued job or CLI task: no request of its own, the scheme comes from SS_BASE_URL
+        Director::config()->set('default_base_url', 'https://www.example.test/');
+        $home = $this->page(['Title' => 'Home', 'URLSegment' => RootURLController::get_homepage_link()]);
+        $page = $this->page();
+        $hadRequest = Injector::inst()->has(HTTPRequest::class);
+        $previous = $hadRequest ? Injector::inst()->get(HTTPRequest::class) : null;
+        Injector::inst()->unregisterNamedObject(HTTPRequest::class);
+        try {
+            $this->assertCheckPasses($home, 'canonical');
+            $this->assertCheckPasses($page, 'canonical');
+        } finally {
+            if ($hadRequest) {
+                Injector::inst()->registerService($previous, HTTPRequest::class);
+            }
+        }
+    }
+
+    public function testCanonicalWithAnotherSchemeFailsForTheHomepageAndAPage(): void
+    {
+        # The scheme is compared strictly: an http canonical on an https site sends search engines to http
+        foreach ([RootURLController::get_homepage_link(), 'courses-scheme'] as $segment) {
+            $url = $segment === 'courses-scheme' ? 'http://www.example.test/courses-scheme' : 'http://www.example.test/';
+            $page = $this->page(['Title' => 'Page ' . $segment, 'URLSegment' => $segment, 'CanonicalURL' => $url]);
+            $this->inHttpsRequest(fn () => $this->assertCheckFails($page, 'canonical', $url));
+        }
+    }
+
+    public function testCanonicalComparesTheRootWithOrWithoutItsSlashAndTheHostInAnyCase(): void
+    {
+        # "https://host" and "https://HOST/" are the same URL (RFC 3986 6.2.3: an empty path is "/")
+        $home = $this->page([
+            'Title' => 'Home',
+            'URLSegment' => RootURLController::get_homepage_link(),
+            'CanonicalURL' => 'https://WWW.Example.TEST/',
+        ]);
+        $page = $this->page(['Title' => 'Slashed', 'URLSegment' => 'slashed', 'CanonicalURL' => 'https://WWW.Example.TEST/slashed/']);
+        $this->inHttpsRequest(function () use ($home, $page) {
+            $this->assertCheckPasses($home, 'canonical');
+            $this->assertCheckPasses($page, 'canonical');
+        });
+    }
+
+    /**
+     * Run $fn inside a request over https for www.example.test, as the CMS panel runs inside one.
+     */
+    private function inHttpsRequest(callable $fn): void
+    {
+        $request = new HTTPRequest('POST', 'admin/pages/check');
+        $request->setSession(new Session([]));
+        $request->setScheme('https');
+        $request->addHeader('Host', 'www.example.test');
+        $hadRequest = Injector::inst()->has(HTTPRequest::class);
+        $previous = $hadRequest ? Injector::inst()->get(HTTPRequest::class) : null;
+        Injector::inst()->registerService($request, HTTPRequest::class);
+        try {
+            $fn();
+        } finally {
+            if ($hadRequest) {
+                Injector::inst()->registerService($previous, HTTPRequest::class);
+            } else {
+                Injector::inst()->unregisterNamedObject(HTTPRequest::class);
+            }
+        }
     }
 }

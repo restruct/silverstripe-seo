@@ -242,6 +242,32 @@ class SeoHeadOutputTest extends FunctionalTest
         );
     }
 
+    public function testHomepageCanonicalIsTheRootWithItsSlash(): void
+    {
+        # With add_trailing_slash off (the default) Director::absoluteURL('/') and so the homepage's AbsoluteLink()
+        # come out as "https://host", without a path. The same URL as "https://host/" (RFC 3986 6.2.3), but the
+        # canonical is written the way search engines and SEO tools show the root
+        $this->publishedPage(['Title' => 'Home', 'URLSegment' => 'home']);
+        $response = $this->get('/');
+        $head = $this->head($response);
+
+        $canonical = rtrim(Director::absoluteBaseURL(), '/') . '/';
+        $this->assertStringContainsString('<link rel="canonical" href="' . $canonical . '">', $head);
+        $this->assertSame('<' . $canonical . '>; rel="canonical"', $response->getHeader('Link'));
+    }
+
+    public function testAnEditorsRootCanonicalKeepsItsSlash(): void
+    {
+        # Director::absoluteURL() strips the slash of an override on the site's own host too
+        $this->publishedPage(['Title' => 'Duplicate', 'URLSegment' => 'duplicate', 'CanonicalURL' => '/']);
+        $head = $this->head($this->get('duplicate'));
+
+        $this->assertStringContainsString(
+            '<link rel="canonical" href="' . rtrim(Director::absoluteBaseURL(), '/') . '/">',
+            $head
+        );
+    }
+
     public function testHomepageActionCanonicalKeepsTheHomeSegment(): void
     {
         # The homepage's own link is the site root, but an action on it lives at /home/<action>; core's
