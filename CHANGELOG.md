@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-27
+
 ### Fixed
 
 - The canonical check reported "Canonical URL is wrong" for the homepage of an https site: the in-process
