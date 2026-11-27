@@ -8,6 +8,8 @@ use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Forms\CompositeField;
+use SilverStripe\Admin\LeftAndMain;
+use SilverStripe\View\SSViewer;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\i18n\i18n;
@@ -90,13 +92,15 @@ class SeoCmsFieldsTest extends SapphireTest
 
     public function testTheTabHoldsTheFieldsInOrder(): void
     {
+        $this->logInWithPermission('ADMIN');
         $page = SeoTestPage::create(['Title' => 'About us']);
         $page->write();
         $tab = $page->getCMSFields()->fieldByName('Root.SEO');
 
-        # Logged out, so no checks panel (only for editors); the preview opens the tab, then the fields
+        # The checks panel and the preview open the tab, then the fields
         $names = array_values(array_map(fn ($f) => $f->getName(), $tab->getChildren()->toArray()));
         $this->assertSame([
+            'SeoChecks',
             'SeoSnippetPreview',
             'MetaTitle',
             'MetaDescription',
@@ -142,8 +146,15 @@ class SeoCmsFieldsTest extends SapphireTest
         $this->assertSame(['MetaRobotsNoIndex', 'MetaRobotsNoFollow', 'MetaRobotsNoSnippet', 'MetaRobotsNoCache'], $children);
 
         # The group's title fills the label column and the checkboxes sit in the field column under it, each
-        # with its description below its own label: no empty label column in front of a checkbox
-        $html = (string) $group->FieldHolder();
+        # with its description below its own label: no empty label column in front of a checkbox. Rendered with
+        # the CMS's form templates, as in the page editor
+        $themes = SSViewer::get_themes();
+        SSViewer::set_themes(LeftAndMain::config()->get('admin_themes'));
+        try {
+            $html = (string) $group->FieldHolder();
+        } finally {
+            SSViewer::set_themes($themes);
+        }
         $this->assertMatchesRegularExpression('#<label[^>]*class="[^"]*form__field-label[^"]*"[^>]*>\s*Search engine indexing\s*</label>#', $html);
         $this->assertStringNotContainsString('form__field-holder--no-label', $html);
         $this->assertMatchesRegularExpression('#MetaRobotsNoIndex.*?form-check-label.*?form__field-description#s', $html);

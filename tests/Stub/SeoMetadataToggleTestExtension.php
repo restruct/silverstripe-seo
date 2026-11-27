@@ -15,6 +15,7 @@ class SeoMetadataToggleTestExtension extends Extension implements TestOnly
 {
     protected function updateCMSFields(FieldList $fields): void
     {
-        $fields->addFieldToTab('Root.Main.Metadata', TextField::create('OtherModuleMeta', 'Other module'));
+        # Looked up and pushed to: addFieldToTab() refuses a toggle, which is not a tab
+        $fields->fieldByName('Root.Main.Metadata')?->push(TextField::create('OtherModuleMeta', 'Other module'));
     }
 }
