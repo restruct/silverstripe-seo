@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-27
+
 ### Changed
 
 - The "About this check" dialog is rendered by the module's own small Markdown subset again (as in 0.6.x), and
