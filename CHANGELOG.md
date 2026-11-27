@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-27
+
 ### Changed
 
 - The SEO fields have a tab of their own, **SEO**, right after Main, instead of the collapsible "Search engines
