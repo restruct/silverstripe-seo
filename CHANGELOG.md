@@ -6,7 +6,22 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The SEO fields have a tab of their own, **SEO**, right after Main, instead of the collapsible "Search engines
+  and sharing" toggle below the content: the checks panel at the top, then the search result preview, then the
+  fields (meta title, meta description, search engine indexing, canonical URL, sharing, custom meta tags, the
+  structured-data preview). Core's MetaDescription and ExtraMeta move along, and core's Metadata toggle is
+  removed when that leaves it empty (kept when another module put a field in it). `seo_tab` names another tab;
+  `seo_remove_empty_metadata_toggle: false` keeps the empty toggle for code that looks it up later. Code that
+  looked up `Root.Main.Metadata` for the module's fields, or the fallback group `Root.SEO.SeoFallbackGroup`,
+  finds them on the tab now.
+
 ### Fixed
+
+- The robots checkboxes are one group, titled "Search engine indexing" in the label column, with the checkboxes
+  and their descriptions aligned in the field column, instead of a heading above checkboxes that each left an
+  empty label column.
 
 - The homepage was never checked: the panel said the page responded with status 301 and skipped every check that
   reads the rendered page. The cause was in restruct/silverstripe-rendered-content-extractor (it rendered the

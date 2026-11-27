@@ -224,7 +224,7 @@ en:
     SchemaPreviewFailed: 'The structured data could not be built: {message}'
     SchemaPreviewHelp: 'What search engines get from this page as structured data, after the last save. Built from the page and the records it shows; nodes that miss required information are left out.'
     SharingHeader: 'Social media and sharing'
-    ToggleTitle: 'Search engines and sharing'
+    TabTitle: SEO
   Restruct\Silverstripe\SEO\Forms\SeoChecksField:
     AllPassed: 'No problems, warnings or tips: every check passed.'
     ChangedSince: 'The page has changed since: re-check to update.'

@@ -42,8 +42,19 @@ composer require restruct/silverstripe-seo
 vendor/bin/sake db:build --flush
 ```
 
-The fields appear in the page editor under **Search engines and sharing** (core's Metadata toggle below the
-content), and the site-wide defaults under **Settings > SEO**.
+The fields appear in the page editor on a tab of their own, **SEO**, right after the Main tab: at the top the
+SEO checks panel, then the search result preview, then the fields (meta title, meta description, search engine
+indexing, canonical URL, sharing, and core's free-form custom meta tags last). Core's own MetaDescription and
+ExtraMeta move there too, and core's **Metadata** toggle below the content goes when that leaves it empty. The
+site-wide defaults are under **Settings > SEO**.
+
+```yml
+SilverStripe\CMS\Model\SiteTree:
+  # Another tab (created after Main when it does not exist); meant to be a tab of its own
+  seo_tab: 'Root.SEO'
+  # Keep core's Metadata toggle even when empty: for a page class that looks it up after parent::getCMSFields()
+  seo_remove_empty_metadata_toggle: true
+```
 
 Set the site's base URL and allowed hosts in `.env`. The canonical URL and `og:url` are absolute, and without a
 base URL Silverstripe builds them from the Host header of the request, so a request with another host name would
@@ -169,7 +180,7 @@ App\Page\CoursePage:
     - MetaRobotsNoIndex
 ```
 
-The names are the field names: `MetaTitle`, `MetaDescription` (core's, in the same group), `MetaRobotsNoIndex`,
+The names are the field names: `MetaTitle`, `MetaDescription` (core's, on the same tab), `MetaRobotsNoIndex`,
 `MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache`, `CanonicalURL`, `SEOFBdescription` and
 `OGImage`. Other names are ignored. Both are lists, so a subclass adds to its parent's; a field in both is hidden.
 What the page outputs is not changed by this: a page that generates its title does so with a getter (see
@@ -549,7 +560,7 @@ applicantLocationRequirements & jobLocationType` is met by a location, or by bot
 `$page->getSchemaWarnings()` lists, per finding, a `code`: `missing-required` (the node was left out),
 `missing-recommended`, `method-not-allowed` (a map names something it may not call) and `type-not-registered`.
 The page editor shows them, with the JSON the page would output (in the site's locale), under
-**Search engines and sharing > Structured data**.
+**SEO > Structured data**.
 
 A type the registry does not know requires nothing, so its nodes are output, with a `type-not-registered`
 warning. When you use a more specific type (a LocalBusiness subtype such as `Store`, say), register it with its
@@ -578,7 +589,7 @@ The render is parsed once and shared by all checks; content checks read the cont
 `ContentNarrower.content_selectors` and its `updateContentSelectors` hook), minus what
 `ContentNarrower.ignore_selectors` and `data-content-ignore` mark; head checks read the full head.
 
-In the page editor, under **Search engines and sharing**:
+In the page editor, at the top of the **SEO** tab:
 
 - **SEO checks**: "1 problem, 2 warnings, 3 tips", then the failing checks per group (indexing, title,
   description, content, images, links, structured data, social, URL), each with its priority, the message,
@@ -589,7 +600,7 @@ In the page editor, under **Search engines and sharing**:
   and marked **OK**; checks that could not run are marked **Not checked**.
 - **Ignore for this page**: an editor can ignore a check where the page is fine as it is; it is stored with who
   and when, listed as ignored and not counted.
-- **Search result preview** below the meta description: title, URL breadcrumb and description, with the title's
+- **Search result preview** below the panel, above the fields: title, URL breadcrumb and description, with the title's
   approximate width and the description's length, updated on every keystroke. The numbers are the checks' own
   thresholds, passed from PHP config, so the counter and the checks agree.
 
@@ -857,7 +868,7 @@ How it writes:
 2. Dry run: `vendor/bin/sake tasks:seo-migrate --source=<name>`. Read the report: conflicts, invalid values,
    and the columns without a home.
 3. Apply: the same with `--apply`. A second run should copy nothing.
-4. Check some pages: the head output, and the fields under **Search engines and sharing**.
+4. Check some pages: the head output, and the fields on the **SEO** tab.
 5. `composer remove` the old module, then `vendor/bin/sake db:build --flush`. Its columns stay in the database;
    drop them by hand once you no longer need them. Remove any project class that extends or is injected for the
    old module's classes (e.g. an extension subclass registered via Injector) together with the old package, or

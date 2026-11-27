@@ -8,14 +8,14 @@ use Restruct\Silverstripe\SEO\Forms\SeoChecksField;
 use Restruct\Silverstripe\SEO\Forms\SeoSnippetPreviewField;
 use Restruct\Silverstripe\SEO\Model\SeoCheckIgnore;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
+use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Extension;
-use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
 
 /**
- * The SEO checks on a page: the panel and the search result preview in the page's "Search engines and sharing"
- * section, and the upkeep of what the checks store.
+ * The SEO checks on a page: the panel and the search result preview at the top of the page's SEO tab
+ * ({@see SeoSiteTreeExtension::$seo_tab}), and the upkeep of what the checks store.
  *
  * - After a write the stored result is marked stale. Nothing is rendered during the write: the panel sees the
  *   stale flag on the next form load (the save response included) and the browser asks the CMS endpoint for a
@@ -36,14 +36,20 @@ class SeoChecksExtension extends Extension
         if (!$page->isInDB() || !PageEligibility::singleton()->isEligible($page, 'seo')) {
             return;
         }
-        /** @var CompositeField|null $metadata */
-        # Core's Metadata toggle, or the module's fallback group when a page class removed it
-        $metadata = $fields->fieldByName('Root.Main.Metadata') ?? $fields->fieldByName('Root.SEO.SeoFallbackGroup');
-        if (!$metadata instanceof CompositeField) {
+        # A redirector page gets no SEO fields, so no tab either (it is never eligible; this keeps it so)
+        if ($page instanceof RedirectorPage) {
             return;
         }
+        # The page's SEO tab, made here when this extension runs before SeoSiteTreeExtension
+        $children = SeoSiteTreeExtension::findOrMakeSeoTab($fields, $page)->getChildren();
 
-        $children = $metadata->getChildren();
+        # At the top of the tab, before the fields: the preview, and above it the checks panel. Unshifted in
+        # reverse, so the order holds whether the fields are already on the tab or are added after
+        $children->unshift(SeoSnippetPreviewField::create(
+            'SeoSnippetPreview',
+            _t(__CLASS__ . '.PreviewTitle', 'Search result preview'),
+            $page
+        ));
         # Only for members who may edit the page: the stored results come from the render of whoever ran the
         # check last, and the endpoint refuses everyone else anyway
         if ($page->canEdit()) {
@@ -52,16 +58,6 @@ class SeoChecksExtension extends Extension
                 _t(__CLASS__ . '.ChecksTitle', 'SEO checks'),
                 $page
             ));
-        }
-        $preview = SeoSnippetPreviewField::create(
-            'SeoSnippetPreview',
-            _t(__CLASS__ . '.PreviewTitle', 'Search result preview'),
-            $page
-        );
-        if ($children->dataFieldByName('MetaDescription')) {
-            $children->insertAfter('MetaDescription', $preview);
-        } else {
-            $children->push($preview);
         }
     }
 

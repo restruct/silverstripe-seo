@@ -23,9 +23,12 @@ use SilverStripe\Core\Validation\ValidationResult;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\FormField;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyTransformation;
+use SilverStripe\Forms\Tab;
+use SilverStripe\Forms\TabSet;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\i18n;
@@ -167,6 +170,21 @@ class SeoSiteTreeExtension extends Extension
      * The same fields shown read-only instead of hidden: the editor sees the value, but cannot change it.
      */
     private static array $seo_readonly_fields = [];
+
+    /**
+     * The tab the SEO fields, the checks panel and the search result preview go on, as a path from the form's
+     * root. A tab the module creates is placed right after Main. Meant to be a tab of its own: the panel and the
+     * preview are put at its top.
+     */
+    private static string $seo_tab = 'Root.SEO';
+
+    /**
+     * Remove core's Metadata toggle from the Main tab once its fields (MetaDescription, ExtraMeta) have moved to
+     * the SEO tab and nothing else is left in it. A toggle that other code filled before this extension ran is
+     * kept. Set to false when a page class (after parent::getCMSFields()) or an extension that runs later looks
+     * up `Root.Main.Metadata` to add to it: it would find nothing there.
+     */
+    private static bool $seo_remove_empty_metadata_toggle = true;
 
     /**
      * Derive a description from the page when the editor typed none.
@@ -313,20 +331,17 @@ class SeoSiteTreeExtension extends Extension
             return;
         }
 
-        /** @var CompositeField|null $metadata */
-        $metadata = $fields->fieldByName('Root.Main.Metadata');
-        if (!$metadata) {
-            # A page class that removed core's toggle: fall back to a tab of our own rather than losing the fields
-            $metadata = CompositeField::create()->setName('SeoFallbackGroup');
-            $fields->addFieldToTab('Root.SEO', $metadata);
-        }
-        $metadata->setTitle(_t(__CLASS__ . '.ToggleTitle', 'Search engines and sharing'));
+        # Everything on a tab of its own; the checks panel and the preview are put at its top by SeoChecksExtension
+        $tab = static::findOrMakeSeoTab($fields, $page);
 
         # Another module (kinglozzer/metatitle) may already add a field for the same column. SS6's insertBefore()
-        # would replace that field with this one, or this one with that, depending on the extension order
-        if (!$this->metaTitleFieldProvidedElsewhere()) {
-            $metadata->insertBefore(
-                'MetaDescription',
+        # would replace that field with this one, or this one with that, depending on the extension order. Its
+        # field, when it is already there, moves to the tab like core's; one added later lands before
+        # MetaDescription, which is on the tab by then
+        if ($this->metaTitleFieldProvidedElsewhere()) {
+            $this->moveToTab($fields, 'MetaTitle', $tab);
+        } else {
+            $tab->push(
                 TextField::create('MetaTitle', $page->fieldLabel('MetaTitle'))
                     ->setAttribute('placeholder', $page->Title)
                     ->setDescription(_t(
@@ -336,8 +351,9 @@ class SeoSiteTreeExtension extends Extension
             );
         }
 
+        # Core's description, out of core's Metadata toggle, right after the meta title
+        $description = $this->moveToTab($fields, 'MetaDescription', $tab);
         # Show editors the description search engines get when they leave the field empty
-        $description = $metadata->getChildren()->dataFieldByName('MetaDescription');
         if ($description && $this->descriptionFallback() !== '') {
             $description->setAttribute('placeholder', $this->descriptionFallback());
         }
@@ -351,15 +367,19 @@ class SeoSiteTreeExtension extends Extension
             ));
 
         $extraFields = [
-            HeaderField::create('SeoRobotsHeader', _t(__CLASS__ . '.RobotsHeader', 'Search engine indexing'), 4),
-            CheckboxField::create('MetaRobotsNoIndex', $page->fieldLabel('MetaRobotsNoIndex'))
-                ->setDescription(_t(
-                    __CLASS__ . '.NoIndexHelp',
-                    'The page stays reachable, but asks search engines not to list it. It is also left out of the sitemap.'
-                )),
-            CheckboxField::create('MetaRobotsNoFollow', $page->fieldLabel('MetaRobotsNoFollow')),
-            CheckboxField::create('MetaRobotsNoSnippet', $page->fieldLabel('MetaRobotsNoSnippet')),
-            CheckboxField::create('MetaRobotsNoCache', $page->fieldLabel('MetaRobotsNoCache')),
+            # One group, titled in the label column, the checkboxes stacked in the field column with each
+            # description under its own label. Separate checkboxes under a heading left an empty label column in
+            # front of each; nested in a CompositeField the admin styles align them with the other fields
+            CompositeField::create(
+                CheckboxField::create('MetaRobotsNoIndex', $page->fieldLabel('MetaRobotsNoIndex'))
+                    ->setDescription(_t(
+                        __CLASS__ . '.NoIndexHelp',
+                        'The page stays reachable, but asks search engines not to list it. It is also left out of the sitemap.'
+                    )),
+                CheckboxField::create('MetaRobotsNoFollow', $page->fieldLabel('MetaRobotsNoFollow')),
+                CheckboxField::create('MetaRobotsNoSnippet', $page->fieldLabel('MetaRobotsNoSnippet')),
+                CheckboxField::create('MetaRobotsNoCache', $page->fieldLabel('MetaRobotsNoCache'))
+            )->setName('SeoRobots')->setTitle(_t(__CLASS__ . '.RobotsHeader', 'Search engine indexing')),
             TextField::create('CanonicalURL', $page->fieldLabel('CanonicalURL'))
                 ->setAttribute('placeholder', $page->isInDB() ? (string) $this->SeoCanonicalURL() : '')
                 ->setDescription(_t(
@@ -376,19 +396,21 @@ class SeoSiteTreeExtension extends Extension
             $sharingImage,
         ];
         foreach ($extraFields as $field) {
-            # Before core's free-form ExtraMeta, which stays last as the advanced option
-            $metadata->insertBefore('ExtraMeta', $field);
+            $tab->push($field);
         }
+        # Before core's free-form ExtraMeta, which stays last as the advanced option
+        $this->moveToTab($fields, 'ExtraMeta', $tab);
+        $this->removeEmptyMetadataToggle($fields);
 
         # Read-only, after everything editable: what the page would output as structured data. Not before the
         # first save, when the page has no URL to build ids on
         if ($page->isInDB() && $page->config()->get('seo_output_structured_data')) {
-            $metadata->push(HeaderField::create(
+            $tab->push(HeaderField::create(
                 'SeoSchemaHeader',
                 _t(__CLASS__ . '.SchemaHeader', 'Structured data'),
                 4
             ));
-            $metadata->push(LiteralField::create('SeoSchemaPreview', $this->schemaPreviewHtml()));
+            $tab->push(LiteralField::create('SeoSchemaPreview', $this->schemaPreviewHtml()));
         }
 
         if ($page instanceof VirtualPage) {
@@ -396,6 +418,59 @@ class SeoSiteTreeExtension extends Extension
         }
 
         $this->applyFieldRules($fields);
+    }
+
+    /**
+     * The page's SEO tab (`seo_tab`), created with the title "SEO" and placed right after Main when it is not
+     * there yet. Shared with {@see SeoChecksExtension}, so whichever extension runs first creates it.
+     */
+    public static function findOrMakeSeoTab(FieldList $fields, SiteTree $page): Tab
+    {
+        $path = trim((string) $page->config()->get('seo_tab')) ?: 'Root.SEO';
+        $existing = $fields->findTab($path);
+        if ($existing instanceof Tab) {
+            return $existing;
+        }
+        $parts = explode('.', $path);
+        $name = (string) end($parts);
+        $tab = $fields->findOrMakeTab($path, $name === 'SEO' ? _t(__CLASS__ . '.TabTitle', 'SEO') : null);
+        # findOrMakeTab() appends: move a tab of the root tab set to right after Main
+        $parent = count($parts) > 1 ? $fields->findTab(implode('.', array_slice($parts, 0, -1))) : null;
+        if ($parent instanceof TabSet && $parent->fieldByName('Main') && $name !== 'Main') {
+            $parent->getChildren()->removeByName($name);
+            $parent->insertAfter('Main', $tab);
+        }
+        return $tab;
+    }
+
+    /**
+     * Move a data field from wherever it is (core's Metadata toggle, say) to the end of the tab. Returns the
+     * field, or null when the form does not have it (a page class removed it).
+     */
+    protected function moveToTab(FieldList $fields, string $name, Tab $tab): ?FormField
+    {
+        $field = $fields->dataFieldByName($name);
+        if (!$field) {
+            return null;
+        }
+        $fields->removeByName($name, true);
+        $tab->push($field);
+        return $field;
+    }
+
+    /**
+     * Core's Metadata toggle, once MetaDescription and ExtraMeta have left it: removed when nothing else is in
+     * it (see `seo_remove_empty_metadata_toggle`), kept for fields another module put there.
+     */
+    protected function removeEmptyMetadataToggle(FieldList $fields): void
+    {
+        if (!$this->getOwner()->config()->get('seo_remove_empty_metadata_toggle')) {
+            return;
+        }
+        $toggle = $fields->fieldByName('Root.Main.Metadata');
+        if ($toggle instanceof CompositeField && $toggle->getChildren()->count() === 0) {
+            $fields->removeFieldFromTab('Root.Main', 'Metadata');
+        }
     }
 
     /**

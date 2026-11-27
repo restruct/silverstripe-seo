@@ -224,7 +224,7 @@ nl:
     SchemaPreviewFailed: 'De gestructureerde gegevens konden niet worden opgebouwd: {message}'
     SchemaPreviewHelp: 'Wat zoekmachines als gestructureerde gegevens van deze pagina krijgen, na de laatste keer opslaan. Opgebouwd uit de pagina en de records die ze toont; onderdelen waarin verplichte gegevens ontbreken, worden weggelaten.'
     SharingHeader: 'Social media en delen'
-    ToggleTitle: 'Zoekmachines en delen'
+    TabTitle: SEO
   Restruct\Silverstripe\SEO\Forms\SeoChecksField:
     AllPassed: 'Geen problemen, waarschuwingen of tips: alle controles zijn goed.'
     ChangedSince: 'De pagina is sindsdien gewijzigd: controleer opnieuw om bij te werken.'
