@@ -184,6 +184,18 @@
     margin: 16px 0 6px;
 }
 
+.seo-checks-doc__developer {
+    margin-top: 16px;
+    border-top: 1px solid #ced5e1;
+    padding-top: 12px;
+}
+
+.seo-checks-doc__developer > summary {
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
 .seo-checks-doc .modal-body h3:first-child {
     margin-top: 0;
 }

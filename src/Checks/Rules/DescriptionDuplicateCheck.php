@@ -28,6 +28,17 @@ class DescriptionDuplicateCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Meta description is unique');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that no other page has the same meta description: the short text search engines may show under the title of a search result. When several pages of the site show up for one search, the same text under each makes them hard to tell apart.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Meta description is not unique');

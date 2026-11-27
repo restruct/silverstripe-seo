@@ -27,6 +27,17 @@ class HeadingStructureCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Heading structure');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the page has one main heading and that the headings follow each other in order, without skipping a level (a Heading 2 followed by a Heading 4). People using a screen reader move through a page by its headings, and gaps make that harder.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Headings are in a logical order');

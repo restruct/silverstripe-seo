@@ -12,6 +12,7 @@ en:
     SkippedError: 'Not checked: the check failed ({message}).'
     SkippedNoRender: 'Not checked: the page could not be rendered.'
   Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck:
+    About: 'Checks that the links and images on this page lead to a page or file that still exists. A broken link is a dead end: visitors get an error page, and search engines cannot follow it any further.'
     Anchor: 'the anchor is not on the target page'
     Deleted: 'the linked page or file no longer exists'
     Detail: '{url}: {reason}'
@@ -26,6 +27,7 @@ en:
     MissingPage: 'no such page'
     Title: 'Links and files work'
   Restruct\Silverstripe\SEO\Checks\Rules\CanonicalCheck:
+    About: 'A page can tell search engines which address is its main one (the canonical URL), so that copies of the same page are listed only once. This checks that the page names itself. If it names another page, search engines list that page instead of this one.'
     Elsewhere: 'The canonical URL points at another URL, so search engines will list that URL instead of this page.'
     FailTitle: 'Canonical URL is wrong'
     HowToFix: 'Leave the canonical URL empty unless this page duplicates another one. If the template or another module prints a canonical too, ask the developer to keep only one.'
@@ -34,11 +36,13 @@ en:
     Several: 'The page has more than one canonical URL.'
     Title: 'Canonical URL'
   Restruct\Silverstripe\SEO\Checks\Rules\DescriptionDuplicateCheck:
+    About: 'Checks that no other page has the same meta description: the short text search engines may show under the title of a search result. When several pages of the site show up for one search, the same text under each makes them hard to tell apart.'
     FailTitle: 'Meta description is not unique'
     HowToFix: 'Write a description for this page that says what is different about it, or leave the field empty to use the page text.'
     Message: '{count} other page(s) have the same meta description.'
     Title: 'Meta description is unique'
   Restruct\Silverstripe\SEO\Checks\Rules\DescriptionLengthCheck:
+    About: 'Checks the length of the meta description, the short text that may appear under the title of a search result. A long text is cut off; a very short one is often replaced by a piece of the page that the search engine picks itself.'
     FailTitle: 'Meta description is too short or too long'
     HowToFix: 'Aim for one or two sentences, about {min} to {max} characters. The counter below the field shows the length as you type.'
     Long: 'The description is {length} characters; search results show about {max}.'
@@ -46,6 +50,7 @@ en:
     Short: 'The description is {length} characters; {min} or more gives search engines something to show.'
     Title: 'Meta description length'
   Restruct\Silverstripe\SEO\Checks\Rules\DescriptionMissingCheck:
+    About: 'Checks that the page has a meta description: a short summary that search engines may show under the title of a search result. Without one, they pick a piece of the page text themselves, which does not always say what the page is about.'
     FailTitle: 'No usable meta description'
     HowToFix: 'Write a meta description: one or two sentences saying what the visitor finds on this page.'
     Missing: 'There is no meta description, and none can be derived from the page content.'
@@ -54,12 +59,14 @@ en:
     Title: 'Meta description'
     Weak: 'There is no meta description; the one derived from the content is short: "{text}".'
   Restruct\Silverstripe\SEO\Checks\Rules\H1MissingCheck:
+    About: 'Checks that the page has a main heading (Heading 1). The main heading tells visitors, people using a screen reader and search engines what the page is about.'
     FailTitle: 'Main heading (H1) is missing'
     HowToFix: 'Give the page one main heading (Heading 1) that says what it is about. If the template should print the page title as H1, ask the developer.'
     Message: 'The page has no main heading (H1).'
     PassTitle: 'Page has a main heading (H1)'
     Title: 'Main heading (H1)'
   Restruct\Silverstripe\SEO\Checks\Rules\HeadingStructureCheck:
+    About: 'Checks that the page has one main heading and that the headings follow each other in order, without skipping a level (a Heading 2 followed by a Heading 4). People using a screen reader move through a page by its headings, and gaps make that harder.'
     FailTitle: 'Headings are not in a logical order'
     HowToFix: 'Use one Heading 1, then Heading 2 for sections and Heading 3 inside those. Pick headings by their place in the outline, not by their size: the look can be changed with a style.'
     MultipleH1: 'The page has {count} main headings (H1), or skips heading levels.'
@@ -68,11 +75,13 @@ en:
     SkippedLevels: 'The content skips heading levels.'
     Title: 'Heading structure'
   Restruct\Silverstripe\SEO\Checks\Rules\ImageAltMissingCheck:
+    About: 'Checks that every image has an alternative text: a short description of what the image shows. Screen readers read it out to people who cannot see the image, and search engines use it to understand the image. An image that is only decoration may have an empty one.'
     FailTitle: 'Images lack alt text'
     HowToFix: 'Describe each image in its alt text (in the editor: the image''s "Alternative text"), the way you would to someone who cannot see it. Only a purely decorative image gets an empty alt text.'
     Message: '{count} image(s) have no alt text.'
     Title: 'Images have alt text'
   Restruct\Silverstripe\SEO\Checks\Rules\ImageAltQualityCheck:
+    About: 'Checks that the alternative texts of the images really describe them: not a file name such as IMG_1234, not "image of", not the same text on different images, and neither very short nor very long. A good description helps people using a screen reader and search engines alike.'
     Duplicate: 'same alt text as {src}'
     FailTitle: 'Alt text does not describe the image'
     FileName: 'looks like a file name'
@@ -85,6 +94,7 @@ en:
     Stuffing: 'repeats "{word}"'
     Title: 'Alt text describes the image'
   Restruct\Silverstripe\SEO\Checks\Rules\LinkRedirectsCheck:
+    About: 'Checks for links that take a detour: to a page that only sends visitors on to another address (a redirect), or to an http:// address while the site itself uses the secure https://. Every detour makes a visit slower.'
     FailTitle: 'Links go through a redirect'
     HowToFix: 'Link to the final page rather than to a redirecting one, and use https:// for sites that support it.'
     Insecure: '{href}: http:// on an https site'
@@ -93,29 +103,34 @@ en:
     Redirector: '{href}: redirects to {target}'
     Title: 'Links go straight to their target'
   Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck:
+    About: 'Checks that every link says where it goes. Texts such as "click here" or "read more" say nothing on their own, and people using a screen reader often hear the links of a page as a list, without the text around them.'
     Empty: 'A link without text, to {href}'
     FailTitle: 'Link text does not say where it goes'
     HowToFix: 'Make the link text say where the link goes ("our course timetable" rather than "click here"). For a link that is only an image, describe the target in the image''s alt text.'
     Message: '{count} link(s) have no text, or text that does not say where they go.'
     Title: 'Link text says where it goes'
   Restruct\Silverstripe\SEO\Checks\Rules\NoindexPublishedCheck:
+    About: 'This page is published but asks search engines not to show it ("Hide from search results" is on). That is right for a thank-you page or a campaign page, and a costly mistake for any other page: it cannot be found through search engines at all.'
     FailTitle: 'Published page is hidden from search engines'
     HowToFix: 'If the page should be found, untick "Hide from search results (noindex)" and publish. If it is meant to stay out of search results, ignore this check for the page.'
     Message: 'This page is published, but asks search engines not to list it (noindex). Is that intentional?'
     PassTitle: 'Published page is not hidden from search engines'
     Title: 'Published page hidden from search engines'
   Restruct\Silverstripe\SEO\Checks\Rules\OgImageCheck:
+    About: 'Checks that the page has a sharing image: the picture shown when someone shares the page on social media or in a chat app. Without one, the link shows without a picture, or with an image the other site picks itself.'
     FailTitle: 'Sharing image is missing'
     HowToFix: 'Choose a sharing image for the page (1200 x 630 pixels works best), or set a default one for the whole site under Settings. A developer can also let the page type use an image it already has (a header image, the first gallery image) with the seo_image_fallback setting.'
     Message: 'The page has no sharing image, and there is no site default.'
     PassTitle: 'Sharing image is set'
     Title: 'Sharing image'
   Restruct\Silverstripe\SEO\Checks\Rules\OrphanPageCheck:
+    About: 'Checks that visitors can reach the page: through the menu, or through a link on another page. Search engines find pages by following links, so a page that nothing links to is found late and seen as unimportant.'
     FailTitle: 'No other page links to this page'
     HowToFix: 'Link to this page from related pages, or show it in the menu. If the template links to it (a footer link, say), ignore this check for the page.'
     Message: 'No other page links to this page, and it is not in the menu.'
     Title: 'Other pages link to this page'
   Restruct\Silverstripe\SEO\Checks\Rules\PlaceholderTextCheck:
+    About: 'Checks for placeholder text left on the page, such as "lorem ipsum", TODO or "text follows". On a live page it looks unfinished to visitors and tells search engines nothing.'
     FailTitle: 'Page contains placeholder text'
     Found: '{where}: "{match}" in "{context}"'
     HowToFix: 'Replace the placeholder with the real text, or remove it, before the page goes live.'
@@ -125,18 +140,21 @@ en:
     Message: 'The page still contains placeholder text.'
     Title: 'No placeholder text'
   Restruct\Silverstripe\SEO\Checks\Rules\StructuredDataCheck:
+    About: 'Search engines read hidden, machine-readable information about the page (structured data), such as the organisation behind it, to show richer search results. This checks that this information is complete and free of errors: information with errors is ignored.'
     FailTitle: 'Structured data is incomplete or invalid'
     HowToFix: 'Fill in the information listed (for an event, its start date and location, say). Invalid JSON-LD comes from the template or another module: ask the developer.'
     InvalidJson: 'JSON-LD block {n} is not valid JSON'
     Message: 'Some structured data cannot be used by search engines.'
     Title: 'Structured data is complete'
   Restruct\Silverstripe\SEO\Checks\Rules\ThinContentCheck:
+    About: 'Gives a tip when the page has very few words. Length alone does not matter to search engines, but a page with only a handful of words gives searchers little to go on. A contact page or a form can be fine as it is.'
     FailTitle: 'Page has very little text'
     HowToFix: 'Nothing to fix if the page does what it should. Otherwise, say in a few sentences what the visitor finds here and what they can do next.'
     Message: 'The page has {count} words of text. That can be fine (a contact page, a form), but gives search engines little to show.'
     PassTitle: 'Page has enough text'
     Title: 'Amount of text'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleBoilerplateCheck:
+    About: 'Checks that the title says something about this page: not just the name of the site, not the site name twice, and not a placeholder such as "New Page". Search engines often rewrite such titles in their results.'
     FailTitle: 'Title does not say what the page is about'
     HowToFix: 'Write a meta title that describes this page in a few words. The site name is added automatically; do not type it yourself.'
     IsSiteName: 'The title is just the site name: "{title}".'
@@ -144,11 +162,13 @@ en:
     Repeated: 'The site name is in the title more than once.'
     Title: 'Title says what the page is about'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleDuplicateCheck:
+    About: 'Checks that no other page has the same title in search results. Results with the same title cannot be told apart, and two pages with the same title are often the same page twice.'
     FailTitle: 'Title is not unique'
     HowToFix: 'Give each page its own title, saying what is different about it. If the pages really are the same, keep one and point the other at it (canonical URL).'
     Message: '{count} other page(s) have the same title: "{title}".'
     Title: 'Title is unique'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleMissingCheck:
+    About: 'Checks that the page has a title for search results: the clickable line of a result, which also shows on the browser tab. Without one, search engines make one up. This usually points at a problem in the website''s templates, not in the page.'
     Empty: 'The page title is empty.'
     FailTitle: 'Page has no title for search results'
     HowToFix: 'Give the page a title (or a meta title). If it has one, the page template does not print it: the template needs $MetaTags (or a <title> element) in its <head>.'
@@ -156,16 +176,19 @@ en:
     PassTitle: 'Page has a title for search results'
     Title: 'Page title in search results'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleWidthCheck:
+    About: 'Checks that the title fits in a search result. Search results cut off titles that are too wide, so the end of a long title is not shown.'
     FailTitle: 'Title is too wide for a search result'
     HowToFix: 'Shorten the meta title, with the most important words first. The preview below the field shows where it is cut off.'
     Message: 'The title is about {pixels} px wide; search results show about {max} px.'
     Title: 'Title fits in a search result'
   Restruct\Silverstripe\SEO\Checks\Rules\UnpublishedLinksCheck:
+    About: 'Checks for links and images that point at a page or file that is not published yet. They work for you in the draft, but visitors get an error page unless the target goes live together with this page, or before it.'
     FailTitle: 'Links point to unpublished pages or files'
     HowToFix: 'Publish the listed pages and files together with this page (or before it), or link to something that is live.'
     Message: '{count} link(s) or image(s) point at a page or file that is not published yet.'
     Title: 'Link targets are published'
   Restruct\Silverstripe\SEO\Checks\Rules\UrlSegmentCheck:
+    About: 'Checks that the web address of the page (the last part of its URL) is easy to read: a few words with hyphens between them, without underscores or long strings of small words. A readable address shows visitors and search engines what to expect.'
     FailTitle: 'URL is hard to read'
     HowToFix: 'Use a few words that describe the page, separated by hyphens. For a page that is already published, think twice: links to the old URL are redirected, but the address changes.'
     Long: '{length} characters; {max} or fewer reads better'
@@ -176,6 +199,8 @@ en:
     Underscore: 'contains underscores (_); hyphens (-) separate words'
   Restruct\Silverstripe\SEO\Control\SeoCheckController:
     BadToken: 'The security token is missing or has expired. Reload the page and try again.'
+    DocDevelopers: 'For developers'
+    DocHowToFix: 'How to fix'
     NoPage: 'The page does not exist.'
     PostOnly: 'Only POST requests are accepted.'
     UnknownCheck: 'Unknown check.'

@@ -34,6 +34,17 @@ class LinkRedirectsCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Links go straight to their target');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks for links that take a detour: to a page that only sends visitors on to another address (a redirect), or to an http:// address while the site itself uses the secure https://. Every detour makes a visit slower.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Links go through a redirect');

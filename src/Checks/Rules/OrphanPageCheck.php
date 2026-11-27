@@ -55,6 +55,17 @@ class OrphanPageCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Other pages link to this page');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that visitors can reach the page: through the menu, or through a link on another page. Search engines find pages by following links, so a page that nothing links to is found late and seen as unimportant.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'No other page links to this page');

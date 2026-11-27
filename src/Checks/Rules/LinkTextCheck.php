@@ -48,6 +48,17 @@ class LinkTextCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Link text says where it goes');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that every link says where it goes. Texts such as "click here" or "read more" say nothing on their own, and people using a screen reader often hear the links of a page as a list, without the text around them.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Link text does not say where it goes');

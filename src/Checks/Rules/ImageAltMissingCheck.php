@@ -29,6 +29,17 @@ class ImageAltMissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Images have alt text');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that every image has an alternative text: a short description of what the image shows. Screen readers read it out to people who cannot see the image, and search engines use it to understand the image. An image that is only decoration may have an empty one.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Images lack alt text');

@@ -26,6 +26,17 @@ class TitleMissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Page title in search results');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the page has a title for search results: the clickable line of a result, which also shows on the browser tab. Without one, search engines make one up. This usually points at a problem in the website\'s templates, not in the page.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Page has a title for search results');

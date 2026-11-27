@@ -33,6 +33,17 @@ class ThinContentCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Amount of text');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Gives a tip when the page has very few words. Length alone does not matter to search engines, but a page with only a handful of words gives searchers little to go on. A contact page or a form can be fine as it is.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Page has enough text');

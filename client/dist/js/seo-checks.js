@@ -96,8 +96,9 @@
         var self = this;
         var titleId = 'seo-checks-doc-title-' + (++docCount);
         var heading = el('h5', 'modal-title').attr('id', titleId).text(title || '');
-        var close = el('button', 'btn-close')
-          .attr({type: 'button', 'data-bs-dismiss': 'modal', 'aria-label': this.message('data-msg-close', 'Close')});
+        // The admin's own close control (its CloseButton component and jQuery UI dialogs): the admin switches
+        // off the Bootstrap .btn-close icon in a .modal-header and shows the font icon in the span instead
+        var close = el('button', 'btn btn-close btn--icon-xl btn--no-text modal__close-button').attr({type: 'button', 'data-bs-dismiss': 'modal', 'aria-label': this.message('data-msg-close', 'Close'), title: this.message('data-msg-close', 'Close')}).append(el('span', 'btn__icon font-icon-cancel').attr({'aria-hidden': 'true'}));
         var body = el('div', 'modal-body').append(
           el('p').text(this.message('data-msg-loading', 'Loading...'))
         );

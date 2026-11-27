@@ -25,6 +25,17 @@ class OgImageCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Sharing image');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the page has a sharing image: the picture shown when someone shares the page on social media or in a chat app. Without one, the link shows without a picture, or with an image the other site picks itself.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Sharing image is set');

@@ -32,6 +32,17 @@ class DescriptionLengthCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Meta description length');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks the length of the meta description, the short text that may appear under the title of a search result. A long text is cut off; a very short one is often replaced by a piece of the page that the search engine picks itself.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Meta description has a good length');

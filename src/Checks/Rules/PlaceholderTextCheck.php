@@ -40,6 +40,17 @@ class PlaceholderTextCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'No placeholder text');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks for placeholder text left on the page, such as "lorem ipsum", TODO or "text follows". On a live page it looks unfinished to visitors and tells search engines nothing.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Page contains placeholder text');

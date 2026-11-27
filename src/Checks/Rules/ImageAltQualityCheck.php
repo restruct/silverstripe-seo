@@ -53,6 +53,17 @@ class ImageAltQualityCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Alt text describes the image');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the alternative texts of the images really describe them: not a file name such as IMG_1234, not "image of", not the same text on different images, and neither very short nor very long. A good description helps people using a screen reader and search engines alike.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Alt text does not describe the image');

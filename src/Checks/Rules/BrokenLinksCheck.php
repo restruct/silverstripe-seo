@@ -41,6 +41,17 @@ class BrokenLinksCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Links and files work');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the links and images on this page lead to a page or file that still exists. A broken link is a dead end: visitors get an error page, and search engines cannot follow it any further.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Links or files do not work');

@@ -12,6 +12,7 @@ nl:
     SkippedError: 'Niet gecontroleerd: de controle is mislukt ({message}).'
     SkippedNoRender: 'Niet gecontroleerd: de pagina kon niet worden opgebouwd.'
   Restruct\Silverstripe\SEO\Checks\Rules\BrokenLinksCheck:
+    About: 'Controleert of de links en afbeeldingen op deze pagina naar een pagina of bestand leiden dat nog bestaat. Een kapotte link is een doodlopende weg: bezoekers krijgen een foutpagina, en zoekmachines kunnen hem niet verder volgen.'
     Detail: '{url}: {reason}'
     DetailLabelled: '"{label}" {url}: {reason}'
     Anchor: 'het anker staat niet op de doelpagina'
@@ -26,6 +27,7 @@ nl:
     MissingPage: 'pagina bestaat niet'
     Title: 'Links en bestanden werken'
   Restruct\Silverstripe\SEO\Checks\Rules\CanonicalCheck:
+    About: 'Een pagina kan zoekmachines vertellen welk adres haar hoofdadres is (de canonieke URL), zodat kopieën van dezelfde pagina maar één keer worden getoond. Deze controle kijkt of de pagina zichzelf noemt. Noemt ze een andere pagina, dan tonen zoekmachines die in plaats van deze.'
     Elsewhere: 'De canonieke URL verwijst naar een andere URL, dus zoekmachines tonen die URL in plaats van deze pagina.'
     FailTitle: 'Canonieke URL klopt niet'
     HowToFix: 'Laat de canonieke URL leeg, tenzij deze pagina een andere pagina dupliceert. Zet het template of een andere module ook een canonieke URL neer, vraag de ontwikkelaar er dan maar een over te laten.'
@@ -34,11 +36,13 @@ nl:
     Several: 'De pagina heeft meer dan een canonieke URL.'
     Title: 'Canonieke URL'
   Restruct\Silverstripe\SEO\Checks\Rules\DescriptionDuplicateCheck:
+    About: 'Controleert of geen andere pagina dezelfde metabeschrijving heeft: de korte tekst die zoekmachines onder de titel van een zoekresultaat kunnen tonen. Verschijnen meerdere pagina''s van de site bij één zoekopdracht, dan zijn ze met dezelfde tekst moeilijk uit elkaar te houden.'
     FailTitle: 'Metabeschrijving is niet uniek'
     HowToFix: 'Schrijf voor deze pagina een beschrijving die zegt wat er anders aan is, of laat het veld leeg om de paginatekst te gebruiken.'
     Message: '{count} andere pagina(''s) hebben dezelfde metabeschrijving.'
     Title: 'Metabeschrijving is uniek'
   Restruct\Silverstripe\SEO\Checks\Rules\DescriptionLengthCheck:
+    About: 'Controleert de lengte van de metabeschrijving, de korte tekst die onder de titel van een zoekresultaat kan verschijnen. Een lange tekst wordt afgekapt; een heel korte wordt vaak vervangen door een stuk van de pagina dat de zoekmachine zelf kiest.'
     FailTitle: 'Metabeschrijving is te kort of te lang'
     HowToFix: 'Mik op een of twee zinnen, ongeveer {min} tot {max} tekens. De teller onder het veld toont de lengte tijdens het typen.'
     Long: 'De beschrijving is {length} tekens; zoekresultaten tonen er ongeveer {max}.'
@@ -46,6 +50,7 @@ nl:
     Short: 'De beschrijving is {length} tekens; met {min} of meer hebben zoekmachines iets om te tonen.'
     Title: 'Lengte van de metabeschrijving'
   Restruct\Silverstripe\SEO\Checks\Rules\DescriptionMissingCheck:
+    About: 'Controleert of de pagina een metabeschrijving heeft: een korte samenvatting die zoekmachines onder de titel van een zoekresultaat kunnen tonen. Zonder die tekst kiezen ze zelf een stuk van de paginatekst, en dat zegt niet altijd waar de pagina over gaat.'
     FailTitle: 'Geen bruikbare metabeschrijving'
     HowToFix: 'Schrijf een metabeschrijving: een of twee zinnen over wat de bezoeker op deze pagina vindt.'
     Missing: 'Er is geen metabeschrijving, en uit de inhoud van de pagina is er geen af te leiden.'
@@ -54,12 +59,14 @@ nl:
     Title: 'Metabeschrijving'
     Weak: 'Er is geen metabeschrijving; de beschrijving die uit de inhoud is afgeleid, is kort: "{text}".'
   Restruct\Silverstripe\SEO\Checks\Rules\H1MissingCheck:
+    About: 'Controleert of de pagina een hoofdkop (Kop 1) heeft. De hoofdkop vertelt bezoekers, mensen die een schermlezer gebruiken en zoekmachines waar de pagina over gaat.'
     FailTitle: 'Hoofdkop (H1) ontbreekt'
     HowToFix: 'Geef de pagina een hoofdkop (Kop 1) die zegt waar ze over gaat. Moet het template de paginatitel als H1 tonen, vraag het dan aan de ontwikkelaar.'
     Message: 'De pagina heeft geen hoofdkop (H1).'
     PassTitle: 'Pagina heeft een hoofdkop (H1)'
     Title: 'Hoofdkop (H1)'
   Restruct\Silverstripe\SEO\Checks\Rules\HeadingStructureCheck:
+    About: 'Controleert of de pagina één hoofdkop heeft en of de koppen elkaar op volgorde opvolgen, zonder een niveau over te slaan (een Kop 2 gevolgd door een Kop 4). Mensen met een schermlezer gaan via de koppen door een pagina, en gaten maken dat lastiger.'
     FailTitle: 'Koppen staan niet in een logische volgorde'
     HowToFix: 'Gebruik een Kop 1, dan Kop 2 voor onderdelen en Kop 3 daarbinnen. Kies koppen op hun plaats in de opbouw, niet op hun grootte: het uiterlijk is met een stijl aan te passen.'
     MultipleH1: 'De pagina heeft {count} hoofdkoppen (H1), of slaat kopniveaus over.'
@@ -68,11 +75,13 @@ nl:
     SkippedLevels: 'De inhoud slaat kopniveaus over.'
     Title: 'Opbouw van de koppen'
   Restruct\Silverstripe\SEO\Checks\Rules\ImageAltMissingCheck:
+    About: 'Controleert of elke afbeelding een alternatieve tekst heeft: een korte beschrijving van wat erop staat. Schermlezers lezen die voor aan mensen die de afbeelding niet kunnen zien, en zoekmachines gebruiken hem om de afbeelding te begrijpen. Een afbeelding die alleen versiert, mag een lege hebben.'
     FailTitle: 'Afbeeldingen missen een alt-tekst'
     HowToFix: 'Beschrijf elke afbeelding in de alt-tekst (in de editor: de "Alternatieve tekst" van de afbeelding), zoals voor iemand die haar niet kan zien. Alleen een puur decoratieve afbeelding krijgt een lege alt-tekst.'
     Message: '{count} afbeelding(en) hebben geen alt-tekst.'
     Title: 'Afbeeldingen hebben een alt-tekst'
   Restruct\Silverstripe\SEO\Checks\Rules\ImageAltQualityCheck:
+    About: 'Controleert of de alternatieve teksten de afbeeldingen echt beschrijven: geen bestandsnaam zoals IMG_1234, geen "afbeelding van", niet dezelfde tekst bij verschillende afbeeldingen, en niet heel kort of heel lang. Een goede beschrijving helpt mensen met een schermlezer en zoekmachines allebei.'
     FailTitle: 'Alt-tekst beschrijft de afbeelding niet'
     Issue: '{src}: "{alt}" ({reason})'
     Duplicate: 'dezelfde alt-tekst als {src}'
@@ -85,6 +94,7 @@ nl:
     Stuffing: 'herhaalt "{word}"'
     Title: 'Alt-tekst beschrijft de afbeelding'
   Restruct\Silverstripe\SEO\Checks\Rules\LinkRedirectsCheck:
+    About: 'Controleert op links die een omweg maken: naar een pagina die bezoekers alleen doorstuurt naar een ander adres (een redirect), of naar een http://-adres terwijl de site zelf het beveiligde https:// gebruikt. Elke omweg maakt een bezoek trager.'
     FailTitle: 'Links gaan via een doorverwijzing'
     OldUrl: '{href}: een oud adres van {target}, dat doorverwijst'
     HowToFix: 'Link naar de uiteindelijke pagina in plaats van naar een doorverwijzing, en gebruik https:// voor sites die dat ondersteunen.'
@@ -93,29 +103,34 @@ nl:
     Redirector: '{href}: verwijst door naar {target}'
     Title: 'Links gaan direct naar hun doel'
   Restruct\Silverstripe\SEO\Checks\Rules\LinkTextCheck:
+    About: 'Controleert of elke link zegt waar hij heen gaat. Teksten als "klik hier" of "lees meer" zeggen op zichzelf niets, en mensen met een schermlezer horen de links van een pagina vaak als een lijstje, zonder de tekst eromheen.'
     Empty: 'Een link zonder tekst, naar {href}'
     FailTitle: 'Linktekst zegt niet waar de link heen gaat'
     HowToFix: 'Laat de linktekst zeggen waar de link heen gaat ("ons cursusrooster" in plaats van "klik hier"). Bestaat een link alleen uit een afbeelding, beschrijf het doel dan in de alt-tekst van de afbeelding.'
     Message: '{count} link(s) hebben geen tekst, of een tekst die niet zegt waar ze heen gaan.'
     Title: 'Linktekst zegt waar de link heen gaat'
   Restruct\Silverstripe\SEO\Checks\Rules\NoindexPublishedCheck:
+    About: 'Deze pagina is gepubliceerd, maar vraagt zoekmachines haar niet te tonen ("Verbergen in zoekresultaten" staat aan). Dat klopt voor een bedankpagina of een campagnepagina, en is voor elke andere pagina een dure vergissing: ze is dan helemaal niet te vinden via zoekmachines.'
     FailTitle: 'Gepubliceerde pagina is verborgen voor zoekmachines'
     HowToFix: 'Moet de pagina gevonden worden, zet "Verbergen in zoekresultaten (noindex)" dan uit en publiceer. Hoort ze buiten zoekresultaten te blijven, negeer deze controle dan voor de pagina.'
     Message: 'Deze pagina is gepubliceerd, maar vraagt zoekmachines haar niet te tonen (noindex). Is dat de bedoeling?'
     PassTitle: 'Gepubliceerde pagina is niet verborgen voor zoekmachines'
     Title: 'Gepubliceerde pagina verborgen voor zoekmachines'
   Restruct\Silverstripe\SEO\Checks\Rules\OgImageCheck:
+    About: 'Controleert of de pagina een deelafbeelding heeft: de afbeelding die verschijnt als iemand de pagina deelt op sociale media of in een chatapp. Zonder die afbeelding verschijnt de link zonder plaatje, of met een afbeelding die de andere site zelf kiest.'
     FailTitle: 'Deelafbeelding ontbreekt'
     HowToFix: 'Kies een deelafbeelding voor de pagina (het beste 1200 x 630 pixels), of stel onder Instellingen een standaardafbeelding voor de hele site in. Een ontwikkelaar kan het paginatype ook een afbeelding laten gebruiken die het al heeft (een headerafbeelding, de eerste galerijafbeelding) met de instelling seo_image_fallback.'
     Message: 'De pagina heeft geen deelafbeelding, en er is geen standaardafbeelding voor de site.'
     PassTitle: 'Deelafbeelding is ingesteld'
     Title: 'Deelafbeelding'
   Restruct\Silverstripe\SEO\Checks\Rules\OrphanPageCheck:
+    About: 'Controleert of bezoekers de pagina kunnen bereiken: via het menu, of via een link op een andere pagina. Zoekmachines vinden pagina''s door links te volgen, dus een pagina waar niets naar linkt, wordt laat gevonden en als onbelangrijk gezien.'
     FailTitle: 'Geen andere pagina linkt naar deze pagina'
     HowToFix: 'Link vanaf verwante pagina''s naar deze pagina, of toon haar in het menu. Linkt het template ernaar (een link in de footer bijvoorbeeld), negeer deze controle dan voor de pagina.'
     Message: 'Geen andere pagina linkt naar deze pagina, en ze staat niet in het menu.'
     Title: 'Andere pagina''s linken naar deze pagina'
   Restruct\Silverstripe\SEO\Checks\Rules\PlaceholderTextCheck:
+    About: 'Controleert op tijdelijke tekst die op de pagina is blijven staan, zoals "lorem ipsum", TODO of "tekst volgt". Op een live pagina ziet dat er onaf uit voor bezoekers, en het zegt zoekmachines niets.'
     FailTitle: 'Pagina bevat opvultekst'
     Found: '{where}: "{match}" in "{context}"'
     HowToFix: 'Vervang de opvultekst door de echte tekst, of haal hem weg, voordat de pagina live gaat.'
@@ -125,18 +140,21 @@ nl:
     Message: 'De pagina bevat nog opvultekst.'
     Title: 'Geen opvultekst'
   Restruct\Silverstripe\SEO\Checks\Rules\StructuredDataCheck:
+    About: 'Zoekmachines lezen verborgen, machineleesbare informatie over de pagina (gestructureerde gegevens), zoals de organisatie erachter, om rijkere zoekresultaten te tonen. Deze controle kijkt of die informatie compleet is en geen fouten bevat: informatie met fouten wordt genegeerd.'
     FailTitle: 'Gestructureerde gegevens zijn onvolledig of ongeldig'
     HowToFix: 'Vul de genoemde gegevens in (voor een evenement bijvoorbeeld de begindatum en de locatie). Ongeldige JSON-LD komt uit het template of een andere module: vraag het aan de ontwikkelaar.'
     InvalidJson: 'JSON-LD-blok {n} is geen geldige JSON'
     Message: 'Een deel van de gestructureerde gegevens is niet bruikbaar voor zoekmachines.'
     Title: 'Gestructureerde gegevens zijn compleet'
   Restruct\Silverstripe\SEO\Checks\Rules\ThinContentCheck:
+    About: 'Geeft een tip als de pagina heel weinig woorden heeft. Lengte alleen maakt voor zoekmachines niet uit, maar aan een pagina met maar een paar woorden hebben zoekers weinig. Een contactpagina of een formulier kan prima zijn zoals ze is.'
     FailTitle: 'Pagina heeft heel weinig tekst'
     HowToFix: 'Niets aan te doen als de pagina doet wat ze moet doen. Anders: vertel in een paar zinnen wat de bezoeker hier vindt en wat de volgende stap is.'
     Message: 'De pagina heeft {count} woorden tekst. Dat kan prima zijn (een contactpagina, een formulier), maar geeft zoekmachines weinig om te tonen.'
     PassTitle: 'Pagina heeft genoeg tekst'
     Title: 'Hoeveelheid tekst'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleBoilerplateCheck:
+    About: 'Controleert of de titel iets over deze pagina zegt: niet alleen de naam van de site, niet twee keer de sitenaam, en geen tijdelijke titel zoals "Nieuwe pagina". Zoekmachines herschrijven zulke titels vaak in hun resultaten.'
     FailTitle: 'Titel zegt niet waar de pagina over gaat'
     HowToFix: 'Schrijf een metatitel die deze pagina in een paar woorden beschrijft. De sitenaam wordt automatisch toegevoegd; typ die niet zelf.'
     IsSiteName: 'De titel is alleen de sitenaam: "{title}".'
@@ -144,11 +162,13 @@ nl:
     Repeated: 'De sitenaam staat meer dan eens in de titel.'
     Title: 'Titel zegt waar de pagina over gaat'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleDuplicateCheck:
+    About: 'Controleert of geen andere pagina dezelfde titel in zoekresultaten heeft. Resultaten met dezelfde titel zijn niet uit elkaar te houden, en twee pagina''s met dezelfde titel zijn vaak twee keer dezelfde pagina.'
     FailTitle: 'Titel is niet uniek'
     HowToFix: 'Geef elke pagina een eigen titel, die zegt wat er anders aan is. Zijn de pagina''s echt hetzelfde, houd er dan een en laat de andere ernaar verwijzen (canonieke URL).'
     Message: '{count} andere pagina(''s) hebben dezelfde titel: "{title}".'
     Title: 'Titel is uniek'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleMissingCheck:
+    About: 'Controleert of de pagina een titel voor zoekresultaten heeft: de klikbare regel van een zoekresultaat, die ook op het tabblad van de browser staat. Zonder titel verzinnen zoekmachines er zelf een. Meestal wijst dit op een probleem in de sjablonen van de website, niet in de pagina.'
     Empty: 'De paginatitel is leeg.'
     FailTitle: 'Pagina heeft geen titel voor zoekresultaten'
     HowToFix: 'Geef de pagina een titel (of een metatitel). Heeft ze er een, dan toont het paginatemplate die niet: het template heeft $MetaTags (of een <title>-element) in de <head> nodig.'
@@ -156,16 +176,19 @@ nl:
     PassTitle: 'Pagina heeft een titel voor zoekresultaten'
     Title: 'Paginatitel in zoekresultaten'
   Restruct\Silverstripe\SEO\Checks\Rules\TitleWidthCheck:
+    About: 'Controleert of de titel in een zoekresultaat past. Zoekresultaten kappen te brede titels af, dus het einde van een lange titel is niet te zien.'
     FailTitle: 'Titel is te breed voor een zoekresultaat'
     HowToFix: 'Maak de metatitel korter, met de belangrijkste woorden vooraan. De preview onder het veld laat zien waar hij wordt afgekapt.'
     Message: 'De titel is ongeveer {pixels} px breed; zoekresultaten tonen ongeveer {max} px.'
     Title: 'Titel past in een zoekresultaat'
   Restruct\Silverstripe\SEO\Checks\Rules\UnpublishedLinksCheck:
+    About: 'Controleert op links en afbeeldingen die naar een pagina of bestand wijzen dat nog niet is gepubliceerd. In het concept werken ze, maar bezoekers krijgen een foutpagina als het doel niet samen met deze pagina live gaat, of eerder.'
     FailTitle: 'Links verwijzen naar niet-gepubliceerde pagina''s of bestanden'
     HowToFix: 'Publiceer de genoemde pagina''s en bestanden samen met deze pagina (of eerder), of link naar iets dat live staat.'
     Message: '{count} link(s) of afbeelding(en) verwijzen naar een pagina of bestand dat nog niet is gepubliceerd.'
     Title: 'Linkdoelen zijn gepubliceerd'
   Restruct\Silverstripe\SEO\Checks\Rules\UrlSegmentCheck:
+    About: 'Controleert of het webadres van de pagina (het laatste deel van de URL) goed leesbaar is: een paar woorden met streepjes ertussen, zonder lage streepjes (_) of lange reeksen kleine woordjes. Een leesbaar adres laat bezoekers en zoekmachines zien wat ze kunnen verwachten.'
     FailTitle: 'URL is slecht leesbaar'
     HowToFix: 'Gebruik een paar woorden die de pagina beschrijven, gescheiden door streepjes. Bij een pagina die al gepubliceerd is: denk er goed over na, want links naar de oude URL worden doorverwezen, maar het adres verandert.'
     Long: '{length} tekens; {max} of minder leest beter'
@@ -176,6 +199,8 @@ nl:
     Underscore: 'bevat lage streepjes (_); gewone streepjes (-) scheiden woorden'
   Restruct\Silverstripe\SEO\Control\SeoCheckController:
     BadToken: 'Het beveiligingstoken ontbreekt of is verlopen. Laad de pagina opnieuw en probeer het nog eens.'
+    DocDevelopers: 'Voor ontwikkelaars'
+    DocHowToFix: Oplossen
     NoPage: 'De pagina bestaat niet.'
     PostOnly: 'Alleen POST-verzoeken worden geaccepteerd.'
     UnknownCheck: 'Onbekende controle.'

@@ -86,6 +86,16 @@ abstract class AbstractCheck implements Check
         return $this->title();
     }
 
+    /**
+     * What the check looks at and why it matters, in an editor's words, for the "About this check" dialog. Empty
+     * by default: a project's check without one shows only its how-to-fix advice there (and links to its
+     * docsUrl() anyway).
+     */
+    public function about(): string
+    {
+        return '';
+    }
+
     public function needsRender(): bool
     {
         return (bool) static::config()->get('needs_render');

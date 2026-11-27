@@ -37,6 +37,17 @@ class DescriptionMissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Meta description');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the page has a meta description: a short summary that search engines may show under the title of a search result. Without one, they pick a piece of the page text themselves, which does not always say what the page is about.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Page has a usable meta description');

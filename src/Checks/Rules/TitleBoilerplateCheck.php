@@ -41,6 +41,17 @@ class TitleBoilerplateCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Title says what the page is about');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the title says something about this page: not just the name of the site, not the site name twice, and not a placeholder such as "New Page". Search engines often rewrite such titles in their results.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Title does not say what the page is about');

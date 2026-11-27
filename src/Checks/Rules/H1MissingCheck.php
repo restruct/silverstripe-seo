@@ -27,6 +27,17 @@ class H1MissingCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Main heading (H1)');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the page has a main heading (Heading 1). The main heading tells visitors, people using a screen reader and search engines what the page is about.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Page has a main heading (H1)');

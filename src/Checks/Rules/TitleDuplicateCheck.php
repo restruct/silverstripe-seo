@@ -28,6 +28,17 @@ class TitleDuplicateCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Title is unique');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that no other page has the same title in search results. Results with the same title cannot be told apart, and two pages with the same title are often the same page twice.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Title is not unique');

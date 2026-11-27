@@ -621,9 +621,10 @@ In the page editor, at the top of the **SEO** tab:
   A failing check is headed by what was found ("Title is not unique") next to its severity badge; the passed
   checks fold away under their count, each headed by what is right ("Title is unique") and marked **OK**; checks
   that could not run are marked **Not checked**.
-- **About this check**: the info icon after a check's title opens the module's spec of that check
-  (`docs/checks/<id>.md`) in a dialog inside the CMS, rendered on the server by `admin/seo-checks/doc?check=<id>`.
-  Without JavaScript, and for a project's own check, the icon is a link to the published spec instead.
+- **About this check**: the info icon after a check's title opens a dialog inside the CMS, rendered on the server
+  by `admin/seo-checks/doc?check=<id>`: what the check looks at and why it matters, in the editor's language, and
+  the check's how-to-fix advice. Admins also get the check's spec (`docs/checks/<id>.md`, English) folded under
+  "For developers". Without JavaScript, and for a project's own check, the icon is a link to the published spec.
 - **Ignore for this page**: the icon button at the top right of a finding ignores a check where the page is fine
   as it is; it is stored with who and when, listed as ignored and not counted.
 - **Search result preview** below the panel, above the fields: title, URL breadcrumb and description, with the title's
@@ -746,7 +747,8 @@ Build messages with `$this->_t(key, default, params)` rather than the global `_t
 parameters and translated when shown. Details are capped at `max_listed` (default 20, config on
 `AbstractCheck` or per check class), followed by "and N more". "About this check" links to this module's docs
 only for the module's own checks; a project's check links to whatever its `docsUrl()` returns (nothing by
-default), and only the module's own checks open in the CMS dialog. `OrphanPageCheck.lists_children_classes` names holder classes whose template lists their children
+default), and only the module's own checks open in the CMS dialog. A check explains itself to editors in that
+dialog with `about()` (empty by default on `AbstractCheck`). `OrphanPageCheck.lists_children_classes` names holder classes whose template lists their children
 (empty by default; a blog or news holder, say); an `updateIsOrphan(bool &$orphan, PageAnalysis $analysis)`
 extension hook decides other cases.
 

@@ -11,6 +11,10 @@ use SilverStripe\Admin\AdminController;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Core\Convert;
+use SilverStripe\Model\ArrayData;
+use SilverStripe\ORM\FieldType\DBField;
+use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
 use SilverStripe\Security\SecurityToken;
 use SilverStripe\Versioned\Versioned;
@@ -27,7 +31,9 @@ use SilverStripe\Versioned\Versioned;
  *
  * `admin/seo-checks/doc?check=<id>` answers the panel's "About this check" dialog with the module's own spec of
  * that check, rendered from docs/checks/<id>.md without any raw HTML ({@see DocMarkdown}). It only reads, so it
- * takes any method and no token; it needs CMS access (403), no rights on a page. The id must be a registered
+ * takes any method and no token; it needs CMS access (403), no rights on a page. The answer starts with the
+ * check's explanation and how-to-fix advice for editors (translated); the spec itself, written for developers,
+ * is added for ADMIN members only. The id must be a registered
  * module check ({@see CheckRunner::docFile()}), anything else is a 404; it is never used as a path.
  */
 class SeoCheckController extends AdminController
@@ -82,13 +88,26 @@ class SeoCheckController extends AdminController
             $this->jsonError(404, _t(__CLASS__ . '.UnknownCheck', 'Unknown check.'));
         }
         $this->releaseSessionLock();
-        $doc = DocMarkdown::create()->render((string) file_get_contents($file));
+        $runner = CheckRunner::singleton();
+        $instance = $runner->getChecks()[$check];
+        # The spec is for developers (class names, config, thresholds): only admins get it, the others not at all
+        $spec = Permission::check('ADMIN')
+            ? DocMarkdown::create()->render((string) file_get_contents($file))
+            : null;
+        $html = ArrayData::create([
+            # Plain strings, escaped by the template
+            'About' => $runner->about($check),
+            # The check's own general advice, the one the panel shows under "How to fix"
+            'HowToFix' => $instance->howToFix(),
+            # Escaped by the renderer, with only its own tags
+            'Spec' => $spec ? DBField::create_field('HTMLFragment', $spec['html']) : null,
+        ])->renderWith('Restruct\\Silverstripe\\SEO\\Control\\SeoCheckDoc');
         $this->getResponse()->addHeader('X-Content-Type-Options', 'nosniff');
         return $this->jsonSuccess(200, [
             'check' => $check,
-            # Both escaped by the renderer: the title as text, the body with the renderer's own tags only
-            'title' => $doc['title'],
-            'html' => $doc['html'],
+            # The check's own title in the reader's language, escaped: the script sets it as markup
+            'title' => Convert::raw2xml($instance->title()),
+            'html' => trim((string) $html),
         ]);
     }
 

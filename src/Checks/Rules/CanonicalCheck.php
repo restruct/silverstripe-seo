@@ -28,6 +28,17 @@ class CanonicalCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Canonical URL');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'A page can tell search engines which address is its main one (the canonical URL), so that copies of the same page are listed only once. This checks that the page names itself. If it names another page, search engines list that page instead of this one.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Canonical URL is right');

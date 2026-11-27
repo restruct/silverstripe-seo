@@ -27,6 +27,17 @@ class NoindexPublishedCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Published page hidden from search engines');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'This page is published but asks search engines not to show it ("Hide from search results" is on). That is right for a thank-you page or a campaign page, and a costly mistake for any other page: it cannot be found through search engines at all.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'Published page is not hidden from search engines');

@@ -207,6 +207,16 @@ class CheckRunner
     }
 
     /**
+     * The editor's explanation of a registered check ({@see AbstractCheck::about()}), in the current locale; empty
+     * for an unknown id or a check without one.
+     */
+    public function about(string $id): string
+    {
+        $check = $this->getChecks()[$id] ?? null;
+        return $check && method_exists($check, 'about') ? (string) $check->about() : '';
+    }
+
+    /**
      * The module's own spec of a registered, enabled module check (docs/checks/<id>.md), for the panel's "About
      * this check" dialog; null for anything else: an unknown or disabled id, the render entry, a project's
      * check (its docsUrl() points elsewhere) or a module check that brings its own docsUrl().

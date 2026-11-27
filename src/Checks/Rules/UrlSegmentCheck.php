@@ -46,6 +46,17 @@ class UrlSegmentCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Readable URL');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks that the web address of the page (the last part of its URL) is easy to read: a few words with hyphens between them, without underscores or long strings of small words. A readable address shows visitors and search engines what to expect.'
+        );
+    }
+
     public function passTitle(): string
     {
         return _t(__CLASS__ . '.PassTitle', 'URL is readable');

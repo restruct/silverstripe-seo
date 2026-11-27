@@ -26,6 +26,17 @@ class UnpublishedLinksCheck extends BrokenLinksCheck
         return _t(__CLASS__ . '.Title', 'Link targets are published');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Checks for links and images that point at a page or file that is not published yet. They work for you in the draft, but visitors get an error page unless the target goes live together with this page, or before it.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Links point to unpublished pages or files');

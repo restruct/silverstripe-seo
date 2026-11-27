@@ -30,6 +30,17 @@ class StructuredDataCheck extends AbstractCheck
         return _t(__CLASS__ . '.Title', 'Structured data is complete');
     }
 
+    /**
+     * What the check looks at and why it matters, for the editor reading the "About this check" dialog.
+     */
+    public function about(): string
+    {
+        return _t(
+            __CLASS__ . '.About',
+            'Search engines read hidden, machine-readable information about the page (structured data), such as the organisation behind it, to show richer search results. This checks that this information is complete and free of errors: information with errors is ignored.'
+        );
+    }
+
     public function failTitle(): string
     {
         return _t(__CLASS__ . '.FailTitle', 'Structured data is incomplete or invalid');

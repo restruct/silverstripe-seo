@@ -11,6 +11,15 @@ All notable changes to this module are documented here. The format follows
 - The "About this check" dialog is rendered by the module's own small Markdown subset again (as in 0.6.x), and
   `league/commonmark` is no longer required. It only renders the module's own check docs (headings, code blocks,
   inline code, bold, links) and escapes all text; its tests render every file in `docs/checks`.
+- The "About this check" dialog is written for editors: it opens with what the check looks at and why it
+  matters (a new `about()` text per check, en and nl) and the check's how-to-fix advice, under the check's own
+  title. The developer spec from `docs/checks` (English) follows, folded under "For developers", for ADMIN
+  members only; other CMS users do not get it at all.
+
+### Fixed
+
+- The dialog's close button was invisible: it is now the admin's own close control (cancel icon), with a
+  translated label.
 
 ## [0.7.0] - 2026-11-27
 
