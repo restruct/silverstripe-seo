@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-27
+
 ### Added
 
 - `seo_image_fallback`: relations or methods of a page type tried in order for a sharing image when the page has
