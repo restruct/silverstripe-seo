@@ -6,6 +6,12 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The "About this check" dialog is rendered by the module's own small Markdown subset again (as in 0.6.x), and
+  `league/commonmark` is no longer required. It only renders the module's own check docs (headings, code blocks,
+  inline code, bold, links) and escapes all text; its tests render every file in `docs/checks`.
+
 ## [0.7.0] - 2026-11-27
 
 ### Changed

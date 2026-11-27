@@ -6,8 +6,8 @@ use Restruct\Silverstripe\SEO\Text\DocMarkdown;
 use SilverStripe\Dev\SapphireTest;
 
 /**
- * The Markdown renderer behind the panel's "About this check" dialog (league/commonmark, configured by
- * DocMarkdown): what the check specs in docs/checks/ use, and nothing of the source passes through as HTML.
+ * The small Markdown renderer behind the panel's "About this check" dialog: the subset the check specs in
+ * docs/checks/ use, and nothing of the source passes through as HTML.
  */
 class CheckDocMarkdownTest extends SapphireTest
 {
@@ -34,22 +34,22 @@ class CheckDocMarkdownTest extends SapphireTest
         $this->assertStringContainsString('<strong>not</strong>', $doc['html']);
         # Nothing is formatted inside a code span
         $this->assertStringContainsString('<code>**this**</code>', $doc['html']);
-        $this->assertStringContainsString("<pre><code class=\"language-yaml\">A\\B:\n  priority: low\n</code></pre>", $doc['html']);
+        $this->assertStringContainsString("<pre><code>A\\B:\n  priority: low</code></pre>", $doc['html']);
     }
 
     public function testListsAndLinks(): void
     {
         $doc = $this->render("- one\n- two\n\n1. first\n2. second\n\nSee [the guide](https://example.test/guide), "
             . "or https://example.test/plain.");
-        $this->assertStringContainsString("<ul>\n<li>one</li>\n<li>two</li>\n</ul>", $doc['html']);
-        $this->assertStringContainsString("<ol>\n<li>first</li>\n<li>second</li>\n</ol>", $doc['html']);
+        $this->assertStringContainsString('<ul><li>one</li><li>two</li></ul>', $doc['html']);
+        $this->assertStringContainsString('<ol><li>first</li><li>second</li></ol>', $doc['html']);
         $this->assertStringContainsString(
-            '<a rel="noopener noreferrer" target="_blank" href="https://example.test/guide">the guide</a>',
+            '<a href="https://example.test/guide" target="_blank" rel="noopener noreferrer">the guide</a>',
             $doc['html']
         );
         # A bare URL is linked without the full stop after it
         $this->assertStringContainsString(
-            '<a rel="noopener noreferrer" target="_blank" href="https://example.test/plain">https://example.test/plain</a>.',
+            '<a href="https://example.test/plain" target="_blank" rel="noopener noreferrer">https://example.test/plain</a>.',
             $doc['html']
         );
     }

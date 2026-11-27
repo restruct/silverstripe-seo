@@ -26,9 +26,8 @@ use SilverStripe\Versioned\Versioned;
  * panel's own markup, never the rendered page.
  *
  * `admin/seo-checks/doc?check=<id>` answers the panel's "About this check" dialog with the module's own spec of
- * that check, rendered from docs/checks/<id>.md with league/commonmark, without any raw HTML
- * ({@see DocMarkdown}). It only reads, so it takes any method and no token; it needs CMS access (403), no rights
- * on a page. The id must be a registered
+ * that check, rendered from docs/checks/<id>.md without any raw HTML ({@see DocMarkdown}). It only reads, so it
+ * takes any method and no token; it needs CMS access (403), no rights on a page. The id must be a registered
  * module check ({@see CheckRunner::docFile()}), anything else is a 404; it is never used as a path.
  */
 class SeoCheckController extends AdminController
