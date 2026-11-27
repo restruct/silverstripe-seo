@@ -230,7 +230,8 @@ class SeoCheckControllerTest extends FunctionalTest
         $this->assertSame('nosniff', $response->getHeader('X-Content-Type-Options'));
         $data = json_decode((string) $response->getBody(), true);
         $this->assertSame('title-width', $data['check']);
-        $this->assertSame('title-width: Title fits in a search result', $data['title']);
+        # The check's own title, as the panel names it: the spec's heading ("title-width: ...") is for developers
+        $this->assertSame('Title fits in a search result', $data['title']);
         $this->assertStringContainsString('<h3>What it checks</h3>', $data['html']);
         $this->assertStringContainsString('<code>max_pixels</code>', $data['html']);
         $this->assertStringContainsString('<pre><code>', $data['html']);
