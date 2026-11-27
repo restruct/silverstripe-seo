@@ -161,6 +161,22 @@ Site-wide, in the CMS under Settings > SEO:
   too: `SeoOrgDescription`, `SeoOrgEmail`, `SeoOrgTelephone`, `SeoOrgStreet`, `SeoOrgPostalCode`,
   `SeoOrgLocality`, `SeoOrgRegion`, `SeoOrgCountry`.
 
+The sharing image of a page is, in this order: the page's own (**Sharing image**), the first usable image of
+`seo_image_fallback`, what the `updateSeoImageFallback` hook makes of that, and the site default.
+`seo_image_fallback` (empty by default) lists relations or methods of the page type, tried in order: a has_one
+image, a has_many or many_many of images (its first usable image), or a method returning an image or a list:
+
+```yml
+App\Page\CoursePage:
+  seo_image_fallback:
+    - HeaderImage
+    - Gallery
+```
+
+A name the page does not have, a value that is not an image (a File relation), an empty relation and an image
+that is not public are passed over. The hook receives the image the config found (or null) and may replace it,
+so a hook-based fallback keeps winning. A record shown on a sub-action does not use the page's relations.
+
 A sharing image is fetched anonymously by the sites a page is shared on, so only a public image is used: one
 that is published, in the public asset store and viewable by anyone. A draft-only image, or one restricted to
 logged-in members, is skipped and the next one in the chain is used.
@@ -813,7 +829,7 @@ Called on the page (implement them in an `Extension` applied to `SiteTree` or a 
 | `updateSeoDescriptionFallback(?string &$description)` | supply a better fallback description (also called on a shown record); a page can also define `MetaDescriptionFallback()`, see [Titles, robots and descriptions from code](#titles-robots-and-descriptions-from-code) |
 | `updateSeoRobotsDirectives(array &$directives)` | add directives such as `max-image-preview:large` |
 | `updateSeoCanonicalURL(?string &$url, ?HTTPRequest $request)` | change the canonical |
-| `updateSeoImageFallback(?Image &$image)` | supply a sharing image when the page has none (a hero image, say) |
+| `updateSeoImageFallback(?Image &$image)` | supply a sharing image when the page has none (a hero image, say); receives the `seo_image_fallback` image or null, and may replace it |
 | `updateSeoMetaComponents(array &$tags)` | change any head tag this module produced, just before output (structured data is `structured-data`) |
 | `updateSeoSchemaGraph(SchemaGraph $graph, SchemaContext $ctx)` | add or change structured-data nodes, before incomplete ones are left out |
 | `updateSeoSchemaLocale(string &$locale)` | set the content locale of the structured data (`inLanguage`), for a translation module |

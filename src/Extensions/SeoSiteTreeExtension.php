@@ -32,6 +32,7 @@ use SilverStripe\Forms\TabSet;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\i18n;
+use SilverStripe\Model\List\SS_List;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
@@ -240,6 +241,15 @@ class SeoSiteTreeExtension extends Extension
      * og:type, set per page class in YAML (e.g. `article` on a news article class).
      */
     private static string $seo_og_type = 'website';
+
+    /**
+     * Where a sharing image comes from when the page has none of its own, before the `updateSeoImageFallback`
+     * hook and the site default: names of relations or methods on the page, tried in order. Each may be a has_one
+     * image, a has_many or many_many of images (its first usable image), or a method returning an image or a
+     * list of them. A name the page does not have, a value that is not an image (a File relation, say), an
+     * empty relation and an image that is not public are passed over. Empty by default.
+     */
+    private static array $seo_image_fallback = [];
 
     /**
      * The sharing image is cropped to this size (1.91:1, what the large link previews use). Keyed, so a project
@@ -780,8 +790,9 @@ class SeoSiteTreeExtension extends Extension
     }
 
     /**
-     * The sharing image: the page's own, then whatever the `updateSeoImageFallback` hook provides (a project's
-     * hero image, say), then the site default from SiteConfig. Null when there is none at all. For a shown record
+     * The sharing image: the page's own, then the first usable image of `seo_image_fallback`, then whatever the
+     * `updateSeoImageFallback` hook makes of that (it receives the config's image, or null, and may replace it:
+     * a project's hero image, say), then the site default from SiteConfig. Null when there is none at all. For a shown record
      * the record's own image takes the page image's place: a record without one goes to the hook and the site
      * default, not to the image of the page that lists it.
      */
@@ -802,7 +813,8 @@ class SeoSiteTreeExtension extends Extension
             }
         }
 
-        $image = null;
+        # The page's relations illustrate the page, not a record it shows: only for the page itself
+        $image = $subject ? null : $this->configuredFallbackImage();
         $page->extend('updateSeoImageFallback', $image);
         if (static::isUsableImage($image)) {
             return $image;
@@ -810,6 +822,29 @@ class SeoSiteTreeExtension extends Extension
 
         $default = SiteConfig::current_site_config()->SeoDefaultImage();
         return static::isUsableImage($default) ? $default : null;
+    }
+
+    /**
+     * The first usable image of `seo_image_fallback`, or null.
+     */
+    protected function configuredFallbackImage(): ?Image
+    {
+        $page = $this->getOwner();
+        foreach ((array) $page->config()->get('seo_image_fallback') as $name) {
+            $name = (string) $name;
+            # Only what the page has: a relation (magic method) or a method of its own; anything else is skipped
+            if ($name === '' || !$page->hasMethod($name)) {
+                continue;
+            }
+            $value = $page->$name();
+            $candidates = $value instanceof SS_List ? $value->limit(10) : [$value];
+            foreach ($candidates as $candidate) {
+                if (static::isUsableImage($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+        return null;
     }
 
     /**

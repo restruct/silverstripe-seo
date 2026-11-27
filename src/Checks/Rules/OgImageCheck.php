@@ -39,7 +39,7 @@ class OgImageCheck extends AbstractCheck
     {
         return _t(
             __CLASS__ . '.HowToFix',
-            'Choose a sharing image for the page (1200 x 630 pixels works best), or set a default one for the whole site under Settings.'
+            'Choose a sharing image for the page (1200 x 630 pixels works best), or set a default one for the whole site under Settings. A developer can also let the page type use an image it already has (a header image, the first gallery image) with the seo_image_fallback setting.'
         );
     }
 

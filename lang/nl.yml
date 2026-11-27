@@ -106,7 +106,7 @@ nl:
     Title: 'Gepubliceerde pagina verborgen voor zoekmachines'
   Restruct\Silverstripe\SEO\Checks\Rules\OgImageCheck:
     FailTitle: 'Deelafbeelding ontbreekt'
-    HowToFix: 'Kies een deelafbeelding voor de pagina (het beste 1200 x 630 pixels), of stel onder Instellingen een standaardafbeelding voor de hele site in.'
+    HowToFix: 'Kies een deelafbeelding voor de pagina (het beste 1200 x 630 pixels), of stel onder Instellingen een standaardafbeelding voor de hele site in. Een ontwikkelaar kan het paginatype ook een afbeelding laten gebruiken die het al heeft (een headerafbeelding, de eerste galerijafbeelding) met de instelling seo_image_fallback.'
     Message: 'De pagina heeft geen deelafbeelding, en er is geen standaardafbeelding voor de site.'
     PassTitle: 'Deelafbeelding is ingesteld'
     Title: 'Deelafbeelding'

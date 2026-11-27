@@ -6,6 +6,14 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `seo_image_fallback`: relations or methods of a page type tried in order for a sharing image when the page has
+  none of its own (a has_one image, the first image of a has_many or many_many, a method returning an image or
+  a list), before the `updateSeoImageFallback` hook, which receives that image and can still replace it, and the
+  site default. Empty by default; names the page does not have and values that are not public images are passed
+  over. The og-image check's advice mentions it.
+
 ### Fixed
 
 - **Re-check did nothing in the browser**, and neither did "Ignore for this page", the re-check after a save or

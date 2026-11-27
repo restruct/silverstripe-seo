@@ -106,7 +106,7 @@ en:
     Title: 'Published page hidden from search engines'
   Restruct\Silverstripe\SEO\Checks\Rules\OgImageCheck:
     FailTitle: 'Sharing image is missing'
-    HowToFix: 'Choose a sharing image for the page (1200 x 630 pixels works best), or set a default one for the whole site under Settings.'
+    HowToFix: 'Choose a sharing image for the page (1200 x 630 pixels works best), or set a default one for the whole site under Settings. A developer can also let the page type use an image it already has (a header image, the first gallery image) with the seo_image_fallback setting.'
     Message: 'The page has no sharing image, and there is no site default.'
     PassTitle: 'Sharing image is set'
     Title: 'Sharing image'
