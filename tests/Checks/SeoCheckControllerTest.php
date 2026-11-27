@@ -233,9 +233,9 @@ class SeoCheckControllerTest extends FunctionalTest
         $this->assertSame('title-width: Title fits in a search result', $data['title']);
         $this->assertStringContainsString('<h3>What it checks</h3>', $data['html']);
         $this->assertStringContainsString('<code>max_pixels</code>', $data['html']);
-        $this->assertStringContainsString('<pre><code>', $data['html']);
+        $this->assertStringContainsString('<pre><code class="language-yaml">', $data['html']);
         $this->assertStringContainsString(
-            '<a href="https://developers.google.com/search/docs/appearance/title-link" target="_blank"',
+            '<a rel="noopener noreferrer" target="_blank" href="https://developers.google.com/search/docs/appearance/title-link">',
             $data['html']
         );
     }
