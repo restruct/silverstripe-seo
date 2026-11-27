@@ -25,6 +25,11 @@ class PanelScriptMessagesTest extends ChecksTestCase
         $this->assertStringContainsString('data-msg-checking="Checking..."', $html);
         $this->assertStringContainsString('data-msg-not-started="Could not start the check."', $html);
         $this->assertStringContainsString('data-msg-failed="Check failed (HTTP {status})."', $html);
+        # The "About this check" dialog
+        $this->assertStringContainsString('data-msg-loading="Loading..."', $html);
+        $this->assertStringContainsString('data-msg-doc-failed="Could not load the explanation."', $html);
+        $this->assertStringContainsString('data-msg-doc-link="Open the documentation"', $html);
+        $this->assertStringContainsString('data-msg-close="Close"', $html);
     }
 
     public function testTheMessagesAreTranslated(): void
@@ -32,6 +37,8 @@ class PanelScriptMessagesTest extends ChecksTestCase
         $html = i18n::with_locale('nl_NL', fn () => $this->panelHtml());
         $this->assertStringContainsString('data-msg-not-started="De controle kon niet starten."', $html);
         $this->assertStringContainsString('data-msg-failed="Controle mislukt (HTTP {status})."', $html);
+        $this->assertStringContainsString('data-msg-doc-failed="De uitleg kon niet worden geladen."', $html);
+        $this->assertStringContainsString('data-msg-close="Sluiten"', $html);
     }
 
     public function testTheScriptUsesThemAndLogsToTheConsole(): void
@@ -41,5 +48,19 @@ class PanelScriptMessagesTest extends ChecksTestCase
         $this->assertStringContainsString("'data-msg-not-started'", $js);
         $this->assertStringContainsString("'data-msg-failed'", $js);
         $this->assertStringContainsString('console.error', $js);
+        $this->assertStringContainsString("'data-msg-doc-failed'", $js);
+        $this->assertStringContainsString("'data-doc-url'", $js);
+    }
+
+    public function testTheScriptUsesTheAdminsBootstrapOnlyWhenItIsThere(): void
+    {
+        # The admin's Bootstrap 5 tooltip and modal, through their jQuery bridge; jQuery UI also has a
+        # $.fn.tooltip, so the script tells them apart by Bootstrap's Constructor and otherwise leaves the
+        # native title and the plain link in place
+        $js = (string) file_get_contents(dirname(__DIR__, 2) . '/client/dist/js/seo-checks.js');
+        $this->assertStringContainsString('$.fn.tooltip.Constructor', $js);
+        $this->assertStringContainsString('$.fn.modal.Constructor', $js);
+        $this->assertStringContainsString(".tooltip('dispose')", $js);
+        $this->assertStringContainsString("'hidden.bs.modal'", $js);
     }
 }
