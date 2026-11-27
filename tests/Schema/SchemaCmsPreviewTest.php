@@ -38,9 +38,9 @@ class SchemaCmsPreviewTest extends SapphireTest
 
     private function preview(SeoTestPage $page): ?string
     {
-        $toggle = $page->getCMSFields()->fieldByName('Root.Main.Metadata');
-        $this->assertNotNull($toggle);
-        $field = $toggle->getChildren()->fieldByName('SeoSchemaPreview');
+        $tab = $page->getCMSFields()->fieldByName('Root.SEO');
+        $this->assertNotNull($tab);
+        $field = $tab->getChildren()->fieldByName('SeoSchemaPreview');
         if (!$field) {
             return null;
         }
@@ -55,7 +55,7 @@ class SchemaCmsPreviewTest extends SapphireTest
         $page->write();
         $html = $this->preview($page);
 
-        $this->assertNotNull($html, 'the preview is in the Metadata toggle');
+        $this->assertNotNull($html, 'the preview is on the SEO tab');
         $this->assertStringContainsString('<pre', $html);
         $this->assertStringContainsString('&quot;@type&quot;: &quot;WebPage&quot;', $html, 'pretty-printed and escaped');
         $this->assertStringNotContainsString('<b>', $html);

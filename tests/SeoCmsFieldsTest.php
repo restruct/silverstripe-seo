@@ -57,29 +57,28 @@ class SeoCmsFieldsTest extends SapphireTest
         }
     }
 
-    public function testFieldsLiveInTheMetadataToggleBelowContent(): void
+    public function testFieldsLiveInTheirOwnSeoTabAfterMain(): void
     {
         $page = SeoTestPage::create(['Title' => 'About us']);
         $page->write();
         $fields = $page->getCMSFields();
 
-        $toggle = $fields->fieldByName('Root.Main.Metadata');
-        $this->assertNotNull($toggle, 'core\'s Metadata toggle is kept, so code that looks it up still finds it');
+        $tab = $fields->fieldByName('Root.SEO');
+        $this->assertNotNull($tab, 'a tab of their own, not a toggle below the content');
+        $this->assertSame('SEO', $tab->Title());
         foreach (self::PAGE_FIELDS as $name) {
-            $this->assertNotNull($toggle->getChildren()->dataFieldByName($name), "$name should be in the Metadata toggle");
+            $this->assertNotNull($tab->getChildren()->dataFieldByName($name), "$name should be on the SEO tab");
         }
+        # Core's MetaDescription and ExtraMeta moved along, so core's toggle was left empty and is gone
+        $this->assertNotNull($tab->getChildren()->dataFieldByName('ExtraMeta'), 'ExtraMeta should be on the SEO tab');
+        $this->assertNull($fields->fieldByName('Root.Main.Metadata'), 'the empty Metadata toggle is removed');
 
-        # Below the content, as the name says: the toggle comes after the Content editor in the Main tab
-        $main = array_values(array_map(fn ($f) => $f->getName(), $fields->fieldByName('Root.Main')->getChildren()->toArray()));
-        $this->assertContains('Content', $main);
-        $this->assertGreaterThan(
-            array_search('Content', $main, true),
-            array_search('Metadata', $main, true),
-            'the Metadata toggle comes after Content'
-        );
+        # Right after the Main tab
+        $tabs = array_values(array_map(fn ($f) => $f->getName(), $fields->fieldByName('Root')->getChildren()->toArray()));
+        $this->assertSame(array_search('Main', $tabs, true) + 1, array_search('SEO', $tabs, true), 'SEO comes right after Main');
 
         # Meta title goes right before the description, where editors look for it
-        $names = array_map(fn ($f) => $f->getName(), $toggle->getChildren()->getDataFields());
+        $names = array_map(fn ($f) => $f->getName(), $tab->getChildren()->getDataFields());
         $names = array_values($names);
         $this->assertSame(
             array_search('MetaDescription', $names) - 1,

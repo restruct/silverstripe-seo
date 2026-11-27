@@ -22,27 +22,30 @@ class SeoChecksPanelTest extends ChecksTestCase
     private function panel($page): SeoChecksField
     {
         $field = $page->getCMSFields()->dataFieldByName('SeoChecks')
-            ?? $page->getCMSFields()->fieldByName('Root.Main.Metadata')?->getChildren()->fieldByName('SeoChecks');
+            ?? $page->getCMSFields()->fieldByName('Root.SEO')?->getChildren()->fieldByName('SeoChecks');
         $this->assertInstanceOf(SeoChecksField::class, $field);
         return $field;
     }
 
-    public function testThePanelIsInTheMetadataSection(): void
+    public function testThePanelAndThePreviewOpenTheSeoTab(): void
     {
         $page = $this->page();
-        $metadata = $page->getCMSFields()->fieldByName('Root.Main.Metadata');
-        $this->assertInstanceOf(SeoChecksField::class, $metadata->getChildren()->fieldByName('SeoChecks'));
-        $this->assertInstanceOf(SeoSnippetPreviewField::class, $metadata->getChildren()->fieldByName('SeoSnippetPreview'));
+        $tab = $page->getCMSFields()->fieldByName('Root.SEO');
+        $this->assertInstanceOf(SeoChecksField::class, $tab->getChildren()->fieldByName('SeoChecks'));
+        $this->assertInstanceOf(SeoSnippetPreviewField::class, $tab->getChildren()->fieldByName('SeoSnippetPreview'));
+        # The checks first, then the search result preview, then the fields
+        $names = array_map(fn ($f) => $f->getName(), $tab->getChildren()->toArray());
+        $this->assertSame(['SeoChecks', 'SeoSnippetPreview'], array_slice($names, 0, 2));
         # Not a data field: nothing is saved from it
-        $this->assertFalse($metadata->getChildren()->fieldByName('SeoChecks')->hasData());
+        $this->assertFalse($tab->getChildren()->fieldByName('SeoChecks')->hasData());
     }
 
     public function testNoPanelOnARedirectorOrAnUnsavedPage(): void
     {
-        $this->assertNull(RedirectorPage::create()->getCMSFields()->fieldByName('Root.Main.Metadata'));
+        $this->assertNull(RedirectorPage::create()->getCMSFields()->fieldByName('Root.SEO'));
         $unsaved = \Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage::create();
-        $metadata = $unsaved->getCMSFields()->fieldByName('Root.Main.Metadata');
-        $this->assertNull($metadata->getChildren()->fieldByName('SeoChecks'));
+        $tab = $unsaved->getCMSFields()->fieldByName('Root.SEO');
+        $this->assertNull($tab->getChildren()->fieldByName('SeoChecks'));
     }
 
     public function testNoPanelOnAPageTheMemberCannotEdit(): void
@@ -56,8 +59,8 @@ class SeoChecksPanelTest extends ChecksTestCase
         $this->assertFalse($page->canEdit());
         $this->assertTrue($page->canView());
 
-        $metadata = $page->getCMSFields()->fieldByName('Root.Main.Metadata');
-        $this->assertNull($metadata->getChildren()->fieldByName('SeoChecks'));
+        $tab = $page->getCMSFields()->fieldByName('Root.SEO');
+        $this->assertNull($tab->getChildren()->fieldByName('SeoChecks'));
     }
 
     public function testThePanelRendersStoredResultsGroupedWithCountsAndNoScore(): void
@@ -130,7 +133,7 @@ class SeoChecksPanelTest extends ChecksTestCase
     public function testTheSnippetPreviewIsRenderedServerSide(): void
     {
         $page = $this->page(['MetaTitle' => 'Pottery for beginners', 'URLSegment' => 'pottery']);
-        $html = (string) $page->getCMSFields()->fieldByName('Root.Main.Metadata')->getChildren()
+        $html = (string) $page->getCMSFields()->fieldByName('Root.SEO')->getChildren()
             ->fieldByName('SeoSnippetPreview')->FieldHolder();
         $this->assertStringContainsString('Pottery for beginners | Example Site', $html);
         $this->assertStringContainsString('pottery', $html);
@@ -143,7 +146,7 @@ class SeoChecksPanelTest extends ChecksTestCase
         DescriptionLengthCheck::config()->set('min_length', 33);
         DescriptionLengthCheck::config()->set('max_length', 144);
         $page = $this->page();
-        $field = $page->getCMSFields()->fieldByName('Root.Main.Metadata')->getChildren()->fieldByName('SeoSnippetPreview');
+        $field = $page->getCMSFields()->fieldByName('Root.SEO')->getChildren()->fieldByName('SeoSnippetPreview');
         $config = $field->getClientConfig();
 
         $this->assertSame(555, $config['title']['maxPixels']);
