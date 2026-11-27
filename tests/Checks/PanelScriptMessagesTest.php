@@ -63,4 +63,18 @@ class PanelScriptMessagesTest extends ChecksTestCase
         $this->assertStringContainsString(".tooltip('dispose')", $js);
         $this->assertStringContainsString("'hidden.bs.modal'", $js);
     }
+
+    public function testTheDialogUsesTheAdminsOwnCloseButton(): void
+    {
+        # The admin styles its close control by these classes and an icon span (its CloseButton component and
+        # its jQuery UI dialogs); a bare Bootstrap .btn-close has its icon switched off in .modal-header
+        $js = (string) file_get_contents(dirname(__DIR__, 2) . '/client/dist/js/seo-checks.js');
+        $this->assertSame(1, preg_match("#var close = (.*?);\n#s", $js, $m), 'the close button is built in one statement');
+        $this->assertStringContainsString("'btn btn-close btn--icon-xl btn--no-text modal__close-button'", $m[1]);
+        $this->assertStringContainsString("'btn__icon font-icon-cancel'", $m[1]);
+        $this->assertStringContainsString("'aria-hidden': 'true'", $m[1]);
+        $this->assertStringContainsString("'data-bs-dismiss': 'modal'", $m[1]);
+        $this->assertStringContainsString("'aria-label': this.message('data-msg-close', 'Close')", $m[1]);
+        $this->assertStringContainsString("title: this.message('data-msg-close', 'Close')", $m[1]);
+    }
 }

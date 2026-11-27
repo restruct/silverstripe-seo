@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Tests\Checks;
 
 use Restruct\Silverstripe\SEO\Checks\CheckRunner;
+use Restruct\Silverstripe\SEO\Checks\Rules\H1MissingCheck;
 use Restruct\Silverstripe\SEO\Control\SeoCheckController;
 use Restruct\Silverstripe\SEO\Model\SeoCheckIgnore;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
@@ -11,8 +12,11 @@ use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckTestPage;
 use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoCheckSpyController;
 use Restruct\Silverstripe\SEO\Tests\Stub\Checks\SeoDocumentedTestCheck;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Core\Convert;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FunctionalTest;
+use SilverStripe\i18n\i18n;
+use SilverStripe\Security\Member;
 use SilverStripe\Security\SecurityToken;
 use SilverStripe\SiteConfig\SiteConfig;
 use SilverStripe\View\SSViewer;
@@ -307,5 +311,81 @@ class SeoCheckControllerTest extends FunctionalTest
         $this->assertStringContainsString('&lt;main&gt;', $data['html']);
         $this->assertStringNotContainsString('<h1', $data['html']);
         $this->assertStringNotContainsString('<main', $data['html']);
+    }
+
+    private function docHtml(string $check): string
+    {
+        $data = json_decode((string) $this->getDoc($check)->getBody(), true);
+        $this->assertIsArray($data, $check);
+        return (string) $data['html'];
+    }
+
+    public function testTheDocStartsWithAnEditorSection(): void
+    {
+        $this->logInWithPermission('CMS_ACCESS_CMSMain');
+        $data = json_decode((string) $this->getDoc('h1-missing')->getBody(), true);
+        $this->assertSame('Main heading (H1)', $data['title']);
+        $html = $data['html'];
+        $this->assertStringContainsString('<div class="seo-checks-doc__editor">', $html);
+        # What it checks and why, in editor's words
+        $this->assertStringContainsString('Checks that the page has a main heading (Heading 1).', $html);
+        # The check's own how-to-fix advice, the one the panel shows, not a copy of it
+        $this->assertStringContainsString('<h3>How to fix</h3>', $html);
+        $this->assertStringContainsString(Convert::raw2xml(H1MissingCheck::create()->howToFix()), $html);
+    }
+
+    public function testTheDeveloperSpecIsOnlyForAdmins(): void
+    {
+        # Not hidden in the browser: left out of the answer
+        $this->logInWithPermission('CMS_ACCESS_CMSMain');
+        $html = $this->docHtml('h1-missing');
+        $this->assertStringContainsString('seo-checks-doc__editor', $html, 'control: the editor part is there');
+        $this->assertStringNotContainsString('seo-checks-doc__developer', $html);
+        $this->assertStringNotContainsString('For developers', $html);
+        $this->assertStringNotContainsString('What it checks', $html);
+        $this->assertStringNotContainsString('H1MissingCheck', $html);
+        $this->assertStringNotContainsString('enabled: false', $html);
+
+        $this->logInWithPermission('ADMIN');
+        $html = $this->docHtml('h1-missing');
+        # Folded away under its summary, after the editor part
+        $this->assertMatchesRegularExpression(
+            '#<details class="seo-checks-doc__developer">\s*<summary>For developers</summary>.*<h3>What it checks</h3>.*H1MissingCheck.*</details>#s',
+            $html
+        );
+        $this->assertLessThan(strpos($html, 'seo-checks-doc__developer'), strpos($html, 'seo-checks-doc__editor'));
+    }
+
+    public function testTheEditorSectionIsTranslated(): void
+    {
+        $member = Member::get()->byID($this->logInWithPermission('ADMIN'));
+        $member->Locale = 'nl_NL';
+        $member->write();
+
+        $data = json_decode((string) $this->getDoc('h1-missing')->getBody(), true);
+        $this->assertSame('Hoofdkop (H1)', $data['title']);
+        $this->assertStringContainsString('Controleert of de pagina een hoofdkop (Kop 1) heeft.', $data['html']);
+        $this->assertStringContainsString('<h3>Oplossen</h3>', $data['html']);
+        $this->assertStringContainsString(
+            Convert::raw2xml(i18n::with_locale('nl_NL', fn () => H1MissingCheck::create()->howToFix())),
+            $data['html']
+        );
+        $this->assertStringContainsString('<summary>Voor ontwikkelaars</summary>', $data['html']);
+        # The spec itself is English only
+        $this->assertStringContainsString('<h3>What it checks</h3>', $data['html']);
+    }
+
+    public function testEveryModuleCheckExplainsItselfToEditorsInEnglishAndDutch(): void
+    {
+        $runner = CheckRunner::singleton();
+        $ids = array_filter(array_keys($runner->getChecks()), fn ($id) => $runner->docFile($id) !== null);
+        $this->assertCount(23, $ids, 'control: the module checks');
+        foreach ($ids as $id) {
+            $en = i18n::with_locale('en_US', fn () => $runner->about($id));
+            $nl = i18n::with_locale('nl_NL', fn () => $runner->about($id));
+            $this->assertNotSame('', $en, "$id en");
+            $this->assertNotSame('', $nl, "$id nl");
+            $this->assertNotSame($en, $nl, "$id is translated");
+        }
     }
 }
