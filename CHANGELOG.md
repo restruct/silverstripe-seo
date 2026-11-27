@@ -6,6 +6,17 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The canonical check reported "Canonical URL is wrong" for the homepage of an https site: the in-process
+  render came out as http, so the module's own canonical read `http://host` while the check expected the https
+  URL. Fixed in restruct/silverstripe-rendered-content-extractor (the render request now takes the scheme and
+  host of the site); require the release that has it.
+- The canonical of the site root is written with its slash (`https://host/`): `Director::absoluteURL()` left it
+  as `https://host` with `add_trailing_slash` off, for the homepage and for an override of `/`.
+- README: a project that sets `$tags['canonical']` in its own `MetaComponents()`/`updateMetaComponents`
+  replaces the module's canonical, and the check then judges that value; the check is strict on the scheme.
+
 ## [0.6.0] - 2026-11-27
 
 ### Changed

@@ -81,7 +81,7 @@ class SchemaContext
             $url = $this->page->SeoCanonicalURL();
         }
         if (!is_string($url) || $url === '') {
-            return static::withoutQuery((string) $this->page->AbsoluteLink());
+            return SeoSiteTreeExtension::withRootPath(static::withoutQuery((string) $this->page->AbsoluteLink()));
         }
         # The fragment is where the node name goes
         return (string) strtok($url, '#');
@@ -131,7 +131,8 @@ class SchemaContext
             $link = $record->Link();
             $url = $link ? Director::absoluteURL((string) $link) : null;
         }
-        return is_string($url) && $url !== '' ? static::withoutQuery($url) : null;
+        # The site root with its slash, as the canonical has it, so a breadcrumb to the homepage is its canonical
+        return is_string($url) && $url !== '' ? SeoSiteTreeExtension::withRootPath(static::withoutQuery($url)) : null;
     }
 
     protected static function slug(string $value): string

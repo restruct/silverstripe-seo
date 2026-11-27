@@ -726,7 +726,8 @@ class SeoSiteTreeExtension extends Extension
      * Without an override this is the page's own URL, without its query string except for the parameters in
      * `seo_canonical_query_params`. An action URL (`/page/action/id`) is its own canonical rather than pointing
      * at the page, since it shows different content. A shown record (SEO subject) gives its own link; a virtual
-     * page points at the page it copies, since it is a duplicate of that page by definition.
+     * page points at the page it copies, since it is a duplicate of that page by definition. The site root keeps
+     * its slash ("https://host/"), see withRootPath().
      *
      * @param HTTPRequest|null $request The request being answered; looked up from the current controller when
      *                                  omitted (template use).
@@ -768,8 +769,25 @@ class SeoSiteTreeExtension extends Extension
             }
         }
 
+        if ($url) {
+            $url = static::withRootPath($url);
+        }
+
         $page->extend('updateSeoCanonicalURL', $url, $request);
         return $url ?: null;
+    }
+
+    /**
+     * The URL with "/" as its path when it has none: the site root as "https://host/", not "https://host".
+     * Director::absoluteURL() leaves the root without a path when `add_trailing_slash` is off (the default), for
+     * the homepage's link and for an override on the site's own host alike. Both forms are the same URL (RFC 3986
+     * 6.2.3), but search engines and SEO tools show the root with its slash. Any other path is left as it is.
+     * Public for the structured data, whose URLs and `@id`s follow the canonical.
+     */
+    public static function withRootPath(string $url): string
+    {
+        # scheme://authority followed directly by a query, a fragment or the end
+        return (string) preg_replace('~^([a-z][a-z0-9+.\-]*://[^/?#]+)(?=[?#]|$)~i', '$1/', $url);
     }
 
     /**
