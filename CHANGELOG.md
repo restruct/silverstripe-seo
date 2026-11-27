@@ -6,6 +6,8 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-27
+
 ### Changed
 
 - "About this check" opens the check's spec in a dialog inside the CMS instead of a new tab: the module's own
