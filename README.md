@@ -645,8 +645,9 @@ of date when they are.
 The endpoint is POST only, needs the CMS's CSRF token and CMS access, checks `canEdit()` on the page (the ID is
 the edit form's own) and answers with the results and the panel's markup, never with the rendered page.
 The `doc` action only reads: it needs CMS access but no rights on a page, accepts only the id of a registered
-module check (never a path; anything else is a 404), and renders the spec with a small Markdown subset that
-escapes all text, so no raw HTML of the spec reaches the CMS (`Restruct\Silverstripe\SEO\Text\DocMarkdown`).
+module check (never a path; anything else is a 404), and renders the spec with league/commonmark set to escape
+raw HTML and drop unsafe links, so no raw HTML of the spec reaches the CMS
+(`Restruct\Silverstripe\SEO\Text\DocMarkdown`).
 The dialog and the tooltips are the admin's own Bootstrap 5: the admin loads its tooltip, and the module adds the
 admin's copy of its modal (`thirdparty/bootstrap/js/dist/modal.js`) to the CMS requirements.
 Once authorised it releases the PHP session lock, so a slow render does not block the editor's other CMS

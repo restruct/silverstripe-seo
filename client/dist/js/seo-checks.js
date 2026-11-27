@@ -122,7 +122,8 @@
         }).done(function (response) {
           if (response && typeof response.html === 'string') {
             if (response.title) {
-              heading.text(response.title);
+              // Escaped by the endpoint (text only, no tags): set as markup, or an & would show as &amp;
+              heading.html(response.title);
             }
             body.html(response.html);
           } else {

@@ -6,6 +6,14 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The "About this check" dialog renders the check's spec with `league/commonmark` (^2.7, a new dependency)
+  instead of the module's own Markdown parser, configured to escape raw HTML (`html_input: escape`) and to drop
+  unsafe links (`allow_unsafe_links: false`); links still open in a new tab with `rel="noopener noreferrer"`.
+  The dialog's title is set as the escaped text the endpoint sends, so a title with `&` or quotes is no longer
+  shown escaped twice.
+
 ## [0.6.1] - 2026-11-27
 
 ### Fixed
