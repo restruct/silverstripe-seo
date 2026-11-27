@@ -14,6 +14,12 @@ All notable changes to this module are documented here. The format follows
   The dialog's title is set as the escaped text the endpoint sends, so a title with `&` or quotes is no longer
   shown escaped twice.
 
+### Fixed
+
+- "About this check" only ever opened the GitHub page on a Composer install: `.gitattributes` left all of
+  `docs/` out of the dist archive, so the check specs the dialog renders were missing. `docs/checks/` ships now;
+  the rest of `docs/` stays out.
+
 ## [0.6.1] - 2026-11-27
 
 ### Fixed
