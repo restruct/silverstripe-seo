@@ -7,6 +7,7 @@ use Restruct\Silverstripe\SEO\Tests\Stub\SeoTestPage;
 use SilverStripe\CMS\Model\RedirectorPage;
 use SilverStripe\CMS\Model\VirtualPage;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\i18n\i18n;
@@ -85,6 +86,67 @@ class SeoCmsFieldsTest extends SapphireTest
             array_search('MetaTitle', $names),
             'MetaTitle directly before MetaDescription'
         );
+    }
+
+    public function testTheTabHoldsTheFieldsInOrder(): void
+    {
+        $page = SeoTestPage::create(['Title' => 'About us']);
+        $page->write();
+        $tab = $page->getCMSFields()->fieldByName('Root.SEO');
+
+        # Logged out, so no checks panel (only for editors); the preview opens the tab, then the fields
+        $names = array_values(array_map(fn ($f) => $f->getName(), $tab->getChildren()->toArray()));
+        $this->assertSame([
+            'SeoSnippetPreview',
+            'MetaTitle',
+            'MetaDescription',
+            'SeoRobots',
+            'CanonicalURL',
+            'SeoSharingHeader',
+            'SEOFBdescription',
+            'OGImage',
+            'ExtraMeta',
+            'SeoSchemaHeader',
+            'SeoSchemaPreview',
+        ], $names);
+    }
+
+    public function testTheTabIsConfigurable(): void
+    {
+        SeoTestPage::config()->set('seo_tab', 'Root.Search');
+        $page = SeoTestPage::create(['Title' => 'About us']);
+        $page->write();
+        $fields = $page->getCMSFields();
+
+        $this->assertNull($fields->fieldByName('Root.SEO'));
+        $tab = $fields->fieldByName('Root.Search');
+        $this->assertNotNull($tab);
+        foreach (self::PAGE_FIELDS as $name) {
+            $this->assertNotNull($tab->getChildren()->dataFieldByName($name), "$name should be on the configured tab");
+        }
+        $tabs = array_values(array_map(fn ($f) => $f->getName(), $fields->fieldByName('Root')->getChildren()->toArray()));
+        $this->assertSame(array_search('Main', $tabs, true) + 1, array_search('Search', $tabs, true), 'after Main');
+    }
+
+    public function testTheRobotsCheckboxesFormOneLabelledGroup(): void
+    {
+        $page = SeoTestPage::create(['Title' => 'About us']);
+        $page->write();
+        $fields = $page->getCMSFields();
+
+        $this->assertNull($fields->fieldByName('SeoRobotsHeader'), 'no separate heading above the checkboxes');
+        $group = $fields->fieldByName('Root.SEO')->getChildren()->fieldByName('SeoRobots');
+        $this->assertInstanceOf(CompositeField::class, $group);
+        $this->assertSame('Search engine indexing', $group->Title());
+        $children = array_map(fn ($f) => $f->getName(), $group->getChildren()->toArray());
+        $this->assertSame(['MetaRobotsNoIndex', 'MetaRobotsNoFollow', 'MetaRobotsNoSnippet', 'MetaRobotsNoCache'], $children);
+
+        # The group's title fills the label column and the checkboxes sit in the field column under it, each
+        # with its description below its own label: no empty label column in front of a checkbox
+        $html = (string) $group->FieldHolder();
+        $this->assertMatchesRegularExpression('#<label[^>]*class="[^"]*form__field-label[^"]*"[^>]*>\s*Search engine indexing\s*</label>#', $html);
+        $this->assertStringNotContainsString('form__field-holder--no-label', $html);
+        $this->assertMatchesRegularExpression('#MetaRobotsNoIndex.*?form-check-label.*?form__field-description#s', $html);
     }
 
     public function testRedirectorPagesGetNoSeoFields(): void
