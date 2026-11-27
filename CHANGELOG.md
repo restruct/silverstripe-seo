@@ -6,6 +6,21 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Re-check did nothing in the browser**, and neither did "Ignore for this page", the re-check after a save or
+  the re-check of an out-of-date result on open. The panel's script selected the panel with
+  `.seo-checks[data-seo-checks]`, a valueless attribute test the admin's entwine does not match, so the rule's
+  methods never existed on the panel; no request was sent and no error shown. The script's rules now select
+  by class only (the preview's input rule too, now listened for on the form), and a test fails on any
+  attribute test in an entwine selector.
+- When a check cannot start or its request fails, the panel says so next to the Re-check button (en and nl,
+  with the server's reason when there is one) and logs the details to the console, instead of failing silently.
+- Results from before an update are checked again: the installed module version is part of the stored check
+  fingerprint, so a result stored by another version is out of date. A result whose render failed is out of
+  date too (a new `RenderFailed` column, filled on the next check), so a fixed cause, such as the homepage's
+  301 before 0.5.0, no longer stays on the panel until someone saves the page. Run `db:build` for the column.
+
 ## [0.5.0] - 2026-11-27
 
 ### Changed

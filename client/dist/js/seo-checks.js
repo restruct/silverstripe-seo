@@ -5,6 +5,9 @@
 //
 // The edit form is rendered by the server and swapped in by the admin's PJAX navigation, so every behaviour is
 // an entwine rule on markup inside the form: rules match whenever a form arrives, without observers.
+// Rules select by class only: the admin's entwine does not match a valueless attribute test such as
+// '.seo-checks[data-seo-checks]', and then the rule's methods simply do not exist on the element (no error).
+// tests/Checks/EntwineSelectorsTest.php fails on any attribute test in an entwine selector.
 // - The panel (.seo-checks) re-checks when the server says its stored result is missing or stale, after every
 //   form submit (a save that only changed blocks does not mark the page stale), and on the Re-check button.
 //   The endpoint answers with the panel's fresh markup, which replaces the old element.
@@ -16,7 +19,7 @@
     // into one request
     var RECHECK_DELAY = 150;
 
-    $('.cms-edit-form .seo-checks[data-seo-checks]').entwine({
+    $('.cms-edit-form .seo-checks').entwine({
       onmatch: function () {
         this._super();
         if (String(this.attr('data-seo-stale')) === '1') {
@@ -44,6 +47,24 @@
         }, RECHECK_DELAY));
       },
 
+      // A message the server translated and put in a data-msg-* attribute, with {name} placeholders filled in
+      message: function (attribute, fallback, params) {
+        var text = this.attr(attribute) || fallback;
+        $.each(params || {}, function (key, value) {
+          text = text.split('{' + key + '}').join(String(value));
+        });
+        return text;
+      },
+
+      // Shown next to the Re-check button, and logged with what went wrong, so a check never fails silently
+      showFailure: function (text, detail) {
+        this.removeClass('seo-checks--busy');
+        this.find('.seo-checks__status').text(text);
+        if (window.console && window.console.error) {
+          window.console.error('[seo-checks] ' + text, detail);
+        }
+      },
+
       // POST to the endpoint with the page ID and CSRF token of the edit form this panel sits in
       send: function (url, extra) {
         var self = this;
@@ -52,11 +73,17 @@
           ID: form.find(':input[name=ID]').val(),
           SecurityID: form.find(':input[name=SecurityID]').val()
         }, extra);
-        if (!url || !data.ID) {
+        if (!url || !data.ID || !data.SecurityID) {
+          this.showFailure(this.message('data-msg-not-started', 'Could not start the check.'), {
+            url: url,
+            ID: data.ID,
+            hasSecurityID: !!data.SecurityID,
+            inForm: form.length > 0
+          });
           return;
         }
         this.addClass('seo-checks--busy');
-        this.find('.seo-checks__status').text(ss.i18n._t('SeoChecks.Checking', 'Checking...'));
+        this.find('.seo-checks__status').text(this.message('data-msg-checking', 'Checking...'));
         $.ajax({
           url: url,
           type: 'POST',
@@ -66,13 +93,22 @@
           if (response && typeof response.panel === 'string') {
             // The server rendered and escaped this markup; it replaces the panel, and the new element matches
             // this rule again (with data-seo-stale="0", so it does not re-check)
-            self.replaceWith($(response.panel));
+            self.replaceWith($($.parseHTML($.trim(response.panel))));
+          } else {
+            self.showFailure(self.message('data-msg-failed', 'Check failed (HTTP {status}).', {status: 200}), response);
           }
         }).fail(function (xhr) {
-          self.removeClass('seo-checks--busy');
-          self.find('.seo-checks__status').text(
-            ss.i18n._t('SeoChecks.Failed', 'The check could not run') + ' (' + xhr.status + ').'
-          );
+          // The endpoint answers refusals as AdminController::jsonError() JSON, {errors: [{value: message}]}
+          // (an expired security token, say)
+          var reason = '';
+          try {
+            var body = JSON.parse(xhr.responseText) || {};
+            reason = body.errors && body.errors[0] && body.errors[0].value ? String(body.errors[0].value) : '';
+          } catch (err) {
+            reason = '';
+          }
+          var text = self.message('data-msg-failed', 'Check failed (HTTP {status}).', {status: xhr.status});
+          self.showFailure(reason ? text + ' ' + reason : text, {status: xhr.status, body: xhr.responseText});
         });
       }
     });
@@ -100,13 +136,23 @@
     $('.cms-edit-form').entwine({
       onaftersubmitform: function (e, data) {
         this._super(e, data);
-        this.find('.seo-checks[data-seo-checks]').scheduleRecheck();
+        this.find('.seo-checks').scheduleRecheck();
+      },
+
+      // The preview follows the title and description fields; listened for on the form, as a rule on the
+      // inputs would need an attribute selector (name=...), which entwine does not match reliably
+      oninput: function (e) {
+        this._super(e);
+        var name = e && e.target ? e.target.name : '';
+        if (name === 'MetaTitle' || name === 'Title' || name === 'MetaDescription') {
+          this.find('.seo-snippet').updatePreview();
+        }
       }
     });
 
     // --- Search result preview -------------------------------------------------------------------------------
 
-    $('.cms-edit-form .seo-snippet[data-seo-config]').entwine({
+    $('.cms-edit-form .seo-snippet').entwine({
       onmatch: function () {
         this._super();
         this.updatePreview();
@@ -145,13 +191,6 @@
           'seo-snippet__meter--over',
           description.length > 0 && (description.length < config.description.min || description.length > config.description.max)
         );
-      }
-    });
-
-    $('.cms-edit-form :input[name=MetaTitle], .cms-edit-form :input[name=Title], .cms-edit-form :input[name=MetaDescription]').entwine({
-      oninput: function (e) {
-        this._super(e);
-        this.closest('form').find('.seo-snippet[data-seo-config]').updatePreview();
       }
     });
 

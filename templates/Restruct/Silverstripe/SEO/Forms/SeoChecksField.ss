@@ -2,7 +2,8 @@
      replaces this element with a fresh copy from the CMS endpoint after a re-check or an ignore. Every value is
      escaped by the template (ArrayData strings are cast as Text). --%>
 <div class="seo-checks" data-seo-checks data-seo-stale="<% if $Stale %>1<% else %>0<% end_if %>"
-     data-recheck-url="$RecheckURL.ATT" data-ignore-url="$IgnoreURL.ATT">
+     data-recheck-url="$RecheckURL.ATT" data-ignore-url="$IgnoreURL.ATT"
+     data-msg-checking="$MsgChecking.ATT" data-msg-not-started="$MsgNotStarted.ATT" data-msg-failed="$MsgFailed.ATT">
     <div class="seo-checks__summary">
         <% if $HasResult %>
             <p class="seo-checks__counts">$CountsText</p>

@@ -632,8 +632,15 @@ Two changes elsewhere also make a result stale:
   it was checked. Since most pages run `broken-links`, an edit anywhere makes most results stale: the panel
   re-checks on the next open, and a site run with only stale results checks most pages again.
 - **The checks changed.** Every result stores a fingerprint of the check configuration: the enabled checks,
-  their classes and config (thresholds, severity, priority) and `CheckRunner::CHECKS_VERSION`, which a release
-  raises when what a check finds changes. A result checked under another fingerprint is stale.
+  their classes and config (thresholds, severity, priority), `CheckRunner::CHECKS_VERSION`, which a release
+  raises when what a check finds changes, and the installed version of the module, so every result is checked
+  again after an update. A result checked under another fingerprint is stale.
+- **The page did not render.** A result whose render failed (a redirect, an error) is stale: the cause may be
+  gone, so the panel checks again when it opens instead of showing the old failure.
+
+When the panel cannot start a check (no endpoint URL, page ID or security token in the form) or the request
+fails, it says so next to the **Re-check** button ("Could not start the check.", "Check failed (HTTP 403).",
+with the server's reason when it gave one) and logs the details to the browser console.
 
 **Rendering has side effects** that a page's own code can cause: the render runs the page's controller and
 template in the same PHP process (see the render library's README). Code that should not run during a check

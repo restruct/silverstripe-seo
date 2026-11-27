@@ -2,6 +2,7 @@
 
 namespace Restruct\Silverstripe\SEO\Checks;
 
+use Composer\InstalledVersions;
 use Psr\Log\LoggerInterface;
 use Restruct\Silverstripe\RenderedContentExtractor\PageEligibility;
 use Restruct\Silverstripe\RenderedContentExtractor\PageRenderer;
@@ -314,14 +315,32 @@ class CheckRunner
     }
 
     /**
+     * The installed version of this module (Composer's pretty version, '' when Composer does not know it). Part
+     * of {@see configHash()}, so every result is checked again after an update, without a release having to
+     * remember to raise CHECKS_VERSION.
+     */
+    public function moduleVersion(): string
+    {
+        if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled('restruct/silverstripe-seo')) {
+            return '';
+        }
+        return (string) InstalledVersions::getPrettyVersion('restruct/silverstripe-seo');
+    }
+
+    /**
      * A fingerprint of what the checks are: the enabled check ids, their classes and each class's config
-     * (thresholds, severity, priority), the stored format and {@see CHECKS_VERSION}. Stored with every result; a
+     * (thresholds, severity, priority), the stored format, {@see CHECKS_VERSION} and the module version. Stored with every result; a
      * result checked under another fingerprint is stale. Read from config each time (not from the instances
      * kept by getChecks()), so a change made in this process counts too.
      */
     public function configHash(): string
     {
-        $parts = ['version' => static::CHECKS_VERSION, 'format' => SeoCheckResult::FORMAT, 'checks' => []];
+        $parts = [
+            'version' => static::CHECKS_VERSION,
+            'module' => $this->moduleVersion(),
+            'format' => SeoCheckResult::FORMAT,
+            'checks' => [],
+        ];
         foreach ((array) static::config()->get('checks') as $id => $definition) {
             $definition = is_array($definition) ? $definition : ['class' => $definition];
             if (array_key_exists('enabled', $definition) && !$definition['enabled']) {

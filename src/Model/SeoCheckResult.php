@@ -30,6 +30,7 @@ use SilverStripe\Versioned\Versioned;
  * @property int $Format
  * @property string $ConfigHash
  * @property bool $CrossPage
+ * @property bool $RenderFailed
  * @method SiteTree Page()
  */
 class SeoCheckResult extends DataObject
@@ -59,6 +60,8 @@ class SeoCheckResult extends DataObject
         'ConfigHash' => 'Varchar(40)',
         # Holds a check that reads other pages: stale when any page changed after it was checked
         'CrossPage' => 'Boolean',
+        # The page did not render (the render entry is in Results): stale, so the next open checks again
+        'RenderFailed' => 'Boolean',
     ];
 
     private static array $has_one = [
@@ -115,6 +118,7 @@ class SeoCheckResult extends DataObject
         $result->Stale = $stale;
         $result->Format = static::FORMAT;
         $result->ConfigHash = CheckRunner::singleton()->configHash();
+        $result->RenderFailed = isset($entries[CheckRunner::RENDER_ENTRY]);
         $result->setEntries($entries);
     }
 
@@ -132,7 +136,10 @@ class SeoCheckResult extends DataObject
     /**
      * Out of date when any of these holds:
      * - flagged on a save of the page or one of its blocks, or a row of an earlier format;
-     * - checked under another check configuration (ids, thresholds, CheckRunner::CHECKS_VERSION);
+     * - the page did not render: what made it fail (a redirect, an error, a since fixed renderer) may be gone,
+     *   so the panel checks again on the next open rather than showing an old failure;
+     * - checked under another check configuration (ids, thresholds, CheckRunner::CHECKS_VERSION, the module
+     *   version);
      * - older than the last change of the page or of a block in its Elemental areas (for writes that bypassed
      *   the hooks, a query or an import);
      * - it holds a check that reads other pages (duplicates, links, inbound links) and any page changed since.
@@ -147,7 +154,7 @@ class SeoCheckResult extends DataObject
 
     /**
      * {@see isStale()} on the raw columns of a row (PageID, Stage, CheckedAt, Stale, Format, ConfigHash,
-     * CrossPage), so a report can decide without loading the results JSON.
+     * CrossPage, RenderFailed), so a report can decide without loading the results JSON.
      *
      * @param array<string, mixed> $row
      */
@@ -155,6 +162,9 @@ class SeoCheckResult extends DataObject
     {
         # A row of an earlier format holds finished text in the language of whoever ran it
         if (!empty($row['Stale']) || (int) ($row['Format'] ?? 0) < static::FORMAT) {
+            return true;
+        }
+        if (!empty($row['RenderFailed'])) {
             return true;
         }
         $stage = (string) ($row['Stage'] ?? '') ?: Versioned::DRAFT;

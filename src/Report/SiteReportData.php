@@ -326,7 +326,7 @@ class SiteReportData
      */
     protected function resultRows(): array
     {
-        $columns = ['"PageID"', '"Stage"', '"CheckedAt"', '"Problems"', '"Warnings"', '"Tips"', '"Stale"', '"Format"', '"ConfigHash"', '"CrossPage"'];
+        $columns = ['"PageID"', '"Stage"', '"CheckedAt"', '"Problems"', '"Warnings"', '"Tips"', '"Stale"', '"Format"', '"ConfigHash"', '"CrossPage"', '"RenderFailed"'];
         $rows = [];
         foreach (SQLSelect::create($columns, '"SeoCheckResult"', ['"Stage"' => Versioned::DRAFT])->execute() as $row) {
             $rows[(int) $row['PageID']] = $row;

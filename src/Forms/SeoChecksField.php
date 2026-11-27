@@ -86,6 +86,26 @@ class SeoChecksField extends FormField
         return $result ? DBField::create_field('Datetime', $result->CheckedAt) : null;
     }
 
+    /**
+     * Messages for the panel's script, translated here and handed over in data-msg-* attributes: the script has
+     * no translations of its own. {status} is filled in by the script.
+     */
+    public function getMsgChecking(): string
+    {
+        return _t(__CLASS__ . '.MsgChecking', 'Checking...');
+    }
+
+    public function getMsgNotStarted(): string
+    {
+        return _t(__CLASS__ . '.MsgNotStarted', 'Could not start the check.');
+    }
+
+    public function getMsgFailed(): string
+    {
+        # {status} is left for the script: _t() would fill it with an empty string
+        return str_replace('[status]', '{status}', _t(__CLASS__ . '.MsgFailed', 'Check failed (HTTP [status]).'));
+    }
+
     public function getRecheckURL(): string
     {
         return SeoCheckController::singleton()->Link('recheck');
