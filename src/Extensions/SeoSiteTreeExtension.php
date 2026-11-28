@@ -5,6 +5,7 @@ namespace Restruct\Silverstripe\SEO\Extensions;
 use Psr\Log\LoggerInterface;
 use Restruct\Silverstripe\SEO\Model\SubjectMetadata;
 use Restruct\Silverstripe\SEO\Schema\PageSchema;
+use Restruct\Silverstripe\SEO\Schema\SchemaEditorSummary;
 use Restruct\Silverstripe\SEO\Text\DescriptionSummary;
 use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\Image;
@@ -36,6 +37,7 @@ use SilverStripe\i18n\i18n;
 use SilverStripe\Model\List\SS_List;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Member;
+use SilverStripe\Security\Permission;
 use SilverStripe\SiteConfig\SiteConfig;
 use SilverStripe\Versioned\Versioned;
 use Throwable;
@@ -436,15 +438,15 @@ class SeoSiteTreeExtension extends Extension
         $this->moveToTab($fields, 'ExtraMeta', $tab);
         $this->removeEmptyMetadataToggle($fields);
 
-        # Read-only, after everything editable: what the page would output as structured data. Not before the
-        # first save, when the page has no URL to build ids on
+        # Read-only, after everything editable: what the page would output as structured data, in an editor's
+        # words, with the JSON-LD for admins. Not before the first save, when the page has no URL to build ids on
         if ($page->isInDB() && $page->config()->get('seo_output_structured_data')) {
             $tab->push(HeaderField::create(
                 'SeoSchemaHeader',
                 _t(__CLASS__ . '.SchemaHeader', 'Structured data'),
                 4
             ));
-            $tab->push(LiteralField::create('SeoSchemaPreview', $this->schemaPreviewHtml()));
+            $tab->push(LiteralField::create('SeoSchemaPreview', $this->schemaPreviewHtml($fields)));
         }
 
         if ($page instanceof VirtualPage) {
@@ -534,17 +536,29 @@ class SeoSiteTreeExtension extends Extension
     }
 
     /**
-     * The graph as pretty-printed JSON and the registry's warnings, all escaped. A failure while building it
-     * (a project's provideSchemaData throwing, say) is shown instead of breaking the edit form.
+     * The structured data section of the SEO tab, all escaped (product owner's call, 2026-11-28):
+     * - for editors, what search engines get from the page in plain words, the required information that is
+     *   missing (the node is then not output), and each recommended gap a CMS field fills as an action naming the
+     *   field and where it is ({@see SchemaEditorSummary});
+     * - for ADMIN members only, folded under "For developers": every finding of the registry and the mapper, and
+     *   the graph as pretty-printed JSON. Other CMS users do not get it at all, as with the check dialog's spec
+     *   (SeoCheckController).
+     * A failure while building it (a project's provideSchemaData throwing, say) is shown instead of breaking the
+     * edit form.
      */
-    protected function schemaPreviewHtml(): string
+    protected function schemaPreviewHtml(?FieldList $fields = null): string
     {
         try {
             # The CMS runs in the editor's language; the structured data is in the site's
             $schema = PageSchema::create($this->getOwner())
                 ->setLocale((string) i18n::config()->get('default_locale'));
             $json = $schema->getGraph()->toJson(JSON_PRETTY_PRINT);
-            $warnings = $schema->getWarnings();
+            $summary = SchemaEditorSummary::create($schema, $this->getOwner(), $fields);
+            # Worded in the editor's language, though the data is the site's
+            $types = $summary->types();
+            $actions = $summary->actions();
+            $required = $summary->requiredMessages();
+            $developer = $summary->developerMessages();
         } catch (Throwable $e) {
             return '<p class="alert alert-danger">' . Convert::raw2xml(_t(
                 __CLASS__ . '.SchemaPreviewFailed',
@@ -553,25 +567,54 @@ class SeoSiteTreeExtension extends Extension
             )) . '</p>';
         }
 
-        $html = '<p class="form__field-description">' . Convert::raw2xml(_t(
+        $html = '<div class="seo-schema"><p class="form__field-description">' . Convert::raw2xml(_t(
             __CLASS__ . '.SchemaPreviewHelp',
-            'What search engines get from this page as structured data, after the last save. Built from the page and the records it shows; nodes that miss required information are left out.'
+            'What search engines get from this page, after the last save. Information that misses something required is left out.'
         )) . '</p>';
 
-        $required = array_filter($warnings, fn (array $w) => $w['severity'] === 'required');
-        $recommended = array_filter($warnings, fn (array $w) => $w['severity'] !== 'required');
-        foreach ([[$required, 'alert-warning'], [$recommended, 'alert-info']] as [$list, $class]) {
-            if ($list) {
-                $html .= '<ul class="alert ' . $class . '">';
-                foreach ($list as $warning) {
-                    $html .= '<li>' . Convert::raw2xml($warning['message']) . '</li>';
+        if ($types) {
+            $html .= '<ul class="seo-schema__types">';
+            foreach ($types as [$label, $benefit]) {
+                $html .= '<li><strong>' . Convert::raw2xml($label) . '</strong>'
+                    . ($benefit !== '' ? ': ' . Convert::raw2xml($benefit) : '') . '</li>';
+            }
+            $html .= '</ul>';
+        }
+        if ($required) {
+            $html .= '<ul class="alert alert-warning">';
+            foreach ($required as $message) {
+                $html .= '<li>' . Convert::raw2xml($message) . '</li>';
+            }
+            $html .= '</ul>';
+        }
+        if ($actions) {
+            $html .= '<div class="alert alert-info"><p>' . Convert::raw2xml(_t(
+                __CLASS__ . '.SchemaActionsIntro',
+                'To make it more complete:'
+            )) . '</p><ul>';
+            foreach ($actions as $action) {
+                $html .= '<li>' . Convert::raw2xml($action) . '</li>';
+            }
+            $html .= '</ul></div>';
+        }
+
+        if (Permission::check('ADMIN')) {
+            $html .= '<details class="seo-schema__developer"><summary>' . Convert::raw2xml(_t(
+                __CLASS__ . '.SchemaForDevelopers',
+                'For developers'
+            )) . '</summary>';
+            if ($developer) {
+                $html .= '<ul>';
+                foreach ($developer as $message) {
+                    $html .= '<li>' . Convert::raw2xml($message) . '</li>';
                 }
                 $html .= '</ul>';
             }
+            $html .= '<pre class="seo-schema-preview" style="max-height:30em;overflow:auto;white-space:pre-wrap">'
+                . Convert::raw2xml($json) . '</pre></details>';
         }
 
-        return $html . '<pre class="seo-schema-preview" style="max-height:30em;overflow:auto;white-space:pre-wrap">'
-            . Convert::raw2xml($json) . '</pre>';
+        return $html . '</div>';
     }
 
     /**

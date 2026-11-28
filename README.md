@@ -589,8 +589,19 @@ applicantLocationRequirements & jobLocationType` is met by a location, or by bot
 
 `$page->getSchemaWarnings()` lists, per finding, a `code`: `missing-required` (the node was left out),
 `missing-recommended`, `method-not-allowed` (a map names something it may not call) and `type-not-registered`.
-The page editor shows them, with the JSON the page would output (in the site's locale), under
-**SEO > Structured data**.
+The page editor shows them under **SEO > Structured data**, written for editors:
+
+- what search engines get from the page, one plain line per node ("Website: Google can show the site name above
+  the search result.", "Job posting: ...");
+- missing required information, as the registry words it (the node is not output);
+- each missing recommended property that a CMS field fills, as an action naming the field and where it is
+  ("Organisation: fill in Telephone under Settings > SEO."). The field is found through the `schema_map` of the
+  record the node came from: a database field or has_one of that record, also inside a nested map or a `date` or
+  `html` entry; the WebPage's description is the page's meta description. A property no field fills (a constant,
+  another record's data, a method, `provideSchemaData()`) is not shown to editors.
+
+ADMIN members also get a closed **For developers** fold with every finding and the JSON the page would output
+(in the site's locale); other CMS users do not get the JSON at all.
 
 A type the registry does not know requires nothing, so its nodes are output, with a `type-not-registered`
 warning. When you use a more specific type (a LocalBusiness subtype such as `Store`, say), register it with its

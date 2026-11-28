@@ -178,6 +178,15 @@ class SchemaTypeRegistry
     }
 
     /**
+     * The registered parent of a type (`Corporation` -> `Organization`), or null.
+     */
+    public function parentOf(string $type): ?string
+    {
+        $parent = $this->types()[$type]['parent'] ?? null;
+        return is_string($parent) && $parent !== '' ? $parent : null;
+    }
+
+    /**
      * @param string|string[] $type One type or several (a node's `@type` may be a list)
      * @return string[]
      */

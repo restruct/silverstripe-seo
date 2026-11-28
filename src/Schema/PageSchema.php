@@ -45,6 +45,15 @@ class PageSchema
     protected array $warnings = [];
 
     /**
+     * The record each mapped node came from, by `@id`: the site's Organization from SiteConfig, the content
+     * source's nodes from it, included records from themselves. Read by the CMS summary to name the field that
+     * fills a gap ({@see SchemaEditorSummary}).
+     *
+     * @var array<string, DataObject>
+     */
+    protected array $sources = [];
+
+    /**
      * The content locale (`en_US`); null for the current i18n locale, which is the content's on the front end.
      */
     protected ?string $locale = null;
@@ -89,6 +98,32 @@ class PageSchema
         return $this->warnings;
     }
 
+    /**
+     * The record a node of this page view was mapped from, by its `@id`; null for a node built here (WebSite,
+     * WebPage, breadcrumb, list) or by the page's hook.
+     */
+    public function getSourceRecord(string $id): ?DataObject
+    {
+        $this->getGraph();
+        return $this->sources[$id] ?? null;
+    }
+
+    /**
+     * Notes which record the nodes came from, and returns them.
+     *
+     * @param array[] $nodes
+     * @return array[]
+     */
+    protected function fromRecord(DataObject $record, array $nodes): array
+    {
+        foreach ($nodes as $node) {
+            if (isset($node['@id']) && is_string($node['@id'])) {
+                $this->sources[$node['@id']] ??= $record;
+            }
+        }
+        return $nodes;
+    }
+
     protected function build(): void
     {
         $page = $this->page;
@@ -96,6 +131,7 @@ class PageSchema
         $mapper = SchemaMapper::create($context);
         $graph = SchemaGraph::create();
         $this->warnings = [];
+        $this->sources = [];
 
         # 1. Site nodes
         $siteConfig = $page->getSiteConfig();
@@ -108,12 +144,12 @@ class PageSchema
             'publisher' => ['@id' => $context->siteId('organization')],
         ], fn ($value) => $value !== '' && $value !== null));
         if ($siteConfig instanceof DataObject) {
-            $graph->addAll($mapper->nodesFor($siteConfig));
+            $graph->addAll($this->fromRecord($siteConfig, $mapper->nodesFor($siteConfig)));
         }
 
         # 4, with the candidates for the main entity, in order of preference
         $source = $this->subject ?? $page;
-        $mainNodes = $mapper->nodesFor($source);
+        $mainNodes = $this->fromRecord($source, $mapper->nodesFor($source));
         $itemList = $this->subject ? null : $this->itemList($context, $mapper);
         $candidates = array_values(array_filter(array_map(
             fn (array $node) => isset($node['@id']) && is_string($node['@id']) ? $node['@id'] : null,
@@ -152,7 +188,7 @@ class PageSchema
                 if ($limit > 0 && $included >= $limit) {
                     break 2;
                 }
-                $graph->addAll($mapper->nodesFor($record));
+                $graph->addAll($this->fromRecord($record, $mapper->nodesFor($record)));
                 $included++;
             }
         }

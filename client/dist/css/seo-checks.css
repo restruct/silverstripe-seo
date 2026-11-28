@@ -281,3 +281,18 @@
     color: #a85f00;
     font-weight: 600;
 }
+
+/* The structured data section on the SEO tab: the summary for editors, the JSON-LD folded for admins */
+.seo-schema__types {
+    margin: 0 0 12px;
+    padding-left: 18px;
+}
+
+.seo-schema__developer {
+    margin-top: 12px;
+}
+
+.seo-schema__developer > summary {
+    cursor: pointer;
+    color: #566b8d;
+}

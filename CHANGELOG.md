@@ -21,6 +21,13 @@ Run `sake db:build` after updating: there is a new column (`SiteTree.CanonicalPa
 
 ### Changed
 
+- The structured data section on the SEO tab is written for editors: a plain summary of what search engines
+  get from the page ("Website: Google can show the site name above the search result."), the missing required
+  information, and each missing recommended property that a CMS field fills as an action naming the field and
+  where it is ("Organisation: fill in Telephone under Settings > SEO."). Gaps no field can fill are no longer
+  shown to editors. The JSON-LD and the full list of findings are folded under "For developers", rendered for
+  ADMIN members only. en, nl.
+
 - The alt text checks name an image by its file instead of the URL of the variant the page shows
   (`photo__FitWz..._ExtRewriteWy....webp`): the URL is parsed back to the original with core's file ID helpers
   (an `ExtRewrite` variant under its original extension), and the File record is shown by its title, linked to
