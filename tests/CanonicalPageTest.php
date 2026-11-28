@@ -12,6 +12,7 @@ use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TreeDropdownField;
 use SilverStripe\i18n\i18n;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\Versioned\Versioned;
 
 /**
@@ -216,6 +217,8 @@ class CanonicalPageTest extends SapphireTest
     {
         $page = $this->page();
         $this->assertSame('Canonical page', $page->fieldLabel('CanonicalPage'));
+        # Core caches field labels per class, not per locale: cleared for the second language
+        DataObject::reset();
         $this->assertSame('Canonieke pagina', i18n::with_locale('nl_NL', fn () => $page->fieldLabel('CanonicalPage')));
     }
 }
