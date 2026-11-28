@@ -106,7 +106,8 @@ class SeoChecksPanelTest extends ChecksTestCase
         SeoCheckIgnore::ignore($page, 'h1-missing', Security::getCurrentUser());
         CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
         $html = (string) $this->panel($page)->FieldHolder();
-        $this->assertMatchesRegularExpression('#seo-checks__ignored.*data-check="h1-missing"#s', $html);
+        # Separate from the failures, in the folded list of passed checks (product owner's call, 2026-11-28)
+        $this->assertMatchesRegularExpression('#seo-checks__passed.*seo-checks__item--ignored[^>]*data-check="h1-missing"#s', $html);
         $this->assertStringContainsString('Ignored by', $html);
     }
 

@@ -115,10 +115,11 @@ class PanelControlsTest extends ChecksTestCase
         SeoCheckIgnore::ignore($page, 'h1-missing', Security::getCurrentUser());
         CheckRunner::singleton()->checkPage($page, Security::getCurrentUser());
         $html = $this->panelHtml($page);
-        $this->assertMatchesRegularExpression('#seo-checks__ignored.*data-check="h1-missing"#s', $html);
+        # In the folded list of passed checks (product owner's call, 2026-11-28)
+        $this->assertMatchesRegularExpression('#seo-checks__passed.*seo-checks__item--ignored[^>]*data-check="h1-missing"#s', $html);
         $this->assertStringNotContainsString('seo-checks__state--fail', $html);
-        # Its "Check again" button keeps its text
-        $this->assertMatchesRegularExpression('#seo-checks__ignore[^>]*data-ignore="0"[^>]*>\s*Check again\s*</button>#', $html);
+        # Its "Check again" button is an icon now, like the ignore button; the label is in the tooltip
+        $this->assertMatchesRegularExpression('#seo-checks__ignore[^>]*data-ignore="0"[^>]*>\s*</button>#', $html);
     }
 
     public function testThePriorityIsAnOutlinedBadge(): void
