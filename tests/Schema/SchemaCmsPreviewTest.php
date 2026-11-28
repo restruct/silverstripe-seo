@@ -51,6 +51,8 @@ class SchemaCmsPreviewTest extends SapphireTest
     public function testPreviewShowsTheGraphEscaped(): void
     {
         # JSON_HEX_TAG already takes care of < and >; " and & are left to the HTML escaping of the preview
+        # The JSON is shown to ADMIN members only (product owner's call, 2026-11-28)
+        $this->logInWithPermission('ADMIN');
         $page = SeoTestPage::create(['Title' => 'Fish "and" <b>&</b> chips', 'URLSegment' => 'fish']);
         $page->write();
         $html = $this->preview($page);
@@ -78,6 +80,8 @@ class SchemaCmsPreviewTest extends SapphireTest
     public function testPreviewUsesTheSiteLocaleNotTheEditors(): void
     {
         i18n::config()->set('default_locale', 'en_US');
+        # The JSON is shown to ADMIN members only (product owner's call, 2026-11-28)
+        $this->logInWithPermission('ADMIN');
         $page = SeoTestPage::create(['Title' => 'About us', 'URLSegment' => 'about-us']);
         $page->write();
         # The CMS switches i18n to the editor's own locale
