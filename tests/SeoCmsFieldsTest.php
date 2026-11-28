@@ -105,6 +105,7 @@ class SeoCmsFieldsTest extends SapphireTest
             'MetaTitle',
             'MetaDescription',
             'SeoRobots',
+            'CanonicalPageID',
             'CanonicalURL',
             'SeoSharingHeader',
             'SEOFBdescription',
