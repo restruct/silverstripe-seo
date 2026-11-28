@@ -6,6 +6,19 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+Run `sake db:build` after updating: there is a new column (`SiteTree.CanonicalPageID`).
+
+### Added
+
+- **Canonical page**: a page of this site as the canonical, picked in the page tree on the SEO tab (has_one
+  `CanonicalPage`). It takes precedence over the free-text Canonical URL, which stays for an original on another
+  site (both field descriptions say so). The canonical is the picked page's absolute published link at render
+  time; a pick that is not published or no longer exists is passed over (the page keeps the canonical it has
+  without it) and the canonical check reports it. The root slash, `updateSeoCanonicalURL`, virtual pages and
+  `seo_hidden_fields` / `seo_readonly_fields` (as `CanonicalPage`) apply as before.
+- Migration from simpleseo: a canonical link to a page without anchor or query string becomes the canonical
+  page; one with an anchor or query string stays a URL. The other sources have no page-based canonical.
+
 ### Changed
 
 - The alt text checks name an image by its file instead of the URL of the variant the page shows

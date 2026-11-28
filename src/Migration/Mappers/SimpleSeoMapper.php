@@ -15,8 +15,11 @@ use SilverStripe\Versioned\Versioned;
  * bigfork/silverstripe-simpleseo (5.x) with kinglozzer/metatitle. MetaTitle is the same column. The canonical is
  * a silverstripe/linkfield Link (has_one CanonicalLink on SiteTree); it is resolved per stage, from that stage's
  * Link tables, to the URL this module's CanonicalURL takes:
- * - a page: its link, root-relative (with the link's query string and anchor), so the URL does not carry the
- *   host name of wherever the task happened to run; the module makes it absolute on output;
+ * - a page without anchor or query string: the page itself, as this module's CanonicalPage (picked in the page
+ *   tree), so the canonical follows the page when it is renamed or moved;
+ * - a page with an anchor or query string: its link, root-relative (with the link's query string and anchor), so
+ *   the URL does not carry the host name of wherever the task happened to run; the module makes it absolute on
+ *   output;
  * - a file: its URL;
  * - an external link: the URL as entered;
  * - a link to the page itself: nothing to copy, as that is the default canonical;
@@ -45,12 +48,51 @@ class SimpleSeoMapper implements SeoMigrationMapper
             'SiteTree',
             'CanonicalURL',
             function (mixed $linkID, ?string $stage, int $pageID) use ($run) {
+                # A plain page link goes to CanonicalPage below, not to the URL as well
+                if ($this->plainPageLink($run, (int) $linkID, $stage) !== null) {
+                    return MigrationRun::NOTHING;
+                }
                 $url = $this->resolve($run, (int) $linkID, $stage, $pageID);
                 # A resolved URL still has to be one this module accepts (e.g. not a "javascript:" external link)
                 return is_string($url) ? $run->canonicalTransform()($url) : $url;
             }
         );
+        $run->copyColumn(
+            ['SiteTree'],
+            'CanonicalLinkID',
+            'SiteTree',
+            'CanonicalPageID',
+            function (mixed $linkID, ?string $stage, int $pageID) use ($run) {
+                $targetID = $this->plainPageLink($run, (int) $linkID, $stage);
+                if ($targetID === null || $targetID === $pageID) {
+                    # Not a plain page link (copied as a URL above), or the page itself: the default canonical
+                    return MigrationRun::NOTHING;
+                }
+                $mode = $stage === MigrationRun::STAGE_LIVE ? Versioned::LIVE : Versioned::DRAFT;
+                # A page that is not there in this stage is an invalid link, as for the URL
+                return Versioned::get_by_stage(SiteTree::class, $mode)->byID($targetID) ? $targetID : null;
+            },
+            true
+        );
         $run->note(_t(__CLASS__ . '.ExtraMeta', 'ExtraMeta ("Custom meta tags") is core\'s own field: nothing to do.'));
+    }
+
+    /**
+     * The target page ID of a SiteTreeLink without anchor or query string, in that stage's link tables; null for
+     * any other link (or none).
+     */
+    protected function plainPageLink(MigrationRun $run, int $linkID, ?string $stage): ?int
+    {
+        $suffix = $stage === MigrationRun::STAGE_LIVE ? '_Live' : '';
+        $link = $this->row($run, 'LinkField_Link' . $suffix, $linkID);
+        if (!$link || (string) $link['ClassName'] !== self::LINK_MODELS . 'SiteTreeLink') {
+            return null;
+        }
+        $details = $this->row($run, 'LinkField_SiteTreeLink' . $suffix, $linkID);
+        if (!$details || (int) $details['PageID'] <= 0 || (string) $details['Anchor'] !== '' || (string) $details['QueryString'] !== '') {
+            return null;
+        }
+        return (int) $details['PageID'];
     }
 
     /**

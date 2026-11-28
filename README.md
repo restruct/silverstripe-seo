@@ -197,8 +197,8 @@ App\Page\CoursePage:
 ```
 
 The names are the field names: `MetaTitle`, `MetaDescription` (core's, on the same tab), `MetaRobotsNoIndex`,
-`MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache`, `CanonicalURL`, `SEOFBdescription` and
-`OGImage`. Other names are ignored. Both are lists, so a subclass adds to its parent's; a field in both is hidden.
+`MetaRobotsNoFollow`, `MetaRobotsNoSnippet`, `MetaRobotsNoCache`, `CanonicalPage` (or `CanonicalPageID`),
+`CanonicalURL`, `SEOFBdescription` and `OGImage`. Other names are ignored. Both are lists, so a subclass adds to its parent's; a field in both is hidden.
 What the page outputs is not changed by this: a page that generates its title does so with a getter (see
 [Titles, robots and descriptions from code](#titles-robots-and-descriptions-from-code)).
 
@@ -248,6 +248,13 @@ class CoursePage extends Page
 
 - A page's canonical is its own URL, without query string except the parameters in
   `seo_canonical_query_params`.
+- An editor can point it elsewhere in two ways, on the SEO tab. **Canonical page** (has_one `CanonicalPage`,
+  picked in the page tree) is a page of this site: the canonical is that page's absolute link as published,
+  read when the page renders, so it follows a rename or a move. It takes precedence over **Canonical URL**, the
+  free-text field, which stays for an original on another site. A picked page that is not published (any more)
+  or no longer exists is passed over: the page falls back to the canonical it has without it (the canonical URL
+  or its own URL), and the canonical check reports the pick. Picking the page itself is the same as no pick. A
+  virtual page copies the pick from its source, like the other fields. `updateSeoCanonicalURL` still runs last.
 - An action URL is its own canonical: everything after the page's path is kept (`/blog/archive/2024/05/12` for
   a url_handler `archive/$Year!/$Month/$Day`), with the action segment lowercased. On the homepage the `home`
   segment is kept (`/home/archive/...`), since that is where the action lives.
@@ -977,7 +984,7 @@ It has no Open Graph or Twitter text columns, so the sharing description falls b
 | Old column | Here |
 |---|---|
 | `MetaTitle` | same column, nothing to copy |
-| `CanonicalLinkID` (a silverstripe/linkfield Link) | `CanonicalURL`, resolved per stage: a page link root-relative (with its query string and anchor), a file's URL, an external URL as entered; a link to the page itself is the default already; email and phone links are invalid |
+| `CanonicalLinkID` (a silverstripe/linkfield Link) | resolved per stage: a page link without anchor or query string to `CanonicalPageID` (the page picker); to `CanonicalURL` a page link with its query string or anchor (root-relative), a file's URL, an external URL as entered; a link to the page itself is the default already; email and phone links are invalid |
 | `ExtraMeta` | core's own field, nothing to do |
 
 Page and file links are stored root-relative on purpose, so they do not carry the host name of wherever the task

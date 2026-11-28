@@ -9,7 +9,8 @@ use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
 /**
  * Check 17: the canonical URL of the rendered page points at another URL (search engines then index that one
  * instead of this page), is not a valid absolute URL, or is given more than once with different values.
- * A page without a canonical passes: search engines then pick one themselves.
+ * A page without a canonical passes: search engines then pick one themselves. A canonical page picked in the page
+ * tree that is not published or no longer exists fails as well: the page then falls back to its own canonical.
  */
 class CanonicalCheck extends AbstractCheck
 {
@@ -59,6 +60,25 @@ class CanonicalCheck extends AbstractCheck
 
     public function run(PageAnalysis $analysis): CheckResult
     {
+        # A canonical page picked in the tree that cannot be used: the page silently points to itself (or to its
+        # canonical URL) instead, which is not what the editor chose
+        $page = $analysis->getPage();
+        [$state, $picked] = $page->hasMethod('canonicalPageState') ? $page->canonicalPageState() : ['', null];
+        if ($state === 'unpublished') {
+            return $this->fail(
+                $this->_t(__CLASS__ . '.PageUnpublished', 'The page chosen as canonical page is not published, so this page does not point to it yet.'),
+                [(string) $picked->Title],
+                $this->_t(__CLASS__ . '.PageUnpublishedFix', 'Publish the chosen page, or choose another one under Canonical page.')
+            );
+        }
+        if ($state === 'missing') {
+            return $this->fail(
+                $this->_t(__CLASS__ . '.PageMissing', 'The page chosen as canonical page no longer exists, so this page does not point to it.'),
+                [],
+                $this->_t(__CLASS__ . '.PageMissingFix', 'Choose another page under Canonical page, or empty the field.')
+            );
+        }
+
         $hrefs = array_values(array_filter(array_map(
             fn (array $link) => trim((string) ($link['href'] ?? '')),
             $analysis->head()->links('canonical')

@@ -31,6 +31,7 @@ use SilverStripe\Forms\Tab;
 use SilverStripe\Forms\TabSet;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
+use SilverStripe\Forms\TreeDropdownField;
 use SilverStripe\i18n\i18n;
 use SilverStripe\Model\List\SS_List;
 use SilverStripe\ORM\DataObject;
@@ -77,6 +78,8 @@ use Throwable;
  * @property bool $MetaRobotsNoSnippet
  * @property bool $MetaRobotsNoCache
  * @property string $CanonicalURL
+ * @property int $CanonicalPageID
+ * @method SiteTree CanonicalPage()
  * @property string $SEOFBdescription
  * @property int $OGImageID
  * @method Image OGImage()
@@ -93,9 +96,17 @@ class SeoSiteTreeExtension extends Extension
         'MetaRobotsNoFollow',
         'MetaRobotsNoSnippet',
         'MetaRobotsNoCache',
+        'CanonicalPageID',
         'CanonicalURL',
         'SEOFBdescription',
         'OGImage',
+    ];
+
+    /**
+     * Names a project may use in `seo_hidden_fields` / `seo_readonly_fields` for a field named after its column.
+     */
+    protected const FIELD_ALIASES = [
+        'CanonicalPage' => 'CanonicalPageID',
     ];
 
     private static array $db = [
@@ -113,6 +124,9 @@ class SeoSiteTreeExtension extends Extension
 
     private static array $has_one = [
         'OGImage' => Image::class,
+        # A page of this site as the canonical, picked in the page tree; wins over CanonicalURL, which stays for
+        # an original on another site. Its published link is read when the page renders (SeoCanonicalURL)
+        'CanonicalPage' => SiteTree::class,
     ];
 
     /**
@@ -135,6 +149,8 @@ class SeoSiteTreeExtension extends Extension
             'MetaRobotsNoSnippet',
             'MetaRobotsNoCache',
             'CanonicalURL',
+            'CanonicalPage',
+            'CanonicalPageID',
             'SEOFBdescription',
             'OGImage',
         ],
@@ -390,11 +406,19 @@ class SeoSiteTreeExtension extends Extension
                 CheckboxField::create('MetaRobotsNoSnippet', $page->fieldLabel('MetaRobotsNoSnippet')),
                 CheckboxField::create('MetaRobotsNoCache', $page->fieldLabel('MetaRobotsNoCache'))
             )->setName('SeoRobots')->setTitle(_t(__CLASS__ . '.RobotsHeader', 'Search engine indexing')),
+            # A page of this site, picked in the tree: it follows the page when it is renamed or moved
+            TreeDropdownField::create('CanonicalPageID', $page->fieldLabel('CanonicalPage'), SiteTree::class)
+                # The page itself is its own canonical already
+                ->setDisableFunction(fn ($node) => $page->isInDB() && (int) $node->ID === (int) $page->ID)
+                ->setDescription(_t(
+                    __CLASS__ . '.CanonicalPageHelp',
+                    'Only when this page duplicates another page of this site: choose the original. It takes precedence over the canonical URL below, and is used once it is published. Leave empty and the page points to itself.'
+                )),
             TextField::create('CanonicalURL', $page->fieldLabel('CanonicalURL'))
                 ->setAttribute('placeholder', $page->isInDB() ? (string) $this->SeoCanonicalURL() : '')
                 ->setDescription(_t(
                     __CLASS__ . '.CanonicalHelp',
-                    'Only when this page duplicates another one: the URL of the original (https://... or a path starting with /). Leave empty and the page points to itself.'
+                    'Only when this page duplicates a page on another site: the full URL of the original (https://...). For a page of this site, choose it under Canonical page instead, which takes precedence. Leave both empty and the page points to itself.'
                 )),
             HeaderField::create('SeoSharingHeader', _t(__CLASS__ . '.SharingHeader', 'Social media and sharing'), 4),
             TextareaField::create('SEOFBdescription', $page->fieldLabel('SEOFBdescription'))
@@ -491,14 +515,16 @@ class SeoSiteTreeExtension extends Extension
     {
         $config = $this->getOwner()->config();
         $own = array_merge(static::EDITABLE_FIELDS, ['MetaDescription']);
-        $hidden = array_values(array_intersect($own, (array) $config->get('seo_hidden_fields')));
+        # The relation's name (CanonicalPage) stands for its field (CanonicalPageID)
+        $names = fn (array $list) => array_map(fn ($name) => static::FIELD_ALIASES[$name] ?? $name, $list);
+        $hidden = array_values(array_intersect($own, $names((array) $config->get('seo_hidden_fields'))));
         foreach ($hidden as $name) {
             # Searches the tabs and the Metadata toggle; only the data field, never a container of that name
             $fields->removeByName($name, true);
         }
 
         $transformation = ReadonlyTransformation::create();
-        $readonly = array_diff(array_intersect($own, (array) $config->get('seo_readonly_fields')), $hidden);
+        $readonly = array_diff(array_intersect($own, $names((array) $config->get('seo_readonly_fields'))), $hidden);
         foreach ($readonly as $name) {
             $field = $fields->dataFieldByName($name);
             if ($field && !$field->isReadonly()) {
@@ -595,6 +621,8 @@ class SeoSiteTreeExtension extends Extension
         $labels['MetaRobotsNoSnippet'] = _t(__CLASS__ . '.MetaRobotsNoSnippet', 'No text snippet in search results (nosnippet)');
         $labels['MetaRobotsNoCache'] = _t(__CLASS__ . '.MetaRobotsNoCache', 'No cached copy in search engines (noarchive)');
         $labels['CanonicalURL'] = _t(__CLASS__ . '.CanonicalURL', 'Canonical URL');
+        $labels['CanonicalPage'] = _t(__CLASS__ . '.CanonicalPage', 'Canonical page');
+        $labels['CanonicalPageID'] = $labels['CanonicalPage'];
         $labels['SEOFBdescription'] = _t(__CLASS__ . '.SEOFBdescription', 'Sharing description');
         $labels['OGImage'] = _t(__CLASS__ . '.OGImage', 'Sharing image');
     }
@@ -725,7 +753,8 @@ class SeoSiteTreeExtension extends Extension
      *
      * Without an override this is the page's own URL, without its query string except for the parameters in
      * `seo_canonical_query_params`. An action URL (`/page/action/id`) is its own canonical rather than pointing
-     * at the page, since it shows different content. A shown record (SEO subject) gives its own link; a virtual
+     * at the page, since it shows different content. A shown record (SEO subject) gives its own link; a picked
+     * canonical page ({@see SeoCanonicalPage()}) its published link, before the free-text override; a virtual
      * page points at the page it copies, since it is a duplicate of that page by definition. The site root keeps
      * its slash ("https://host/"), see withRootPath().
      *
@@ -742,8 +771,13 @@ class SeoSiteTreeExtension extends Extension
 
         $override = trim((string) $page->CanonicalURL);
         $source = $page instanceof VirtualPage ? $page->ContentSource() : null;
+        $canonicalPage = $this->SeoCanonicalPage();
         if ($subject = $this->SeoSubjectMetadata()) {
             $url = $subject->canonicalURL();
+        } elseif ($canonicalPage) {
+            # The published page's link, without the ?stage= a draft reading mode adds. A virtual page copies
+            # the pick from its source, so this also covers that case
+            $url = strtok((string) $canonicalPage->AbsoluteLink(), '?') ?: null;
         } elseif ($override !== '' && static::isValidCanonicalInput($override)) {
             # A virtual page copies the override from its source, so this branch also covers that case
             $url = Director::absoluteURL($override) ?: null;
@@ -775,6 +809,43 @@ class SeoSiteTreeExtension extends Extension
 
         $page->extend('updateSeoCanonicalURL', $url, $request);
         return $url ?: null;
+    }
+
+    /**
+     * The picked canonical page (CanonicalPage) as published, or null: none picked, the page itself, or one that
+     * is not published (any more) or no longer exists. Then the page falls back to the canonical it would have
+     * without it, and the canonical check reports the pick ({@see canonicalPageState()}).
+     */
+    public function SeoCanonicalPage(): ?SiteTree
+    {
+        $page = $this->getOwner();
+        $id = (int) $page->CanonicalPageID;
+        if ($id <= 0 || $id === (int) $page->ID) {
+            return null;
+        }
+        $live = Versioned::get_by_stage(SiteTree::class, Versioned::LIVE)->byID($id);
+        return $live instanceof SiteTree ? $live : null;
+    }
+
+    /**
+     * What became of the picked canonical page: '' when none is picked (or the page itself), 'published',
+     * 'unpublished' (a draft only) or 'missing' (archived or deleted). The draft record is returned along for
+     * an unpublished one, so a message can name it.
+     *
+     * @return array{0: string, 1: ?SiteTree}
+     */
+    public function canonicalPageState(): array
+    {
+        $page = $this->getOwner();
+        $id = (int) $page->CanonicalPageID;
+        if ($id <= 0 || $id === (int) $page->ID) {
+            return ['', null];
+        }
+        if ($live = $this->SeoCanonicalPage()) {
+            return ['published', $live];
+        }
+        $draft = Versioned::get_by_stage(SiteTree::class, Versioned::DRAFT)->byID($id);
+        return $draft instanceof SiteTree ? ['unpublished', $draft] : ['missing', null];
     }
 
     /**

@@ -32,6 +32,10 @@ en:
     FailTitle: 'Canonical URL is wrong'
     HowToFix: 'Leave the canonical URL empty unless this page duplicates another one. If the template or another module prints a canonical too, ask the developer to keep only one.'
     Invalid: 'The canonical URL is not a complete URL (https://...).'
+    PageMissing: 'The page chosen as canonical page no longer exists, so this page does not point to it.'
+    PageMissingFix: 'Choose another page under Canonical page, or empty the field.'
+    PageUnpublished: 'The page chosen as canonical page is not published, so this page does not point to it yet.'
+    PageUnpublishedFix: 'Publish the chosen page, or choose another one under Canonical page.'
     PassTitle: 'Canonical URL is right'
     Several: 'The page has more than one canonical URL.'
     Title: 'Canonical URL'
@@ -230,8 +234,10 @@ en:
     SeoTitleSuffixHelp: 'Added after every page title in search results, e.g. "About us | Your Site". Leave empty to use the site title.'
     TabTitle: SEO
   Restruct\Silverstripe\SEO\Extensions\SeoSiteTreeExtension:
-    CanonicalHelp: 'Only when this page duplicates another one: the URL of the original (https://... or a path starting with /). Leave empty and the page points to itself.'
+    CanonicalHelp: 'Only when this page duplicates a page on another site: the full URL of the original (https://...). For a page of this site, choose it under Canonical page instead, which takes precedence. Leave both empty and the page points to itself.'
     CanonicalInvalid: 'The canonical URL must start with https://, http:// or /.'
+    CanonicalPage: 'Canonical page'
+    CanonicalPageHelp: 'Only when this page duplicates another page of this site: choose the original. It takes precedence over the canonical URL below, and is used once it is published. Leave empty and the page points to itself.'
     CanonicalURL: 'Canonical URL'
     MetaRobotsNoCache: 'No cached copy in search engines (noarchive)'
     MetaRobotsNoFollow: 'Do not follow the links on this page (nofollow)'

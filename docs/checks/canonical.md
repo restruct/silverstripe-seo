@@ -9,6 +9,8 @@ Heading in the panel: "Canonical URL is right" when it passes, "Canonical URL is
 
 The canonical URL(s) in the rendered head: more than one with different values, not a complete http(s) URL, or pointing at another URL than the page's own. No canonical passes.
 
+A canonical page picked in the page tree (`CanonicalPage`) that is not published, or no longer exists, fails too: the page then falls back to its own canonical, so the head alone would pass while the editor's choice is not in effect. The message names the unpublished page.
+
 ## Why
 
 A canonical pointing elsewhere asks search engines to list that URL instead of this page. That is right for a real duplicate and wrong for anything else.
