@@ -8,6 +8,12 @@ All notable changes to this module are documented here. The format follows
 
 ### Changed
 
+- The alt text checks name an image by its file instead of the URL of the variant the page shows
+  (`photo__FitWz..._ExtRewriteWy....webp`): the URL is parsed back to the original with core's file ID helpers
+  (an `ExtRewrite` variant under its original extension), and the File record is shown by its title, linked to
+  its edit form in the Files admin. A URL that is no file of this site (another host, an unknown path) is shown
+  as rendered. Stored details carry the URL (`CheckMessage::file()`), so a renamed file shows its new title.
+
 - Ignored checks are listed in the folded list of passed checks, after the passed ones and marked "Ignored",
   instead of in an "Ignored for this page" block of their own. The fold's summary counts both ("18 checks OK,
   2 ignored"), and "Check again" is an icon button with a tooltip, styled like the ignore button.

@@ -616,7 +616,9 @@ In the page editor, at the top of the **SEO** tab:
 
 - **SEO checks**: "1 problem, 2 warnings, 3 tips", then the failing checks per group (indexing, title,
   description, content, images, links, structured data, social, URL), each with its priority, the message,
-  details (the image sources or links concerned) and how to fix it. There is no score: severity says how bad it
+  details (the images or links concerned) and how to fix it. An image is named by its file, linked to its
+  edit form in the Files admin, also when the page shows a resized or converted variant; an image that is no
+  file of this site keeps its URL. There is no score: severity says how bad it
   is (problem / warning / tip), priority how much it matters (high / medium / low, an outlined badge).
   A failing check is headed by what was found ("Title is not unique") next to its severity badge; the passed
   checks fold away under their count, each headed by what is right ("Title is unique") and marked **OK**; checks

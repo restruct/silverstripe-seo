@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Checks\Rules;
 
 use Restruct\Silverstripe\SEO\Checks\AbstractCheck;
+use Restruct\Silverstripe\SEO\Checks\CheckMessage;
 use Restruct\Silverstripe\SEO\Checks\CheckResult;
 use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
 
@@ -87,7 +88,8 @@ class ImageAltQualityCheck extends AbstractCheck
                 # Missing or decorative: check 11's business
                 continue;
             }
-            $src = static::short((string) $img->getAttribute('src'), 80);
+            # Stored as the URL the page shows; shown as the file it is a variant of, when it is one
+            $src = CheckMessage::file(trim((string) $img->getAttribute('src')));
             $reason = $this->problemWith($alt);
             if ($reason === null) {
                 $key = mb_strtolower($alt);

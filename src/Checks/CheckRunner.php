@@ -254,6 +254,8 @@ class CheckRunner
             $entry['goalTitle'] = $this->displayTitle((string) $id, '', $entry['title'] ?? '');
             $entry['title'] = $this->displayTitle((string) $id, (string) ($entry['status'] ?? ''), $entry['title'] ?? '');
             $entry['message'] = CheckMessage::text($entry['message'] ?? '');
+            # The panel shows the details as HTML, escaped, with file references linked to the Files admin
+            $entry['detailsHtml'] = array_map([CheckMessage::class, 'html'], (array) ($entry['details'] ?? []));
             $entry['details'] = array_map([CheckMessage::class, 'text'], (array) ($entry['details'] ?? []));
             $howToFix = CheckMessage::text($entry['howToFix'] ?? '');
             if (($entry['status'] ?? '') === CheckResult::FAIL && $howToFix === '' && $check) {

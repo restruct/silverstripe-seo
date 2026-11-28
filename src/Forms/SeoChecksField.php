@@ -8,6 +8,7 @@ use Restruct\Silverstripe\SEO\Checks\CheckRunner;
 use Restruct\Silverstripe\SEO\Control\SeoCheckController;
 use Restruct\Silverstripe\SEO\Model\SeoCheckResult;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Convert;
 use SilverStripe\Forms\FormField;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\Model\List\ArrayList;
@@ -298,8 +299,13 @@ class SeoChecksField extends FormField
             'PriorityLabel' => static::priorityLabel((string) ($entry['priority'] ?? '')),
             'Message' => (string) ($entry['message'] ?? ''),
             'Details' => ArrayList::create(array_map(
-                fn ($detail) => ArrayData::create(['Text' => (string) $detail]),
-                (array) ($entry['details'] ?? [])
+                fn ($detail, $html) => ArrayData::create([
+                    'Text' => (string) $detail,
+                    # Escaped by CheckMessage::html(), with only its own links to the Files admin
+                    'HTML' => DBField::create_field('HTMLFragment', $html ?? Convert::raw2xml((string) $detail)),
+                ]),
+                array_values((array) ($entry['details'] ?? [])),
+                array_pad(array_values((array) ($entry['detailsHtml'] ?? [])), count((array) ($entry['details'] ?? [])), null)
             )),
             'HowToFix' => (string) ($entry['howToFix'] ?? ''),
             'Docs' => (string) ($entry['docs'] ?? ''),

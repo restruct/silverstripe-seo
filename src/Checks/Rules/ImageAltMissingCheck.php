@@ -3,6 +3,7 @@
 namespace Restruct\Silverstripe\SEO\Checks\Rules;
 
 use Restruct\Silverstripe\SEO\Checks\AbstractCheck;
+use Restruct\Silverstripe\SEO\Checks\CheckMessage;
 use Restruct\Silverstripe\SEO\Checks\CheckResult;
 use Restruct\Silverstripe\SEO\Checks\PageAnalysis;
 
@@ -58,7 +59,8 @@ class ImageAltMissingCheck extends AbstractCheck
         $missing = [];
         foreach ($analysis->query('.//img') as $img) {
             if (!$img->hasAttribute('alt')) {
-                $missing[] = static::short($img->getAttribute('src') ?: $img->getAttribute('data-src'), 120);
+                # Stored as the URL the page shows; shown as the file it is a variant of, when it is one
+                $missing[] = CheckMessage::file(trim($img->getAttribute('src') ?: $img->getAttribute('data-src')));
             }
         }
         if (!$missing) {

@@ -9,6 +9,8 @@ Heading in the panel: "Images have alt text" when it passes, "Images lack alt te
 
 Images in the content area (blocks and template images included) without an `alt` attribute. An empty alt (`alt=""`) passes: HTML defines it as the mark of a decorative image, with or without `role="presentation"` or `aria-hidden="true"`.
 
+Each image is listed by its file: a variant URL (resized, or converted to another format such as `photo__FitWz..._ExtRewriteWy....webp`) is parsed back to the original with core's file ID helpers, and the File record is shown by its title, linked to its edit form in the Files admin. An image that is no file of this site (another host, an unknown path) is listed by its URL as rendered.
+
 ## Why
 
 Google uses alt text to understand images, and it is what screen readers read out. Decided on review (2026-11-25): a bare empty alt is accepted as decorative, as the HTML spec has it, although editors sometimes leave the field empty by accident; whether an image really is decorative cannot be told from the markup.

@@ -52,7 +52,8 @@
                         <p class="seo-checks__message">$Message</p>
                         <% if $Details.Count %>
                             <ul class="seo-checks__details">
-                                <% loop $Details %><li>$Text</li><% end_loop %>
+                                <%-- HTML that CheckMessage::html() escaped, with files linked to the Files admin --%>
+                                <% loop $Details %><li>$HTML</li><% end_loop %>
                             </ul>
                         <% end_if %>
                         <% if $HowToFix %>
