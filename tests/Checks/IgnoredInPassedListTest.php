@@ -52,8 +52,11 @@ class IgnoredInPassedListTest extends ChecksTestCase
         $this->assertMatchesRegularExpression('#<li[^>]*seo-checks__item--ignored[^>]*data-check="placeholder-text"#', $passed);
         # Still says who ignored it
         $this->assertStringContainsString('Ignored by', $passed);
-        # Not listed among the failures either
-        $this->assertStringNotContainsString('font-icon-eye-with-line', $html);
+        # Not listed among the failures either: no ignore button for them (other checks, the sharing image say,
+        # may still fail on this page)
+        $this->assertStringNotContainsString('data-check="h1-missing" data-ignore="1"', $html);
+        $this->assertStringNotContainsString('data-check="placeholder-text" data-ignore="1"', $html);
+        $this->assertStringContainsString('data-ignore="1"', $html, 'control: the failures do have ignore buttons');
     }
 
     public function testTheSummaryCountsPassedAndIgnoredChecks(): void
