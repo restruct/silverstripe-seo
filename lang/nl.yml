@@ -276,7 +276,9 @@ nl:
     HowToFix: 'Oplossen:'
     Ignore: 'Negeren voor deze pagina'
     IgnoredBy: 'Genegeerd door {name} op {date}.'
-    IgnoredTitle: 'Genegeerd voor deze pagina'
+    IgnoredCount:
+      one: '{count} genegeerd'
+      other: '{count} genegeerd'
     MoreAbout: 'Over deze controle'
     MsgChecking: 'Bezig met controleren...'
     MsgClose: Sluiten
@@ -286,7 +288,9 @@ nl:
     MsgLoading: 'Bezig met laden...'
     MsgNotStarted: 'De controle kon niet starten.'
     NotChecked: 'Nog niet gecontroleerd.'
-    Passed: '{count} controles zijn goed.'
+    PassedOK:
+      one: '{count} controle OK'
+      other: '{count} controles OK'
     PriorityHigh: 'Hoge prioriteit'
     PriorityLow: 'Lage prioriteit'
     PriorityMedium: 'Gemiddelde prioriteit'
@@ -296,9 +300,10 @@ nl:
     SeverityWarning: 'Waarschuwing'
     SkippedTitle: 'Niet gecontroleerd'
     StatusFail: 'Niet gehaald'
+    StatusIgnored: Genegeerd
     StatusPass: OK
     StatusSkipped: 'Niet gecontroleerd'
-    Unignore: 'Weer controleren'
+    Unignore: 'Weer controleren voor deze pagina'
   Restruct\Silverstripe\SEO\Forms\SeoSnippetPreviewField:
     DescriptionLength: 'Lengte van de beschrijving:'
     DescriptionRange: 'tekens (ongeveer {min} tot {max} leest goed)'

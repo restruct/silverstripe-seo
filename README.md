@@ -626,7 +626,8 @@ In the page editor, at the top of the **SEO** tab:
   the check's how-to-fix advice. Admins also get the check's spec (`docs/checks/<id>.md`, English) folded under
   "For developers". Without JavaScript, and for a project's own check, the icon is a link to the published spec.
 - **Ignore for this page**: the icon button at the top right of a finding ignores a check where the page is fine
-  as it is; it is stored with who and when, listed as ignored and not counted.
+  as it is; it is stored with who and when and not counted. Ignored checks are listed in the folded list of
+  passed checks ("18 checks OK, 2 ignored"), marked **Ignored**, each with an icon button to check it again.
 - **Search result preview** below the panel, above the fields: title, URL breadcrumb and description, with the title's
   approximate width and the description's length, updated on every keystroke. The numbers are the checks' own
   thresholds, passed from PHP config, so the counter and the checks agree.

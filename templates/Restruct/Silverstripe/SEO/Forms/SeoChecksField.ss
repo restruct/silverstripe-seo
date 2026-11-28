@@ -66,10 +66,12 @@
         </div>
     <% end_loop %>
 
-    <%-- Passed checks fold away under their count: each under its pass title, so the list reads as what is right --%>
-    <% if $HasResult && $PassedCount %>
+    <%-- Passed checks fold away under their count: each under its pass title, so the list reads as what is right.
+         Ignored checks are listed in the same fold, after the passed ones, each with its icon button to check it
+         again (product owner's call, 2026-11-28: no block of their own) --%>
+    <% if $HasPassedList %>
         <details class="seo-checks__passed">
-            <summary><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.Passed '{count} checks passed.' count=$PassedCount %></summary>
+            <summary>$PassedSummary</summary>
             <ul class="seo-checks__list">
                 <% loop $Passed %>
                     <li class="seo-checks__item seo-checks__item--pass">
@@ -77,25 +79,20 @@
                         <span class="seo-checks__title">$Title</span>
                     </li>
                 <% end_loop %>
-            </ul>
-        </details>
-    <% end_if %>
-
-    <% if $Ignored.Count %>
-        <div class="seo-checks__ignored">
-            <h4 class="seo-checks__group-title"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.IgnoredTitle 'Ignored for this page' %></h4>
-            <ul class="seo-checks__list">
                 <% loop $Ignored %>
                     <li class="seo-checks__item seo-checks__item--ignored" data-check="$ID.ATT">
-                        <strong class="seo-checks__title">$Title</strong>: $Message
+                        <%-- First in the item, floated to its top right like the ignore button of a finding --%>
+                        <button type="button" class="btn btn-link btn-sm btn--no-text btn--icon-md font-icon-eye seo-checks__ignore seo-checks__ignore--icon seo-checks__tip"
+                                data-check="$ID.ATT" data-ignore="0" data-bs-toggle="tooltip" data-bs-placement="left"
+                                title="$UnignoreLabel.ATT"
+                                aria-label="$UnignoreLabel.ATT"></button>
+                        <span class="seo-checks__state seo-checks__state--ignored">$IgnoredStateLabel</span>
+                        <span class="seo-checks__title">$Title</span>
                         <em class="seo-checks__ignored-by"><%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.IgnoredBy 'Ignored by {name} on {date}.' name=$IgnoredByName date=$IgnoredDate %></em>
-                        <button type="button" class="btn btn-link btn-sm seo-checks__ignore" data-check="$ID.ATT" data-ignore="0">
-                            <%t Restruct\\Silverstripe\\SEO\\Forms\\SeoChecksField.Unignore 'Check again' %>
-                        </button>
                     </li>
                 <% end_loop %>
             </ul>
-        </div>
+        </details>
     <% end_if %>
 
     <% if $Skipped.Count %>

@@ -276,7 +276,9 @@ en:
     HowToFix: 'How to fix:'
     Ignore: 'Ignore for this page'
     IgnoredBy: 'Ignored by {name} on {date}.'
-    IgnoredTitle: 'Ignored for this page'
+    IgnoredCount:
+      one: '{count} ignored'
+      other: '{count} ignored'
     MoreAbout: 'About this check'
     MsgChecking: 'Checking...'
     MsgClose: Close
@@ -286,7 +288,9 @@ en:
     MsgLoading: 'Loading...'
     MsgNotStarted: 'Could not start the check.'
     NotChecked: 'Not checked yet.'
-    Passed: '{count} checks passed.'
+    PassedOK:
+      one: '{count} check OK'
+      other: '{count} checks OK'
     PriorityHigh: 'High priority'
     PriorityLow: 'Low priority'
     PriorityMedium: 'Medium priority'
@@ -296,9 +300,10 @@ en:
     SeverityWarning: Warning
     SkippedTitle: 'Not checked'
     StatusFail: 'Not met'
+    StatusIgnored: Ignored
     StatusPass: OK
     StatusSkipped: 'Not checked'
-    Unignore: 'Check again'
+    Unignore: 'Check again for this page'
   Restruct\Silverstripe\SEO\Forms\SeoSnippetPreviewField:
     DescriptionLength: 'Description length:'
     DescriptionRange: 'characters (about {min} to {max} reads well)'

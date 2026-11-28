@@ -6,6 +6,12 @@ All notable changes to this module are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Ignored checks are listed in the folded list of passed checks, after the passed ones and marked "Ignored",
+  instead of in an "Ignored for this page" block of their own. The fold's summary counts both ("18 checks OK,
+  2 ignored"), and "Check again" is an icon button with a tooltip, styled like the ignore button.
+
 ## [0.7.1] - 2026-11-27
 
 ### Changed

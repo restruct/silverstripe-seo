@@ -145,6 +145,22 @@
     margin-left: 0;
 }
 
+/* An ignored check in the folded list of passed checks: muted, after the passed ones */
+.seo-checks__state--ignored {
+    margin-left: 0;
+}
+
+.seo-checks__passed .seo-checks__item--ignored {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+}
+
+.seo-checks__ignored-by {
+    margin-left: 6px;
+    font-size: .85em;
+}
+
 .seo-checks__item--pass {
     border-left-color: #2a7a2a;
     padding-top: 2px;

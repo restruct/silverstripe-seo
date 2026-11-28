@@ -16,7 +16,8 @@ use SilverStripe\ORM\FieldType\DBField;
 
 /**
  * The SEO checks panel of a page: the counts ("1 problem, 2 warnings"), then the failing checks grouped, each
- * with its priority, message, details and how to fix it, and the ignored and skipped checks below. No score.
+ * with its priority, message, details and how to fix it, the passed and ignored checks folded away below them,
+ * and the skipped checks last. No score.
  *
  * Rendered on the server from the stored result, so it works without JavaScript. The script
  * (client/dist/js/seo-checks.js) adds the "re-check" and "ignore" buttons' behaviour, and re-checks after a save
@@ -243,6 +244,35 @@ class SeoChecksField extends FormField
         return count(array_filter($this->entries(), fn ($e) => $e['status'] === CheckResult::PASS));
     }
 
+    public function getIgnoredCount(): int
+    {
+        return $this->getIgnored()->count();
+    }
+
+    /**
+     * The summary of the folded list: "18 checks OK, 2 ignored", leaving out the ignored count when there are
+     * none. Ignored checks are listed in the same fold as the passed ones (product owner's call, 2026-11-28).
+     */
+    public function getPassedSummary(): string
+    {
+        $passed = $this->getPassedCount();
+        $ignored = $this->getIgnoredCount();
+        # i18n plurals: one form per CLDR category, pipe-separated
+        $parts = [_t(__CLASS__ . '.PassedOK', '{count} check OK|{count} checks OK', ['count' => $passed])];
+        if ($ignored > 0) {
+            $parts[] = _t(__CLASS__ . '.IgnoredCount', '{count} ignored|{count} ignored', ['count' => $ignored]);
+        }
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Whether the folded list has anything to show: passed or ignored checks.
+     */
+    public function getHasPassedList(): bool
+    {
+        return $this->getHasResult() && ($this->getPassedCount() > 0 || $this->getIgnoredCount() > 0);
+    }
+
     /**
      * @return array<string, array>
      */
@@ -280,6 +310,8 @@ class SeoChecksField extends FormField
                 : '',
             # Tooltip and aria-label of the icon controls, here so the template can escape them for an attribute
             'IgnoreLabel' => _t(__CLASS__ . '.Ignore', 'Ignore for this page'),
+            'UnignoreLabel' => _t(__CLASS__ . '.Unignore', 'Check again for this page'),
+            'IgnoredStateLabel' => _t(__CLASS__ . '.StatusIgnored', 'Ignored'),
             'AboutLabel' => _t(__CLASS__ . '.MoreAbout', 'About this check'),
             # The render entry is not a check and cannot be ignored
             'CanIgnore' => ($entry['id'] ?? '') !== 'render',
