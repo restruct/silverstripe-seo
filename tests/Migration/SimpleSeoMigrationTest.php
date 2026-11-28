@@ -126,6 +126,24 @@ class SimpleSeoMigrationTest extends SeoMigrationTestCase
         $this->assertReportLine($again, 'CanonicalLinkID -> CanonicalURL [draft]:', ['copied 0', 'already same 3']);
     }
 
+    public function testAPlainPageLinkBecomesTheCanonicalPage(): void
+    {
+        # A link to a page without anchor or query string is a page-based canonical: it moves to the page
+        # picker (CanonicalPage), so it follows the page when it is renamed. With an anchor or query it stays a
+        # URL (see seed())
+        $master = $this->publishedPage('Master', ['URLSegment' => 'master']);
+        $copy = $this->publishedPage('Copy');
+        $this->link(7, 'SiteTreeLink', ['PageID' => $master->ID, 'Anchor' => '', 'QueryString' => '']);
+        $this->canonicalLink($copy->ID, 7);
+
+        $output = $this->runMigration('simpleseo', ['--apply' => true]);
+
+        $this->assertSame((string) $master->ID, (string) $this->raw('SiteTree', 'CanonicalPageID', $copy->ID));
+        $this->assertSame((string) $master->ID, (string) $this->raw('SiteTree_Live', 'CanonicalPageID', $copy->ID));
+        $this->assertEmpty($this->raw('SiteTree', 'CanonicalURL', $copy->ID), 'not copied as a URL as well');
+        $this->assertReportLine($output, 'CanonicalLinkID -> CanonicalPageID [draft]:', ['read 1', 'copied 1']);
+    }
+
     public function testWithoutLinkTablesTheLinksAreInvalid(): void
     {
         $page = $this->publishedPage('External');
